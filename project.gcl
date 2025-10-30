@@ -1,0 +1,54 @@
+@include("backend");
+
+@library("std", "7.3.302-stable");
+@library("explorer", "7.3.13-stable");
+//@library("strplus");
+
+@role("public", "files", "api");
+
+fn main() {
+    createAdmin();
+    info("MengPlaz Ready !");
+}
+
+fn bootstrap() {
+    createAdmin();
+
+    GoldenSource::init();
+    CaclrSource::init();
+    OsmSource::init();
+    BDAddressSource::init();
+
+    try {
+        CACLRLoader::load();
+        GoldenServices::fillFromCaclr();
+    } catch(e) {
+        error(e);
+    }
+
+    BDAddressLoader::load();
+    OSMLoader::load();
+}
+
+private fn createAdmin() {
+    var admLogin = System::getEnv("MENGPLAZ_ADMIN_LOGIN");
+    if(admLogin != null && User::getByName(admLogin) == null) {
+        var user = User {
+            id: 0, // will be overwritten after 
+            name: admLogin,
+            full_name: "Administrator",
+            email: "admin@mengplaz.lu",
+            activated: true,
+            role: "admin",
+            external: false
+        };
+
+        var id = SecurityEntity::set(user); // for updates: get user and set again (name is the key)
+        if (id == null) {
+            throw "Unexpected error: user could not be created in Greycat";
+        } else {
+            User::setPassword(user.name, System::getEnv("MENGPLAZ_ADMIN_PASS") as String);
+        }
+        info("MengPlaz Admin user created.");
+    }
+}

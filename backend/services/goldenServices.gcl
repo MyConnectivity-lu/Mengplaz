@@ -1,0 +1,298 @@
+
+
+
+type GoldenServices {
+    static UID_CHARS : String = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRDTUVWXYZ";
+    static fn generateUID(): String {
+         var res = "";
+         var rand = Random{};
+         for(var i = 0; i < 6; i++) {
+            res = "${res}${GoldenServices::UID_CHARS.get(rand.uniform(0, 62))}";
+         }
+         return res;
+    }
+
+
+
+    static fn searchCity(cityName: String, threshold: float): Array<Match<node<GoldenCity>>> {
+        var citiesMatches = Array<Match<node<GoldenCity>>>{};
+        for(_, nCity in golden_cities_by_id) {
+            var d = cityName.jarowinkler(nCity->name);
+            //var d = JaroWinkler::similarity(cityName, nCity->name);
+            if(d >= threshold) {
+                citiesMatches.add(Match<node<GoldenCity>>{score:d, elem: nCity});
+            } else {
+                for(_, alias in nCity->nameAliases) {
+                    var d = cityName.jarowinkler(alias.value);
+                    //var d = JaroWinkler::similarity(cityName, alias.name);
+                    if(d>=threshold) {
+                        citiesMatches.add(Match<node<GoldenCity>>{score:d, elem: nCity});
+                    }
+                }
+            }
+        }
+        citiesMatches.sort_by(Match.field_by_name("score")!!, SortOrder::desc);
+        return citiesMatches;
+    }
+
+    /// Tries to find matches and computes similarity with street names.
+    /// If nCity is provided, restricts the search to the streets of the given city.
+    /// Otherwise, global search. 
+    static fn searchStreet(streetName: String, threshold: float, nCity: node<GoldenCity>?): Array<Match<node<GoldenStreet>>> {
+        var streetsMatches = Array<Match<node<GoldenStreet>>>{};
+        var collection = golden_streets_by_id;
+        if(nCity != null) {
+            collection = nCity->streets_by_id;
+        }
+        for(_, nStreet in collection) {
+            var d: float;
+            if(nCity == null) {
+                //d = (100-streetName.levenshtein(nStreet->name))/100.0;
+                var sizes = streetName.size()+nStreet->name.size();
+                d = (sizes - streetName.levenshtein(nStreet->name))/(sizes * 1.0);
+            } else {
+                d = streetName.jarowinkler(nStreet->name);
+            }
+            //var d = JaroWinkler::similarity(streetName, nStreet->name);
+            if(d >= threshold) {
+                streetsMatches.add(Match<node<GoldenStreet>>{score:d, elem: nStreet});
+            } else {
+                for(_, alias in nStreet->nameAliases) {
+
+                    if(nCity == null) {
+                        //d = (100-streetName.levenshtein(nStreet->name))/100.0;
+                        var sizes = streetName.size()+alias.value.size();
+                        d = (sizes - streetName.levenshtein(alias.value))/(sizes * 1.0);
+                    } else {
+                        d = streetName.jarowinkler(alias.value);
+                    }
+                    //var d = streetName.jarowinkler(alias.name);
+                    //var d = JaroWinkler::similarity(streetName, alias.name);
+                    if(d >= threshold) {
+                        streetsMatches.add(Match<node<GoldenStreet>>{score:d, elem: nStreet});
+                    }
+                }
+            }
+        }
+        streetsMatches.sort_by(Match.field_by_name("score")!!, SortOrder::desc);
+        return streetsMatches;
+    }
+
+    /// Tries to find matches and computes similarity with street names.
+    /// If nStreet is provided, restricts the search to the streets of the given city.
+    /// Otherwise, global search. 
+    static fn searchPOI(postcode: String, number: String, multipleCode: String, threshold: float, nStreet: node<GoldenStreet>?): Array<BuildingMatch<node<GoldenPointOfInterest>>> {
+        var buildingMatches = Array<BuildingMatch<node<GoldenPointOfInterest>>>{};
+        var collection = golden_pois_by_id;
+        if(nStreet != null) {
+            collection = nStreet->pois_by_id;
+        }   
+        for(_, nBuilding in collection) {
+            
+            var dPostcode = postcode.jarowinkler(nBuilding->postCode);
+            //var dPostcode = JaroWinkler::similarity(postcode, nBuilding->postCode);
+            var dNumber = "${number}${multipleCode}".jarowinkler("${nBuilding->number}${nBuilding->multipleCode}");
+            //var dNumber = JaroWinkler::similarity("${number} ${multipleCode}", "${nBuilding->number} ${nBuilding->multipleCode}");
+            //var score = (dNumber+ (dPostcode*3))/4;
+            if(dPostcode >= threshold) {
+                var score = (dNumber+ (dPostcode*2))/3;
+                buildingMatches.add(BuildingMatch<node<GoldenPointOfInterest>>{
+                    numberScore: dNumber,
+                    postcodeScore: dPostcode,
+                    overallScore:score,
+                    elem: nBuilding
+                });
+            }
+        }
+        buildingMatches.sort_by(BuildingMatch.field_by_name("overallScore")!!, SortOrder::desc);
+        return buildingMatches;
+    }
+
+    static fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
+        var results = Array<mengplaz::SearchResult>{};
+        for(_, searchItem in req.items) {
+            results.add(GoldenServices::searchItem(searchItem, req.params));
+        }
+        return results;        
+    }
+
+    static fn searchItem(item: SearchItem, params: SearchParameters): mengplaz::SearchResult {
+        
+        var candidates = Array<CandidateMatch<node<POIRecordProvider>>>{};
+        var match: node?;
+        var citiesMatches = GoldenServices::searchCity(item.city, params.citySimilarityThreshold);
+        for(_, cityMatch in citiesMatches) {
+            var streetsMatches = GoldenServices::searchStreet(item.street, params.streetSimilarityThreshold, cityMatch.elem);
+            for(_, streetMatch in streetsMatches) {
+                var buildingMatches = GoldenServices::searchPOI(item.postcode, item.number, item.multipleCode, params.buildingSimilarityThreshold, streetMatch.elem);
+                for(_, buildingMatch in buildingMatches) {
+                    var overallScore = (cityMatch.score*4 + streetMatch.score*3 + buildingMatch.postcodeScore*3 + buildingMatch.numberScore) / 11.0;
+                    if(candidates.size() < params.maxCandidatesPerItem) {
+                        candidates.add(CandidateMatch<node<POIRecordProvider>>{
+                            cityScore: cityMatch.score,
+                            streetScore: streetMatch.score,
+                            numberScore: buildingMatch.numberScore,
+                            postcodeScore: buildingMatch.postcodeScore,
+                            overallScore:overallScore,
+                            elem: buildingMatch.elem,
+                        });
+                    } else if(overallScore > candidates[candidates.size()-1].overallScore) {
+                        candidates.set(candidates.size()-1, CandidateMatch<node<POIRecordProvider>>{
+                            cityScore: cityMatch.score,
+                            streetScore: streetMatch.score,
+                            numberScore: buildingMatch.numberScore,
+                            postcodeScore: buildingMatch.postcodeScore,
+                            overallScore:overallScore,
+                            elem: buildingMatch.elem,
+                        });
+                        candidates.sort_by(CandidateMatch.field_by_name("overallScore")!!, SortOrder::desc);
+                    }
+                    if(overallScore == 1.0) {
+                        match = buildingMatch.elem;
+                        break;
+                    }
+                }                
+                if(match != null) {
+                    break;
+                }
+            }
+            if(match != null) {
+                break;
+            }
+        }
+
+
+        var result = mengplaz::SearchResult {
+            item: item,
+            candidates: candidates,
+        };
+        return result;        
+    }
+
+    
+    static fn fillFromCaclr() {
+        for(constCode,nConstituency in caclr_consistuency_by_code) {
+            var nGoldenConstituency = node<GoldenConstituency>{
+                GoldenConstituency{
+                    code: nConstituency->code,
+                    name: nConstituency->name,
+                    nameAliases: Array<Alias>{},
+                    cantons_by_id: nodeIndex<String, node<GoldenCanton>>{},
+                }
+            };
+            golden_consistuency_by_code.set(constCode, nGoldenConstituency);
+
+            for(cantonId, nCanton in nConstituency->cantons_by_id) {
+                var nGoldenCanton = node<GoldenCanton>{
+                    GoldenCanton{
+                        id: nCanton->id,
+                        name: nCanton->name,
+                        nameAliases: Array<Alias>{},
+                        lastUpdate: nCanton->lastUpdate,
+                        constituency: nGoldenConstituency,
+                        municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>{},
+                    }
+                };
+                nGoldenConstituency->cantons_by_id.set(cantonId, nGoldenCanton);
+                golden_cantons_by_id.set(cantonId, nGoldenCanton);
+
+                for(municipalityId, nMunicipality in nCanton->municipalities_by_id) {
+                    var nGoldenMunicipality = node<GoldenMunicipality>{
+                        GoldenMunicipality{
+                            id: nMunicipality->id,
+                            name: nMunicipality->name,
+                            nameAliases: Array<Alias>{},
+                            lastUpdate: nMunicipality->lastUpdate,
+                            canton: nGoldenCanton,
+                            cities_by_id: nodeIndex<String, node<GoldenCity>>{},
+                        }
+                    };
+                    nGoldenCanton->municipalities_by_id.set(municipalityId, nGoldenMunicipality);
+                    golden_municipalities_by_id.set(municipalityId, nGoldenMunicipality);
+
+
+                    for(cityId, nCity in nMunicipality->cities_by_id) {
+                        var nGoldenCity = node<GoldenCity>{
+                            GoldenCity{
+                                id: nCity->id,
+                                name: nCity->name,
+                                nameAliases: Array<Alias>{},
+                                lastUpdate: nCity->lastUpdate,
+                                municipality: nGoldenMunicipality,
+                                streets_by_id: nodeIndex<String, node<GoldenStreet>>{},
+                            }
+                        };
+                        for(_,alias in nCity->aliases) {
+                            nGoldenCity->nameAliases.add(clone(alias));
+                        }
+                        nGoldenMunicipality->cities_by_id.set(cityId, nGoldenCity);
+                        golden_cities_by_id.set(cityId, nGoldenCity);
+
+
+                        for(streetId, nStreet in nCity->streets_by_id) {
+                            var nGoldenStreet = node<GoldenStreet>{
+                                GoldenStreet{
+                                    id: nStreet->id,
+                                    name: nStreet->name,
+                                    nameAliases: Array<Alias>{},
+                                    lastUpdate: nStreet->lastUpdate,
+                                    city: nGoldenCity,
+                                    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>{},
+                                }
+                            };
+                            for(_,alias in nStreet->aliases) {
+                                nGoldenStreet->nameAliases.add(clone(alias));
+                            }
+                            nGoldenCity->streets_by_id.set(streetId, nGoldenStreet);
+                            golden_streets_by_id.set(streetId, nGoldenStreet);
+
+                            for(buildingId, nBuilding in nStreet->buildings_by_id) {
+
+                                var newUID: String;
+                                do {
+                                    newUID = GoldenServices::generateUID();
+                                } while(golden_pois_by_id.get(newUID) != null);
+
+                                var nGoldenPOI = node<GoldenPointOfInterest>{
+                                    GoldenPointOfInterest{
+                                        uid: newUID,
+                                        number: nBuilding->number,
+                                        multipleCode: nBuilding->multipleCode,
+                                        postCode: nBuilding->postalCode,
+                                        positions: Map<String, geo>{},
+                                        lastUpdate: nBuilding->lastUpdate,
+                                        street: nGoldenStreet,
+                                        linkedRecords: Array<node<POIRecordProvider>>{nBuilding},
+                                    }
+                                };
+                                nBuilding->linkToGolden(nGoldenPOI);
+                                nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+                                golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+                                
+                            }
+                        }
+                    }
+                }
+            }
+        }      
+    }
+
+    static fn createBbackup() {
+        var writer = GcbWriter<GoldenConstituency>{path: "./backups/${time::now()}.gcb"};
+        for(k, v in golden_consistuency_by_code) {
+            writer.write(*v);
+        }
+        writer.flush();
+    }
+
+    static fn restoreFromBackup(path: String) {
+        var reader = GcbReader<GoldenConstituency>{path: path};
+        while(reader.can_read()) {
+            var constutiency = reader.read();
+            golden_consistuency_by_code.set(constutiency.code, node<GoldenConstituency>{constutiency});
+        }
+    }
+}
+
+
+

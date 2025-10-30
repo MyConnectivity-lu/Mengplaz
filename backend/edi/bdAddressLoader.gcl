@@ -1,0 +1,114 @@
+
+
+@volatile
+type BDAddressLine {
+    /* CSV Headers
+    rue;numero;localite;code_postal;id_caclr_rue;id_caclr_bat;lat_wgs84;lon_wgs84;coord_est_luref;coord_nord_luref;id_geoportail;commune;lau2
+    */
+    
+    rue: String;
+    numero: String;
+    localite: String;
+    code_postal: String;
+    id_caclr_rue: int;
+    id_caclr_bat: int;
+    lat_wgs84: float;
+    lon_wgs84: float;
+    coord_est_luref: null;
+    coord_nord_luref: null;
+    id_geoportail: String;
+    commune : String;
+    lau2: null;
+}
+
+
+
+abstract type BDAddressLoader {
+
+    static fn load() {
+        var total = 0;
+        var httpClient = Http<Array<BDAddressLine>>{};
+        var httpRequest = HttpRequest{
+            url: "https://data.public.lu/fr/datasets/r/5cadc5b8-6a7d-4283-87bc-f9e58dd771f7",
+            method: HttpMethod::GET,
+        };
+        
+        var response = httpClient.send(httpRequest);
+        if(response.status_code == 302 && response.headers.get("location") != null) {
+            httpRequest.url = response.headers.get("location")!!;
+        }
+        
+        var path = "${File::workingDir()}/bd_addresses.csv";
+        httpClient.getFile(httpRequest.url, path, null);
+
+        var csvFormat = CsvFormat{header_lines:1, separator:';'};
+        var reader = CsvReader<BDAddressLine>{path: path, format: csvFormat};
+        
+        while(reader.can_read()) {
+            var record = reader.read();
+
+            var nMunicipality = bda_municipalities_by_name.get(record.commune);
+            if(nMunicipality == null) {
+                var municipality = BDAMunicipality {
+                    name: record.commune,
+                    cities: nodeIndex<String, node<BDACity>>{},
+                };
+                nMunicipality = node<BDAMunicipality>{municipality};
+                bda_municipalities_by_name.set(nMunicipality->name, nMunicipality);
+            }
+
+            var nCity = nMunicipality->cities.get(record.localite);
+            if(nCity == null) {
+                 var city = BDACity {
+                    name: record.commune,
+                    streets: nodeIndex<String, node<BDAStreet>>{},
+                };
+                nCity = node<BDACity>{city};
+                nMunicipality->cities.set(nCity->name, nCity);
+            }
+
+            var nStreet = nCity->streets.get(record.rue);
+            if(nStreet == null) {
+                 var street = BDAStreet {
+                    name: record.rue,
+                    id_caclr: record.id_caclr_rue,
+                    addresses: nodeIndex<String, node<BDAddress>>{},
+                };
+                nStreet = node<BDAStreet>{street};
+                nCity->streets.set(nStreet->name, nStreet);
+                bda_street_by_cacrid.set(nStreet->id_caclr, nStreet);
+            }
+
+            var nAddress = nStreet->addresses.get(record.numero);
+            if(nAddress == null) {
+                 var address = BDAddress {
+                    number: record.numero,
+                    postcode: record.code_postal,
+                    position: geo{record.lat_wgs84, record.lon_wgs84},
+
+                    id_caclr: record.id_caclr_bat,
+                    id_geoportail: record.id_geoportail,
+
+                    street: nStreet,
+                    city: nCity,
+                    municipatlity: nMunicipality,
+                    
+                };
+                nAddress = node<BDAddress>{address};
+                nStreet->addresses.set(nAddress->number, nAddress);
+                bda_address_by_cacrid.set(nAddress->id_caclr, nAddress);
+                bda_address_by_geoportalid.set(nAddress->id_geoportail, nAddress);
+                bda_address_by_geo.set(nAddress->position, nAddress);
+            }
+            total++;
+        }
+        File::delete(path);
+
+        info("Processed ${total} records.");
+    }
+
+}
+
+
+
+

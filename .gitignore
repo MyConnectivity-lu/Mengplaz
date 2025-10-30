@@ -1,0 +1,11 @@
+/webroot/
+/lib/
+/gcdata/
+/files/
+/data/
+.DS_Store
+/250901_gcdata/
+/node_modules/
+bin
+.env
+backup/

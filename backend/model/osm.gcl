@@ -1,0 +1,212 @@
+
+
+
+var osm_by_id: nodeList<node<OsmAddress>>;
+var osm_partial_by_id: nodeList<node<OsmPartialAddress>>;
+var osm_by_geo: nodeGeo<node<OsmAddress>>;
+var osm_partial_by_geo: nodeGeo<node<OsmPartialAddress>>;
+
+type OsmPartialAddress {
+    id: int;
+    position: geo?;
+    city: String?;
+    postcode: String?;
+    street: String?;
+    number: String?;
+    ref_caclr: String?;
+    map: Map;
+
+    static fn parse(elem: Map): OsmPartialAddress {
+        return OsmPartialAddress {
+            id: elem.get("id") as int,
+            map: elem,
+        };
+    }
+}
+
+type OsmAddress extends POIRecordProvider {
+    private id: int;
+    private position: geo;
+    private city: String;
+    private postcode: String;
+    private street: String;
+    private number: String;
+    private ref_caclr: String?;
+
+    private goldenRef: node<GoldenPointOfInterest>?;
+
+    static fn parse(elem: Map): OsmAddress {
+        var tags = elem.get("tags") as Map<String, String>;
+        var street = tags.get("addr:street") ?? tags.get("addr:place");
+        if (street == null) {
+            throw valueOf(AddrErr::STREET_MISSING);
+        }
+        var city = tags.get("addr:city");
+        if (city == null) {
+            throw valueOf(AddrErr::CITY_MISSING);
+        }
+        var postcode = tags.get("addr:postcode");
+        if (postcode == null) {
+            throw valueOf(AddrErr::POSTCODE_MISSING);
+        }
+
+        return OsmAddress {
+            id: elem.get("id") as int,
+            position: geo { elem.get("lat") as float, elem.get("lon") as float },
+            city: city,
+            postcode: postcode,
+            street: street,
+            number: tags.get("addr:housenumber") as String,
+            ref_caclr: tags.get("ref:caclr"),
+        };
+    }
+
+    fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
+        this.goldenRef = nGolden;
+    }
+    
+    fn unlinkGolden(me:node<POIRecordProvider>) {
+        if(this.goldenRef != null) {
+            var idx = this.goldenRef->linkedRecords.index_of(me);
+            this.goldenRef->linkedRecords.remove(idx);
+            this.goldenRef = null;
+        }
+    }
+
+    fn getLinkedGolden(): node<GoldenPointOfInterest>? {
+        return this.goldenRef;
+    }
+    
+    fn toFullRecord(): any {
+        return this.toMengplazRecord();
+    }
+
+    fn toMengplazRecord(): POIRecord {
+         var record = POIRecord {
+            uid: "${this.id}",
+            number: "${this.number}",
+            street: this.street,
+            postcode: this.postcode,
+            city: this.city,
+            positions: Map<String, geo>{"default": this.position},
+            sourceName: OsmSource::NAME,
+            goldenRef: this.goldenRef,
+        };
+        return record;
+    }
+}
+
+
+type OsmSource extends DataSource {
+
+     static NAME: String = "OSM";
+
+    private reconciliationReport: node<ReconciliationReport?>;
+
+    static fn init() {
+        //Declare the source
+        var source = sources_by_name.get(OsmSource::NAME);
+        if(source == null) {
+            var source = OsmSource{
+                reconciliationReport: node<ReconciliationReport?>{null}
+            };
+            sources_by_name.set(source.name(), node<DataSource>{source});
+        }
+    }
+
+    fn name(): String {
+        return OsmSource::NAME;
+    }
+
+    fn getReconciliationReport(): ReconciliationReport? {
+        return *this.reconciliationReport;
+    }
+
+    fn reconcile(): ReconciliationReport {
+
+        var report = ReconciliationReport {
+            date: time::now(),
+            linked: Array<node<POIRecordProvider>>{},
+            fullMatch: Array<mengplaz::SearchResult>{},
+            totalProcessed: 0,
+            mismatches: Map<MengplazMissmatch, Array<mengplaz::SearchResult>>{},
+        };
+
+        var jobs = Array<Job>{};
+        for(var i = 0; i < 10; i++) {
+            jobs.add(Job<any?>{
+                function: GoldenServices::search,
+                arguments: [
+                    SearchRequest{
+                        items: Array<SearchItem>{},
+                        params: SearchParameters {
+                            citySimilarityThreshold: 0.7,
+                            streetSimilarityThreshold: 0.7,
+                            buildingSimilarityThreshold: 0.4,
+                            maxCandidatesPerItem: 10,
+                        },
+                    },
+                ],
+            });
+        }
+
+        var count = 0;
+        for(_, nOSMAddr in osm_by_id) {
+            if(nOSMAddr->goldenRef != null) {
+                report.linked.add(nOSMAddr);
+            } else {
+                jobs[count%10].arguments[0].items.add(SearchItem{
+                    number: "${nOSMAddr->number}",
+                    multipleCode: "",
+                    postcode: nOSMAddr->postcode,
+                    street: nOSMAddr->street,
+                    city: nOSMAddr->city,
+                    sourceRecord: nOSMAddr,
+                });
+                count++;
+            }            
+        }
+
+        await(jobs, MergeStrategy::last_wins);
+
+        for(_, job in jobs) {
+            for(_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
+                var candidates = searchResult.candidates;
+                if(candidates.size() > 0 && candidates[0].overallScore == 1) {
+                    //ExactMatch
+                    report.fullMatch.add(searchResult);
+                } else {
+                    var reason = MengplazMissmatch::COMPLEX_MISMATCH;
+                    if(candidates.size()>0) {
+                        var firstCandidate = candidates[0];
+                        if(firstCandidate.cityScore == 1) {
+                            if(firstCandidate.postcodeScore == 1) {
+                                if(firstCandidate.streetScore == 1) {
+                                    reason = MengplazMissmatch::NUMBER_MISMATCH;
+                                } else if(firstCandidate.numberScore == 1) {
+                                    reason = MengplazMissmatch::STREET_MISMATCH;
+                                }
+                            } else if(firstCandidate.streetScore == 1 && firstCandidate.numberScore == 1) {
+                                reason = MengplazMissmatch::POSTCODE_MISMATCH;
+                            }
+                        }
+                    }
+                    var mismatches = report.mismatches.get(reason);
+                    if(mismatches == null) {
+                        mismatches = Array<mengplaz::SearchResult>{};
+                        report.mismatches.set(reason, mismatches);
+                    }
+                    mismatches.add(searchResult);
+                }
+                report.totalProcessed++;
+            }
+        }
+
+        this.reconciliationReport.set(report);
+        
+        return report;
+    }
+
+    fn search(req: SearchRequest): mengplaz::SearchResult {
+    }
+}

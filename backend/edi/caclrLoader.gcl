@@ -1,0 +1,615 @@
+
+
+@volatile
+type CaclrAlias {
+    name: String;
+    languageCode: String;
+}
+
+
+@volatile
+type CaclrResponseCantons {
+    totalCount: int;
+    items: Array<CaclrResponseCantonItem>;
+}
+
+@volatile
+type CaclrResponseCantonItem {
+    id: String;
+    code: String;
+    name: String;
+    lastUpdate: time;
+    constituency: CaclrResponseConstituency;
+}
+
+@volatile
+type CaclrResponseConstituency {
+    code: String;
+    name: String;
+}
+
+@volatile
+type CaclrResponseMunicipalities {
+    totalCount: int;
+    items: Array<CaclrResponseMunicipalityItem>;
+}
+
+@volatile
+type CaclrResponseMunicipalityItem {
+    id: String;
+    code: String;
+    coficomCode: String;
+    compoundCode: String;
+
+    name: String;
+    nameUpperCase: String;
+    nameLu: String;
+    
+    status: CaclrDataStatus;
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+
+    constituency: CaclrResponseConstituency;
+    eurostats: CaclrEurostatsIds;
+    cantonId: String;
+}
+
+@volatile
+type CaclrResponseCities {
+    totalCount: int;
+    items: Array<CaclrResponseCityItem>;
+}
+
+@volatile
+type CaclrResponseCityItem {
+
+    id: String;
+    code: String;
+    compoundCode: String;
+
+    name: String;
+    nameUpperCase: String;
+    aliases: Array<CaclrAlias>;
+
+    isTown: bool;
+
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+
+    //cantonId: String;
+    municipalityId: String;
+}
+
+@volatile
+type CaclrResponseStreets {
+    totalCount: int;
+    items: Array<CaclrResponseStreetItem>;
+}
+
+@volatile
+type CaclrResponseStreetItem {
+
+    id: String;
+    name: String;
+    nameUpperCase: String;
+    keyWord: String;
+  
+    aliases: Array<CaclrAlias>;
+
+    administrativeStatus: CaclrAdminStatus;
+
+    isPlace: bool;
+
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+
+    //cantonId: String;
+    //municipalityId: String;
+    cityId: String;
+}
+
+@volatile
+type CaclrResponseBuildings {
+    totalCount: int;
+    items: Array<CaclrResponseBuildingItem>;
+}
+
+@volatile
+type CaclrResponseBuildingItem {
+  
+    id: String;
+    
+    number: int;
+    isNumberUndefined: bool;
+
+    postalCode: String;
+    multipleCode: String;
+
+    administrativeStatus: CaclrAdminStatus;
+
+    @format("%Y-%m-%dT%H:%M%Z")
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+
+    //cantonId: String;
+    //municipalityId: String;
+    //cityId: String;
+    streetId: String;
+}
+
+abstract type CACLRLoader {
+    static base_url: String = "https://caclr.api.etat.lu/caclr-rest-ws/consultation";
+    static fn load() {
+        
+
+        //Set dummies
+        var nDummyConstituency = node<CaclrConstituency>{
+            CaclrConstituency{
+                name: "UNKNOWN",
+                code: "UNKNOWN",
+                cantons_by_id: nodeIndex<String, node<CaclrCanton>>{},
+            }
+        };
+        caclr_consistuency_by_code.set(nDummyConstituency->code, nDummyConstituency);
+
+        var nDummyCanton = node<CaclrCanton>{
+            CaclrCanton{
+                name: "UNKNOWN",
+                code: "UNKNOWN",
+                id: "UNKNOWN",
+                lastUpdate: 0_time,
+                constituency: nDummyConstituency,
+                municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>>{},
+            }
+        };
+        nDummyConstituency->cantons_by_id.set(nDummyCanton->id, nDummyCanton);
+        caclr_cantons_by_id.set(nDummyCanton->id, nDummyCanton);
+
+        var nDummyMunicipality = node<CaclrMunicipality>{
+            CaclrMunicipality{
+                name: "UNKNOWN",
+                code: "UNKNOWN",
+                id: "UNKNOWN",
+                coficomCode: "UNKNOWN",
+                compoundCode: "UNKNOWN",
+                nameLu: "UNKNOWN",
+                nameUpperCase: "UNKNOWN",
+                validityStartDate: 0_time,
+                lastUpdate: 0_time,
+                canton: nDummyCanton,
+                status: CaclrDataStatus::HISTORIC,
+                eurostats: CaclrEurostatsIds{
+                    nuts3: "UNKNOWN",
+                    lau1: "UNKNOWN",
+                    lau2: "UNKNOWN",
+                },
+                cities_by_id: nodeIndex<String, node<CaclrCity>>{},
+            }
+        };
+        nDummyCanton->municipalities_by_id.set(nDummyMunicipality->id, nDummyMunicipality);
+        caclr_municipalities_by_id.set(nDummyMunicipality->id, nDummyMunicipality);
+
+         var nDummyCity = node<CaclrCity>{
+            CaclrCity{
+                name: "UNKNOWN",
+                code: "UNKNOWN",
+                id: "UNKNOWN",
+                compoundCode: "UNKNOWN",
+                nameUpperCase: "UNKNOWN",
+                isTown: false,
+                aliases:Array<Alias>{},
+                validityStartDate: 0_time,
+                lastUpdate: 0_time,
+                municipality: nDummyMunicipality,
+                streets_by_id: nodeIndex<String, node<CaclrStreet>>{},
+            }
+        };
+        nDummyMunicipality->cities_by_id.set(nDummyCity->id, nDummyCity);
+        caclr_cities_by_id.set(nDummyCity->id, nDummyCity);
+
+
+         var nDummyStreet = node<CaclrStreet>{
+            CaclrStreet{
+                name: "UNKNOWN",
+                id: "UNKNOWN",
+                nameUpperCase: "UNKNOWN",
+                keyWord: "UNKNOWN",
+                administrativeStatus: CaclrAdminStatus::OFFICIAL,
+                isPlace: false,
+                aliases:Array<Alias>{},
+                validityStartDate: 0_time,
+                lastUpdate: 0_time,
+                city: nDummyCity,
+                buildings_by_id: nodeIndex<String, node<CaclrBuilding>>{},
+            }
+        };
+        nDummyMunicipality->cities_by_id.set(nDummyCity->id, nDummyCity);
+        caclr_cities_by_id.set(nDummyCity->id, nDummyCity);
+
+        CACLRLoader::loadCantons();
+        CACLRLoader::loadMunicipalities();
+        CACLRLoader::loadCities();
+        CACLRLoader::loadStreets();
+        CACLRLoader::loadBuildings();
+    }
+
+    static fn loadCantons() {
+        var token = CaclrToken::get();
+        
+        var endpoint=  "${CACLRLoader::base_url}/v1/cantons";
+
+        var headers = Map<String, String>{
+            "Authorization":"${token.token_type} ${token.access_token}",
+        };
+        
+        var request = HttpRequest {
+            method: HttpMethod::GET,
+            url: endpoint,
+            headers: headers
+        };
+
+        var httpClient = Http<CaclrResponseCantons>{};
+        var cantons = httpClient.get(endpoint, headers);
+        info("Received ${cantons.items.size()} cantons");
+
+        for(_, elem in cantons.items) {
+            var record = caclr_cantons_by_id.get(elem.id);
+            if(record == null) {
+                var nConstituancy = caclr_consistuency_by_code.get(elem.constituency.code);
+                if(nConstituancy == null) {
+                    nConstituancy = node<CaclrConstituency>{
+                        CaclrConstituency{
+                            code: elem.constituency.code,
+                            name: elem.constituency.name,
+                            cantons_by_id: nodeIndex<String, node<CaclrCanton>>{},
+                        }};
+                    caclr_consistuency_by_code.set(elem.constituency.code, nConstituancy);
+                }
+
+                var nCanton = node<CaclrCanton>{CaclrCanton{
+                    id: elem.id,
+                    code: elem.code,
+                    name: elem.name,
+                    lastUpdate: elem.lastUpdate,
+                    constituency: nConstituancy,
+                    municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>>{},
+                }};
+                nConstituancy->cantons_by_id.set(nCanton->id, nCanton);
+                caclr_cantons_by_id.set(nCanton->id, nCanton);
+            } else if(record->lastUpdate < elem.lastUpdate) {
+                warn("Record has been updated. Not supported yet.");
+                warn("Our record: ${*record}");
+                warn("New record: ${elem}");
+            }
+        }
+    }
+
+    static fn loadMunicipalities() {
+        
+        var endpoint=  "${CACLRLoader::base_url}/v1/municipalities";
+        var httpClient = Http<CaclrResponseMunicipalities>{};
+
+        var requestStart= 1;
+        var totalItems: int = 0;
+
+        do {
+
+            var token = CaclrToken::get();
+            var headers = Map<String, String>{
+                "Authorization":"${token.token_type} ${token.access_token}",
+            };            
+
+            var request = HttpRequest {
+                method: HttpMethod::GET,
+                url: "${endpoint}?${Url::encode(Map{"start":requestStart, "limit":500})}",
+                headers: headers
+            };
+            
+            var httpResponse = httpClient.send(request);
+            var municipalities = httpResponse.content!!;
+            totalItems = municipalities.totalCount;
+            requestStart = requestStart + municipalities.items.size();
+            info("Received ${requestStart-1} / ${totalItems} municipalities.");
+
+            for(_, elem in municipalities.items) {
+                var record = caclr_municipalities_by_id.get(elem.id);
+                if(record == null) {
+
+                    var nCanton = caclr_cantons_by_id.get(elem.cantonId);
+                    if(nCanton == null) {
+                        warn("Canton with id:${elem.cantonId} not found for municipality id:${elem.id}. Replacing by dummy.");
+                        nCanton = caclr_cantons_by_id.get("UNKNOWN")!!;
+                    }
+
+                    var nMunicipality = node<CaclrMunicipality>{CaclrMunicipality{
+                        id: elem.id,
+                        code: elem.code,
+                        coficomCode: elem.coficomCode,
+                        compoundCode: elem.compoundCode,
+                        
+                        name: elem.name,
+                        nameUpperCase: elem.name,
+                        nameLu: elem.name,
+
+                        status: elem.status,
+                        validityStartDate: elem.validityStartDate,
+                        validityEndDate: elem.validityEndDate,
+                        lastUpdate: elem.lastUpdate,
+
+                        eurostats: elem.eurostats,
+                        canton: nCanton,
+
+                        cities_by_id: nodeIndex<String, node<CaclrCity>>{},
+                    }};
+                    nCanton->municipalities_by_id.set(nMunicipality->id, nMunicipality);
+                    caclr_municipalities_by_id.set(nMunicipality->id, nMunicipality);
+
+                } else if(record->lastUpdate < elem.lastUpdate) {
+                    warn("Record has been updated. Not supported yet.");
+                    warn("Our record: ${*record}");
+                    warn("New record: ${elem}");
+                }
+            }
+        } while(requestStart < totalItems);
+    }
+
+    static fn loadCities() {
+        
+        var endpoint=  "${CACLRLoader::base_url}/v1/cities";
+        var httpClient = Http<CaclrResponseCities>{};
+
+        var requestStart= 1;
+        var totalItems: int = 0;
+
+        do {
+
+            var token = CaclrToken::get();
+            var headers = Map<String, String>{
+                "Authorization":"${token.token_type} ${token.access_token}",
+            };            
+
+            var request = HttpRequest {
+                method: HttpMethod::GET,
+                url: "${endpoint}?${Url::encode(Map{"includeAliases": true, "start":requestStart, "limit":500})}",
+                headers: headers
+            };
+            
+            var httpResponse = httpClient.send(request);
+            var cities = httpResponse.content!!;
+            totalItems = cities.totalCount;
+            requestStart = requestStart + cities.items.size();
+            info("Received ${requestStart-1} / ${totalItems} cities.");
+
+            for(_, elem in cities.items) {
+                var record = caclr_cities_by_id.get(elem.id);
+                if(record == null) {
+
+                    var nMunicipality = caclr_municipalities_by_id.get(elem.municipalityId);
+                    if(nMunicipality == null) {
+                        warn("Municipality with id:${elem.municipalityId} not found for city id:${elem.id}. Replacing by dummy.");
+                        nMunicipality = caclr_municipalities_by_id.get("UNKNOWN")!!;
+                    }
+
+                    var aliases = Array<Alias>{};
+                    for(_,v in elem.aliases) {
+                        aliases.add(Alias{id: v.languageCode, value: v.name});
+                    }
+
+                    var nCity = node<CaclrCity>{CaclrCity{
+                        id: elem.id,
+                        code: elem.code,
+                        compoundCode: elem.compoundCode,
+                        
+                        name: elem.name,
+                        nameUpperCase: elem.name,
+                        aliases: aliases,
+
+                        isTown: elem.isTown,
+
+                        validityStartDate: elem.validityStartDate,
+                        validityEndDate: elem.validityEndDate,
+                        lastUpdate: elem.lastUpdate,
+
+                        municipality: nMunicipality,
+                        streets_by_id: nodeIndex<String, node<CaclrStreet>>{},
+
+                    }};
+                    nMunicipality->cities_by_id.set(nCity->id, nCity);
+                    caclr_cities_by_id.set(nCity->id, nCity);
+
+                } else if(record->lastUpdate < elem.lastUpdate) {
+                    warn("Record has been updated. Not supported yet.");
+                    warn("Our record: ${*record}");
+                    warn("New record: ${elem}");
+                }
+            }
+        } while(requestStart < totalItems);
+    }
+
+    static fn loadStreets() {
+        
+        var endpoint=  "${CACLRLoader::base_url}/v1/streets";
+        var httpClient = Http<CaclrResponseStreets>{};
+
+        var requestStart= 1;
+        var totalItems: int = 0;
+
+        do {
+
+            var token = CaclrToken::get();
+            var headers = Map<String, String>{
+                "Authorization":"${token.token_type} ${token.access_token}",
+            };            
+
+            var request = HttpRequest {
+                method: HttpMethod::GET,
+                url: "${endpoint}?${Url::encode(Map{"includeAliases": true, "start":requestStart, "limit":500})}",
+                headers: headers
+            };
+            
+            var httpResponse = httpClient.send(request);
+            var streets = httpResponse.content!!;
+            totalItems = streets.totalCount;
+            requestStart = requestStart + streets.items.size();
+            info("Received ${requestStart-1} / ${totalItems} streets.");
+
+            for(_, elem in streets.items) {
+                var record = caclr_streets_by_id.get(elem.id);
+                if(record == null) {
+
+                    var nCity = caclr_cities_by_id.get(elem.cityId);
+                    if(nCity == null) {
+                        warn("City with id:${elem.cityId} not found for street id:${elem.id}. Replacing by dummy.");
+                        nCity = caclr_cities_by_id.get("UNKNOWN")!!;
+                    }
+
+                    var aliases = Array<Alias>{};
+                    for(_,v in elem.aliases) {
+                        aliases.add(Alias{id: v.languageCode, value: v.name});
+                    }
+
+                    var nStreet = node<CaclrStreet>{CaclrStreet{
+                        id: elem.id,
+                        
+                        name: elem.name,
+                        nameUpperCase: elem.name,
+                        aliases: aliases,
+                        keyWord: elem.keyWord,
+
+                        administrativeStatus: elem.administrativeStatus,
+                        isPlace: elem.isPlace,
+
+                        validityStartDate: elem.validityStartDate,
+                        validityEndDate: elem.validityEndDate,
+                        lastUpdate: elem.lastUpdate,
+
+                        city: nCity,
+                        buildings_by_id: nodeIndex<String, node<CaclrBuilding>>{},
+                    }};
+                    nCity->streets_by_id.set(nStreet->id, nStreet);
+                    caclr_streets_by_id.set(nStreet->id, nStreet);
+
+                } else if(record->lastUpdate < elem.lastUpdate) {
+                    warn("Record has been updated. Not supported yet.");
+                    warn("Our record: ${*record}");
+                    warn("New record: ${elem}");
+                }
+            }
+        } while(requestStart < totalItems);
+    }
+
+    static fn loadBuildings() {
+
+        var jobs = Array<Job>{};
+        for(var i = 0; i < 5; i++) {
+            jobs.add(Job{
+                function: CACLRLoader::loadBuildingsOfCity,
+                arguments: [Array<String>{}],
+            });
+        }
+
+        for(cityId,_ in caclr_cities_by_id) {
+            if(cityId != "UNKNOWN") {
+                (jobs[parseNumber(cityId)%5].arguments[0] as Array<String>).add(cityId);
+            }
+        }
+
+        await(jobs, MergeStrategy::strict);
+        info("Integrating Results.");
+
+        for (_, job in jobs) {
+            var results = job.result();
+            for (_, nBuilding: node<CaclrBuilding> in results) {
+                caclr_buildings_by_id.set(nBuilding->id, nBuilding);
+            }
+        }
+        info("${caclr_buildings_by_id.size()} buildings loaded.");
+    }
+
+    static fn loadBuildingsOfCity(cityIds: Array<String>): Array<node<CaclrBuilding>> {
+        
+        var endpoint=  "${CACLRLoader::base_url}/v1/buildings";
+        var httpClient = Http<CaclrResponseBuildings>{};
+
+
+        var result= Array<node<CaclrBuilding>>{};
+        for(_,cityId in cityIds) {
+            var requestStart= 1;
+            var totalItems: int = 0;
+            var tentatives: int = 0;
+            
+            do {
+
+                var token = CaclrToken::get();
+                var headers = Map<String, String>{
+                    "Authorization":"${token.token_type} ${token.access_token}",
+                };            
+
+                var request = HttpRequest {
+                    method: HttpMethod::GET,
+                    url: "${endpoint}?${Url::encode(Map{"start":requestStart, "limit":500, "cityId": cityId})}",
+                    headers: headers
+                };
+                
+                var httpResponse = httpClient.send(request);
+                if(httpResponse.content == null) {
+                    warn("Issue with the query on cityId:${cityId}");
+                    warn(httpResponse);
+                    if(tentatives < 5) {
+                        tentatives++;
+                    } else {
+                        break;
+                    }
+                } else {
+                    var buildings = httpResponse.content;
+                    totalItems = buildings.totalCount;
+                    requestStart = requestStart + buildings.items.size();
+                    info("Received ${requestStart-1} / ${totalItems} buildings for cityId:${cityId}.");
+
+                    for(_, elem in buildings.items) {
+                        var record = caclr_buildings_by_id.get(elem.id);
+                        if(record == null) {
+
+                            var nStreet = caclr_streets_by_id.get(elem.streetId);
+                            if(nStreet == null) {
+                                warn("Street with id:${elem.streetId} not found for building id:${elem.id}. Replacing by dummy.");
+                                nStreet = caclr_streets_by_id.get("UNKNOWN")!!;
+                            }
+
+                            var nBuilding = node<CaclrBuilding>{CaclrBuilding{
+                                id: elem.id,
+                                number: elem.number,
+                                isNumberUndefined: elem.isNumberUndefined,
+                                
+                                postalCode: elem.postalCode,
+                                multipleCode: elem.multipleCode,
+
+                                administrativeStatus: elem.administrativeStatus,                        
+
+                                validityStartDate: elem.validityStartDate,
+                                validityEndDate: elem.validityEndDate,
+                                lastUpdate: elem.lastUpdate,
+
+                                street: nStreet,
+                            }};
+                            nStreet->buildings_by_id.set(nBuilding->id, nBuilding);
+                            //caclr_buildings_by_id.set(nBuilding->id, nBuilding);
+                            result.add(nBuilding);
+
+                        } else if(record->lastUpdate < elem.lastUpdate) {
+                            warn("Record has been updated. Not supported yet.");
+                            warn("Our record: ${*record}");
+                            warn("New record: ${elem}");
+                        }
+                    }
+                }            
+            } while(requestStart < totalItems);
+        }
+        return result;
+    }
+}
+

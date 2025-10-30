@@ -1,0 +1,14 @@
+.link-icon {
+  font-size: '1.3rem';
+  color: currentcolor;
+}
+
+.linked-panel {
+  display: flex;
+  gap: var(--sl-spacing-medium);
+  width: 100%;
+
+  .card {
+    min-width: 350px;
+  }
+}

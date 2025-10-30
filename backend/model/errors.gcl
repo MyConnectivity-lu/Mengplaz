@@ -1,0 +1,17 @@
+
+
+
+enum AddrErr{
+    STREET_MISSING("Street is missing");
+    CITY_MISSING("City is missing");
+    POSTCODE_MISSING("Post-code is missing");
+}
+
+
+enum MengplazMissmatch{
+    STREET_MISMATCH("Street does not match");
+    CITY_MISMATCH("City does not match");
+    POSTCODE_MISMATCH("Postcode does not match");
+    NUMBER_MISMATCH("Number does not match");
+    COMPLEX_MISMATCH("Complex mismatch");
+}

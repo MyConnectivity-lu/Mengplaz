@@ -1,0 +1,183 @@
+
+var golden_consistuency_by_code: nodeIndex<String, node<GoldenConstituency>>;
+var golden_cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
+var golden_municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
+var golden_cities_by_id: nodeIndex<String, node<GoldenCity>>;
+var golden_streets_by_id: nodeIndex<String, node<GoldenStreet>>;
+var golden_pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
+
+var golden_pois_by_geo: nodeGeo<node<GoldenPointOfInterest>>;
+
+type GoldenSource extends DataSource {
+
+    static NAME: String = "Golden";
+
+    private reconciliationReport: node<ReconciliationReport?>;
+
+    static fn init() {
+        //Declare the source
+        var source = sources_by_name.get(GoldenSource::NAME);
+        if(source == null) {
+            var source = GoldenSource{
+                reconciliationReport: node<ReconciliationReport?>{null}
+            };
+            sources_by_name.set(source.name(), node<DataSource>{source});
+        }
+    }
+    
+    fn name(): String {
+        return GoldenSource::NAME;
+    }
+
+    fn getReconciliationReport(): ReconciliationReport? {
+        return *this.reconciliationReport;
+    }
+
+    fn reconcile(): ReconciliationReport {
+        throw "Cannot reconcile GolderService with itself.";
+    }
+
+    fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
+        return GoldenServices::search(req);
+    }
+
+}
+
+type GoldenConstituency {
+    code: String;
+    name: String;
+    nameAliases: Array<Alias>;
+
+    cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
+}
+
+type GoldenCanton {
+    id: String;
+    
+    name: String;
+    nameAliases: Array<Alias>;
+
+    lastUpdate: time;
+
+    constituency: node<GoldenConstituency>;
+    municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
+}
+
+type GoldenMunicipality {
+    id: String;
+
+    name: String;
+    nameAliases: Array<Alias>;
+    
+    lastUpdate: time;
+
+    canton: node<GoldenCanton>;
+    cities_by_id: nodeIndex<String, node<GoldenCity>>;
+}
+
+type GoldenCity {
+    id: String;
+
+    name: String;
+    nameAliases: Array<Alias>;
+
+    lastUpdate: time;
+
+    municipality: node<GoldenMunicipality>;
+    streets_by_id: nodeIndex<String, node<GoldenStreet>>;
+}
+
+type GoldenStreet extends StreetRecordProvider {
+    id: String;
+
+    name: String;
+    nameAliases: Array<Alias>;
+
+    lastUpdate: time;
+
+    city: node<GoldenCity>;
+    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
+
+    fn toRecord(): StreetRecord {
+        var record = StreetRecord {
+            street: this.name,
+            city: this.city->name,
+        };
+        if(this.nameAliases.size()>0) {
+            record.streetAliases = this.nameAliases;
+        }
+        if(this.city->nameAliases.size()>0) {
+            record.cityAliases = this.city->nameAliases;
+        }
+        return record;
+    }
+    
+    fn getPOIs(): Array<POIRecordRef> {
+        var arr = Array<POIRecordRef>{};
+        for(_, ref in this.pois_by_id) {
+            arr.add(POIRecordRef{
+                ref: ref,
+                record: ref->toMengplazRecord(),
+            });
+        }
+        return arr;
+    }
+}   
+
+type GoldenPointOfInterest extends POIRecordProvider {
+    
+    uid: String;
+    
+    number: int;
+    multipleCode: String;
+
+    postCode: String;
+
+    positions: Map<String, geo>;
+    
+    lastUpdate: time;
+
+    street: node<GoldenStreet>?;
+
+    linkedRecords: Array<node<POIRecordProvider>>;
+
+    @permission("admin")
+    fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
+        //NOOP
+    }
+
+    @permission("admin")
+    fn unlinkGolden() {
+        //NOOP
+    }
+
+    fn getLinkedGolden(): node<GoldenPointOfInterest>? {
+        return null;
+    }
+    
+    fn toFullRecord(): any {
+        
+    }
+
+    fn toMengplazRecord(): POIRecord {
+
+         var record = POIRecord {
+            uid: this.uid,
+            number: "${this.number}${this.multipleCode}",
+            street: this.street?->name,
+            postcode: this.postCode,
+            city: this.street?->city->name,
+            positions: this.positions,
+            sourceName: GoldenSource::NAME,
+        };
+        if(this.street != null) {
+            if(this.street->nameAliases.size() > 0) {
+                record.streetAliases = this.street->nameAliases;
+            }
+            if(this.street->city->nameAliases.size() > 0) {
+                record.cityAliases = this.street->city->nameAliases;
+            }
+        }
+        return record;
+    }
+}

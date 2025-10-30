@@ -1,0 +1,130 @@
+var sources_by_name: nodeIndex<String, node<DataSource>>;
+
+abstract type DataSource {
+    abstract fn name(): String;
+    abstract fn getReconciliationReport(): ReconciliationReport?;
+    abstract fn reconcile(): ReconciliationReport;
+    abstract fn search(req: SearchRequest): Array<SearchResult>;
+}
+
+type ReconciliationReport {
+    date: time;
+    linked: Array<node<POIRecordProvider>>;
+    fullMatch: Array<SearchResult>;
+    totalProcessed: int;
+    mismatches: Map<MengplazMissmatch, Array<SearchResult>>;
+}
+
+@volatile
+type StreetRecordRef {
+    ref: node<StreetRecordProvider>;
+    record: StreetRecord;
+}
+
+@volatile
+type POIRecordRef {
+    ref: node<POIRecordProvider>;
+    record: POIRecord;
+}
+
+@volatile
+type POIFullRecordRef {
+    ref: node<POIRecordProvider>;
+    record: any;
+}
+
+@volatile
+type POIRecord {
+    uid: String?;
+    number: String?;
+    street: String?;
+    streetAliases: Array<Alias>?;
+    postcode: String?;
+    city: String?;
+    cityAliases: Array<Alias>?;
+    positions: Map<String, geo>;
+    sourceName: String?;
+    goldenRef: node<GoldenPointOfInterest>?;
+}
+
+abstract type POIRecordProvider {
+    abstract fn linkToGolden(nGolden: node<GoldenPointOfInterest>);
+    abstract fn unlinkGolden(me: node<POIRecordProvider>);
+    abstract fn getLinkedGolden(): node<GoldenPointOfInterest>?;
+    abstract fn toMengplazRecord(): POIRecord;
+    abstract fn toFullRecord(): any;
+}
+
+@volatile
+type StreetRecord {
+    street: String?;
+    streetAliases: Array<Alias>?;
+    postcode: String?;
+    city: String?;
+    cityAliases: Array<Alias>?;
+    sourceName: String?;
+}
+
+abstract type StreetRecordProvider {
+    abstract fn toRecord(): StreetRecord;
+    abstract fn getPOIs(): Array<POIRecordRef>;
+}
+
+@volatile
+type SearchRequest {
+    items: Array<SearchItem>;
+    params: SearchParameters;
+}
+
+@volatile
+type SearchItem {
+    sourceRecord: node<POIRecordProvider>?;
+    number: String;
+    street: String;
+    multipleCode: String;
+    postcode: String;
+    city: String;
+}
+
+@volatile
+type SearchParameters {
+    citySimilarityThreshold: float;
+    streetSimilarityThreshold: float;
+    buildingSimilarityThreshold: float;
+    maxCandidatesPerItem: int;
+}
+
+@volatile
+type SearchResult {
+    item: SearchItem;
+    candidates: Array<CandidateMatch<node<POIRecordProvider>>>;
+}
+
+@volatile
+type Match<T> {
+    score: float;
+    elem: T;
+}
+
+@volatile
+type BuildingMatch<T> {
+    overallScore: float;
+    postcodeScore: float;
+    numberScore: float;
+    elem: T;
+}
+
+@volatile
+type CandidateMatch<T> {
+    cityScore: float;
+    streetScore: float;
+    numberScore: float;
+    postcodeScore: float;
+    overallScore: float;
+    elem: T;
+}
+
+type Alias {
+    value: String;
+    id: String;
+}

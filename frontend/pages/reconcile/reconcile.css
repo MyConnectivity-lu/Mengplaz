@@ -1,0 +1,7 @@
+sl-tab-group {
+  margin-top: var(--sl-spacing-medium);
+
+  sl-badge {
+    margin-left: var(--sl-spacing-2x-small);
+  }
+}

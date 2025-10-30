@@ -1,0 +1,39 @@
+.field {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-card-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.95rem;
+  transition: background-color 0.15s ease;
+}
+
+.field-key {
+  flex: 0 0 140px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.field-value {
+  flex: 1;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.position-map-badge sl-icon {
+  margin-right: var(--sl-spacing-2x-small);
+}
+.position-map-badge::part(base) {
+  cursor: pointer;
+}
+
+.position-map-badge::part(base):hover {
+  background-color: var(--primary);
+  color: var(--blue);
+}
