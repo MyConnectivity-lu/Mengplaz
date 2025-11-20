@@ -23,6 +23,23 @@ type BDAStreet {
     addresses: nodeIndex<String, node<BDAddress>>;
 }
 
+@volatile
+type BDAddressFullRecord {
+    id_geoportail: String;
+    id_caclr: int;
+
+    number: String;
+    postcode: String;
+    positions: Map<String, geo>;
+
+    municipatlity : String;
+    city: String;
+    street: String;
+
+    sourceName: String;
+    goldenRef: node<GoldenPointOfInterest>?;
+}
+
 type BDAddress extends POIRecordProvider {
     private number: String;
     private postcode: String;
@@ -53,8 +70,22 @@ type BDAddress extends POIRecordProvider {
         return this.goldenRef;
     }
     
-    fn toFullRecord(): any {
-        return this.toMengplazRecord();
+    fn toFullRecord(): BDAddressFullRecord {
+        return BDAddressFullRecord {
+            id_geoportail: this.id_geoportail,
+            id_caclr: this.id_caclr,
+
+            number: this.number,
+            postcode: this.postcode,
+            positions: Map<String, geo>{"default": this.position},
+
+            municipatlity: this.municipatlity->name,
+            city: this.city->name,
+            street: this.street->name,
+
+            sourceName: BDAddressSource::NAME,
+            goldenRef: this.goldenRef,
+        };
     }
 
     fn toMengplazRecord() : POIRecord {
