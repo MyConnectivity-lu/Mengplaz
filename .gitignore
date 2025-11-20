@@ -9,3 +9,4 @@
 bin
 .env
 backup/
+/.vite/
