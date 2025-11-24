@@ -35,6 +35,8 @@ export class MapPage extends HTMLElement {
       zoom: 9,
     });
     this.map.on('load', async () => {
+      this.map.resize();
+
       // m.on('zoomend', () => this.updatePOIs());
       // m.on('dragend', () => this.updatePOIs());
       this.map.addSource('points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -142,9 +144,7 @@ export class MapPage extends HTMLElement {
   }
 
   render() {
-    this.innerHTML = '';
-
-    this.appendChild(this.mapContainer);
+    this.replaceChildren(this.mapContainer);
   }
 }
 
