@@ -22,7 +22,7 @@ fn bootstrap() {
     try {
         CACLRLoader::load();
         GoldenServices::fillFromCaclr();
-    } catch(e) {
+    } catch (e) {
         error(e);
     }
 
@@ -32,9 +32,9 @@ fn bootstrap() {
 
 private fn createAdmin() {
     var admLogin = System::getEnv("MENGPLAZ_ADMIN_LOGIN");
-    if(admLogin != null && User::getByName(admLogin) == null) {
+    if (admLogin != null && User::getByName(admLogin) == null) {
         var user = User {
-            id: 0, // will be overwritten after 
+            id: 0,  // will be overwritten after 
             name: admLogin,
             full_name: "Administrator",
             email: "admin@mengplaz.lu",

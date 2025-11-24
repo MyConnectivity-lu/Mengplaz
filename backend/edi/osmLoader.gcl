@@ -1,5 +1,3 @@
-
-
 @volatile
 type OsmOverpassResponse {
     elements: Array<Map<String, any?>>;
@@ -9,11 +7,11 @@ abstract type OSMLoader {
     static fn load() {
         var endpoint = "http://overpass-api.de/api/interpreter";
         var request = "[out:json];area[\"ISO3166-1\"=\"LU\"][admin_level=2];(node[\"addr:housenumber\"](area);way[\"addr:housenumber\"](area);relation[\"addr:housenumber\"](area););out body;>;out skel qt;";
-        
-        var headers = Map<String, String>{
-        "Accept": "*/*",
-        "Connection": "keep-alive",
-        "Content-Type": "application/text",
+
+        var headers = Map<String, String> {
+            "Accept": "*/*",
+            "Connection": "keep-alive",
+            "Content-Type": "application/text",
         };
 
         var httpClient = Http<OsmOverpassResponse> {};
@@ -24,26 +22,24 @@ abstract type OSMLoader {
             body: request,
         };
         var response = httpClient.send(req);
-        if(response.status_code == 200 && response.content != null) {
+        if (response.status_code == 200 && response.content != null) {
             var elements = response.content.elements;
             info("Collected ${elements.size()} addresses.");
 
-            var issues = Map<String, int>{};
-            
-            for(_, elem in elements) {
-                try {
+            var issues = Map<String, int> {};
 
+            for (_, elem in elements) {
+                try {
                     var addr = OsmAddress::parse(elem);
-                    var nAddr = node<OsmAddress>{addr};
+                    var nAddr = node<OsmAddress> { addr };
                     osm_by_id.set(addr.id, nAddr);
                     osm_by_geo.set(addr.position, nAddr);
-
-                } catch(e) {
-                    issues.set(e.message!!, (issues.get(e.message)??0)+1);
+                } catch (e) {
+                    issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
                     var addr = OsmPartialAddress::parse(elem);
-                    var nAddr = node<OsmPartialAddress>{addr};
+                    var nAddr = node<OsmPartialAddress> { addr };
                     osm_partial_by_id.set(addr.id, nAddr);
-                    if(addr.position != null) {
+                    if (addr.position != null) {
                         osm_partial_by_geo.set(addr.position, nAddr);
                     }
                     //warn("Could not parse: ${elem}\n${e}");
@@ -54,6 +50,6 @@ abstract type OSMLoader {
             info("Issues ${issues}.");
         } else {
             error(response);
-        }        
+        }
     }
 }
