@@ -341,3 +341,13 @@ fn getGoldenNumbersByStreet(street: String): Array<GoldenIndex> {
     }
     return numbers;
 }
+
+@expose
+@permission("public")
+fn getGoldenRecords(): Array<POIRecord> {
+    var records = Array<POIRecord> {};
+    for (id, nPOI in golden_pois_by_id) {
+        records.add(nPOI->toMengplazRecord());
+    }
+    return records;
+}
