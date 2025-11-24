@@ -55,6 +55,7 @@ export class MengplazAddressContent extends HTMLElement {
     if (value instanceof gc.sdk.GCEnum) return value.key;
     if (Array.isArray(value)) return this.renderArray(value);
     if (value instanceof Map && value.size > 0) return this.renderMapPositions(value);
+    if (value instanceof gc.time) return <sl-format-date date={value.toDate()} lang="fr"></sl-format-date>;
     return <gui-value value={value} />;
   }
 
