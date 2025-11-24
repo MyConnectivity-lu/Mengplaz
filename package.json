@@ -11,7 +11,7 @@
     "lint": "oxlint ./frontend --max-warnings=0"
   },
   "dependencies": {
-    "@greycat/web": "https://get.greycat.io/files/sdk/web/stable/7.3/7.3.25-stable.tgz",
+    "@greycat/web": "https://get.greycat.io/files/sdk/web/stable/7.3/7.3.26-stable.tgz",
     "maplibre-gl": "5.10.0"
   },
   "devDependencies": {

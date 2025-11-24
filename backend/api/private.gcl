@@ -1,0 +1,8 @@
+@expose
+@permission("admin")
+fn promoteRecord(record: node<POIRecordProvider>) {
+    if (record->getLinkedGolden() != null) {
+        throw "This record is already linked to a golden Record";
+    }
+    record->promoteToGolden();
+}

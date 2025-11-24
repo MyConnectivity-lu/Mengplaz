@@ -10,6 +10,9 @@ export class PartialMatchPane extends HTMLElement {
 
   private confirm: MengplazConfirmDialog;
 
+  private candidatesTable = new GuiTable();
+  private searchItemTable = new GuiTable();
+
   constructor() {
     super();
     this.confirm = (<mengplaz-confirm-dialog text="Are you sure ?" />) as MengplazConfirmDialog;
@@ -43,26 +46,57 @@ export class PartialMatchPane extends HTMLElement {
     });
   }
 
+  private promote(record: gc.core.node<gc.mengplaz.POIRecordProvider>) {
+    this.confirm.text = `Are you sure you want promote this record to a golden record ?`;
+    this.confirm.show().then((res) => {
+      if (res) {
+        if (this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
+          gc.private_.promoteRecord(record).then(() => {
+            toast.notify({
+              message: 'Not implemented yet !',
+              variant: 'primary',
+              duration: 3000,
+              icon: 'check2-circle',
+            });
+          });
+        }
+      }
+    });
+  }
+
   render() {
     this.innerHTML = '';
     if (this.searchResult != null && this.missmatchKind != null) {
       const index = new GuiValue();
       index.value = this.currentResultIndex + 1;
 
-      const searchItemTable = new GuiTable();
-      searchItemTable.columns = [
+      this.searchItemTable.columns = [
         { index: gc.mengplaz.SearchItem.$fields.number, filterable: false },
         { index: gc.mengplaz.SearchItem.$fields.street, filterable: false },
         { index: gc.mengplaz.SearchItem.$fields.postcode, filterable: false },
         { index: gc.mengplaz.SearchItem.$fields.city, filterable: false },
+        {
+          index: gc.mengplaz.SearchItem.$fields.sourceRecord,
+          header: 'Action',
+          cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
+            return (
+              <sl-icon-button
+                title="Promote"
+                name="chevron-double-up"
+                label="promote"
+                style="font-size: 1.2rem;"
+                onclick={() => this.link(data.value)}
+              ></sl-icon-button>
+            );
+          },
+        },
       ];
-      searchItemTable.style.maxHeight = '70px';
-      searchItemTable.rowHeight = 40;
-      searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
+      this.searchItemTable.style.maxHeight = '70px';
+      this.searchItemTable.rowHeight = 40;
+      this.searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
 
-      const candidatesTable = new GuiTable();
-      candidatesTable.rowHeight = 40;
-      candidatesTable.columns = [
+      this.candidatesTable.rowHeight = 40;
+      this.candidatesTable.columns = [
         { index: gc.api.MatchCandidateDetail.$fields.overallScore, value: ({ value }) => `${value} %`, filterable: false },
         { index: gc.api.MatchCandidateDetail.$fields.number },
         { index: gc.api.MatchCandidateDetail.$fields.numberScore, value: ({ value }) => `${value} %`, filterable: false },
@@ -76,13 +110,21 @@ export class PartialMatchPane extends HTMLElement {
           index: gc.api.MatchCandidateDetail.$fields.ref,
           header: 'Action',
           cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
-            return <sl-icon-button name="link-45deg" label="Link" style="font-size: 1.2rem;" onclick={() => this.link(data.value)}></sl-icon-button>;
+            return (
+              <sl-icon-button
+                title="Link"
+                name="link-45deg"
+                label="Link"
+                style="font-size: 1.2rem;"
+                onclick={() => this.link(data.value)}
+              ></sl-icon-button>
+            );
           },
         },
       ];
       gc.api.getMatchCandidateDetails(this.searchResult[this.currentResultIndex].candidates).then((res) => {
-        candidatesTable.value = res;
-        candidatesTable.sortBy = [0, gc.SortOrder.desc.key];
+        this.candidatesTable.value = res;
+        this.candidatesTable.sortBy = [0, gc.SortOrder.desc.key];
       });
       //candidatesTable.value = value[i].candidates;
 
@@ -95,9 +137,9 @@ export class PartialMatchPane extends HTMLElement {
               if (this.searchResult != null) {
                 this.currentResultIndex = (this.searchResult.length + (this.currentResultIndex - 1)) % this.searchResult.length;
                 index.value = this.currentResultIndex + 1;
-                searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
+                this.searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
                 gc.api.getMatchCandidateDetails(this.searchResult[this.currentResultIndex].candidates).then((res) => {
-                  candidatesTable.value = res;
+                  this.candidatesTable.value = res;
                 });
               }
             }}
@@ -110,9 +152,9 @@ export class PartialMatchPane extends HTMLElement {
               if (this.searchResult != null) {
                 this.currentResultIndex = (this.currentResultIndex + 1) % this.searchResult?.length;
                 index.value = this.currentResultIndex + 1;
-                searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
+                this.searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
                 gc.api.getMatchCandidateDetails(this.searchResult[this.currentResultIndex].candidates).then((res) => {
-                  candidatesTable.value = res;
+                  this.candidatesTable.value = res;
                 });
               }
             }}
@@ -125,11 +167,11 @@ export class PartialMatchPane extends HTMLElement {
           {controls}
           <div className={'card'} style={{ maxHeight: '150px' }}>
             <h4 className={'card-title'}> Search Item </h4>
-            <div className={'card-content'}>{searchItemTable}</div>
+            <div className={'card-content'}>{this.searchItemTable}</div>
           </div>
           <div className={'card'}>
             <h4 className={'card-title'}> Golden Records </h4>
-            <div className={'card-content'}>{candidatesTable}</div>
+            <div className={'card-content'}>{this.candidatesTable}</div>
           </div>
           {this.confirm}
         </div>,

@@ -1,4 +1,3 @@
-
 var golden_consistuency_by_code: nodeIndex<String, node<GoldenConstituency>>;
 var golden_cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
 var golden_municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
@@ -9,7 +8,6 @@ var golden_pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
 var golden_pois_by_geo: nodeGeo<node<GoldenPointOfInterest>>;
 
 type GoldenSource extends DataSource {
-
     static NAME: String = "Golden";
 
     private reconciliationReport: node<ReconciliationReport?>;
@@ -17,14 +15,14 @@ type GoldenSource extends DataSource {
     static fn init() {
         //Declare the source
         var source = sources_by_name.get(GoldenSource::NAME);
-        if(source == null) {
-            var source = GoldenSource{
-                reconciliationReport: node<ReconciliationReport?>{null}
+        if (source == null) {
+            var source = GoldenSource {
+                reconciliationReport: node<ReconciliationReport?> { null }
             };
-            sources_by_name.set(source.name(), node<DataSource>{source});
+            sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
-    
+
     fn name(): String {
         return GoldenSource::NAME;
     }
@@ -40,7 +38,6 @@ type GoldenSource extends DataSource {
     fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
         return GoldenServices::search(req);
     }
-
 }
 
 type GoldenConstituency {
@@ -53,7 +50,7 @@ type GoldenConstituency {
 
 type GoldenCanton {
     id: String;
-    
+
     name: String;
     nameAliases: Array<Alias>;
 
@@ -68,7 +65,7 @@ type GoldenMunicipality {
 
     name: String;
     nameAliases: Array<Alias>;
-    
+
     lastUpdate: time;
 
     canton: node<GoldenCanton>;
@@ -103,38 +100,37 @@ type GoldenStreet extends StreetRecordProvider {
             street: this.name,
             city: this.city->name,
         };
-        if(this.nameAliases.size()>0) {
+        if (this.nameAliases.size() > 0) {
             record.streetAliases = this.nameAliases;
         }
-        if(this.city->nameAliases.size()>0) {
+        if (this.city->nameAliases.size() > 0) {
             record.cityAliases = this.city->nameAliases;
         }
         return record;
     }
-    
+
     fn getPOIs(): Array<POIRecordRef> {
-        var arr = Array<POIRecordRef>{};
-        for(_, ref in this.pois_by_id) {
-            arr.add(POIRecordRef{
-                ref: ref,
-                record: ref->toMengplazRecord(),
-            });
+        var arr = Array<POIRecordRef> {};
+        for (_, ref in this.pois_by_id) {
+            arr.add(POIRecordRef {
+                    ref: ref,
+                    record: ref->toMengplazRecord(),
+                });
         }
         return arr;
     }
-}   
+}
 
 type GoldenPointOfInterest extends POIRecordProvider {
-    
     uid: String;
-    
+
     number: int;
     multipleCode: String;
 
     postCode: String;
 
     positions: Map<String, geo>;
-    
+
     lastUpdate: time;
 
     street: node<GoldenStreet>?;
@@ -154,14 +150,15 @@ type GoldenPointOfInterest extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return null;
     }
-    
-    fn toFullRecord(): any {
-        
+
+    fn toFullRecord(): any {}
+
+    fn promoteToGolden(record: node<POIRecordProvider>) {
+        throw "Record is already Golden, it can't be promoted";
     }
 
     fn toMengplazRecord(): POIRecord {
-
-         var record = POIRecord {
+        var record = POIRecord {
             uid: this.uid,
             number: "${this.number}${this.multipleCode}",
             street: this.street?->name,
@@ -170,11 +167,11 @@ type GoldenPointOfInterest extends POIRecordProvider {
             positions: this.positions,
             sourceName: GoldenSource::NAME,
         };
-        if(this.street != null) {
-            if(this.street->nameAliases.size() > 0) {
+        if (this.street != null) {
+            if (this.street->nameAliases.size() > 0) {
                 record.streetAliases = this.street->nameAliases;
             }
-            if(this.street->city->nameAliases.size() > 0) {
+            if (this.street->city->nameAliases.size() > 0) {
                 record.cityAliases = this.street->city->nameAliases;
             }
         }

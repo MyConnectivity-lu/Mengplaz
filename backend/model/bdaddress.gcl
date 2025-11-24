@@ -1,11 +1,8 @@
-
-
-
 var bda_municipalities_by_name: nodeIndex<String, node<BDAMunicipality>>;
 var bda_street_by_cacrid: nodeList<node<BDAStreet>>;
 var bda_address_by_geo: nodeGeo<node<BDAddress>>;
 var bda_address_by_cacrid: nodeList<node<BDAddress>>;
-var bda_address_by_geoportalid: nodeIndex<String,node<BDAddress>>;
+var bda_address_by_geoportalid: nodeIndex<String, node<BDAddress>>;
 
 type BDAMunicipality {
     name: String;
@@ -32,7 +29,7 @@ type BDAddressFullRecord {
     postcode: String;
     positions: Map<String, geo>;
 
-    municipatlity : String;
+    municipatlity: String;
     city: String;
     street: String;
 
@@ -43,12 +40,12 @@ type BDAddressFullRecord {
 type BDAddress extends POIRecordProvider {
     private number: String;
     private postcode: String;
-    private position: geo;  
+    private position: geo;
 
     private id_caclr: int;
     private id_geoportail: String;
 
-    private municipatlity : node<BDAMunicipality>;
+    private municipatlity: node<BDAMunicipality>;
     private city: node<BDACity>;
     private street: node<BDAStreet>;
 
@@ -58,8 +55,8 @@ type BDAddress extends POIRecordProvider {
         this.goldenRef = nGolden;
     }
 
-    fn unlinkGolden(me:node<POIRecordProvider>) {
-        if(this.goldenRef != null) {
+    fn unlinkGolden(me: node<POIRecordProvider>) {
+        if (this.goldenRef != null) {
             var idx = this.goldenRef->linkedRecords.index_of(me);
             this.goldenRef->linkedRecords.remove(idx);
             this.goldenRef = null;
@@ -69,28 +66,28 @@ type BDAddress extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
     }
-    
+    fn promoteToGolden() {
+        //TODO
+    }
+
     fn toFullRecord(): BDAddressFullRecord {
         return BDAddressFullRecord {
             id_geoportail: this.id_geoportail,
             id_caclr: this.id_caclr,
-
             number: this.number,
             postcode: this.postcode,
-            positions: Map<String, geo>{"default": this.position},
-
+            positions: Map<String, geo> { "default": this.position },
             municipatlity: this.municipatlity->name,
             city: this.city->name,
             street: this.street->name,
-
             sourceName: BDAddressSource::NAME,
             goldenRef: this.goldenRef,
         };
     }
 
-    fn toMengplazRecord() : POIRecord {
-        var positions = Map<String, geo>{"default": this.position};
-         var record = POIRecord {
+    fn toMengplazRecord(): POIRecord {
+        var positions = Map<String, geo> { "default": this.position };
+        var record = POIRecord {
             uid: "${this.id_caclr}",
             number: "${this.number}",
             street: this.street->name,
@@ -104,9 +101,7 @@ type BDAddress extends POIRecordProvider {
     }
 }
 
-
 type BDAddressSource extends DataSource {
-
     static NAME: String = "BDA";
 
     private reconciliationReport: node<ReconciliationReport?>;
@@ -114,11 +109,11 @@ type BDAddressSource extends DataSource {
     static fn init() {
         //Declare the source
         var source = sources_by_name.get(BDAddressSource::NAME);
-        if(source == null) {
-            var source = BDAddressSource{
-                reconciliationReport: node<ReconciliationReport?>{null}
+        if (source == null) {
+            var source = BDAddressSource {
+                reconciliationReport: node<ReconciliationReport?> { null }
             };
-            sources_by_name.set(source.name(), node<DataSource>{source});
+            sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
 
@@ -131,101 +126,107 @@ type BDAddressSource extends DataSource {
     }
 
     fn reconcile(): ReconciliationReport {
-
         var report = ReconciliationReport {
             date: time::now(),
-            linked: Array<node<POIRecordProvider>>{},
-            fullMatch: Array<mengplaz::SearchResult>{},
+            linked: Array<node<POIRecordProvider>> {},
+            fullMatch: Array<mengplaz::SearchResult> {},
             totalProcessed: 0,
-            mismatches: Map<MengplazMissmatch, Array<mengplaz::SearchResult>>{},
+            mismatches: Map<MengplazMissmatch, Array<mengplaz::SearchResult>> {},
         };
-        
-        var jobs = Array<Job>{};
-        for(var i = 0; i < 10; i++) {
-            jobs.add(Job{
-                function: GoldenServices::search,
-                arguments: [
-                    SearchRequest{
-                        items: Array<SearchItem>{},
-                        params: SearchParameters {
-                            citySimilarityThreshold: 0.7,
-                            streetSimilarityThreshold: 0.7,
-                            buildingSimilarityThreshold: 0.4,
-                            maxCandidatesPerItem: 5,
+
+        var jobs = Array<Job> {};
+        for (var i = 0; i < 10; i++) {
+            jobs.add(
+                Job {
+                    function: GoldenServices::search,
+                    arguments: [
+                        SearchRequest {
+                            items: Array<SearchItem> {},
+                            params: SearchParameters {
+                                citySimilarityThreshold: 0.7,
+                                streetSimilarityThreshold: 0.7,
+                                buildingSimilarityThreshold: 0.4,
+                                maxCandidatesPerItem: 5,
+                            },
                         },
-                    },
-                ],
-            });
+                    ],
+                }
+            );
         }
 
         var count = 0;
-        for(_, nBDAddr in bda_address_by_cacrid) {
-            if(nBDAddr->goldenRef != null) {
+        for (_, nBDAddr in bda_address_by_cacrid) {
+            if (nBDAddr->goldenRef != null) {
                 report.linked.add(nBDAddr);
             } else {
                 var nCaclr = caclr_buildings_by_id.get("${nBDAddr->id_caclr}");
-                if(nCaclr != null && nCaclr->goldenRef != null) {
-                    report.fullMatch.add(mengplaz::SearchResult{
-                        item: SearchItem{
-                            number: "${nBDAddr->number}",
-                            multipleCode: "",
-                            postcode: nBDAddr->postcode,
-                            street: nBDAddr->street->name,
-                            city: nBDAddr->city->name,
-                            sourceRecord: nBDAddr,
-                        },
-                        candidates: [CandidateMatch<node<POIRecordProvider>>{
-                            cityScore: 1.0,
-                            streetScore: 1.0,
-                            numberScore: 1.0,
-                            postcodeScore: 1.0,
-                            overallScore: 1.0,
-                            elem: nCaclr->goldenRef,
-                        }],
-                    });
+                if (nCaclr != null && nCaclr->goldenRef != null) {
+                    report.fullMatch.add(
+                        mengplaz::SearchResult {
+                            item: SearchItem {
+                                number: "${nBDAddr->number}",
+                                multipleCode: "",
+                                postcode: nBDAddr->postcode,
+                                street: nBDAddr->street->name,
+                                city: nBDAddr->city->name,
+                                sourceRecord: nBDAddr,
+                            },
+                            candidates: [
+                                CandidateMatch<node<POIRecordProvider>> {
+                                    cityScore: 1.0,
+                                    streetScore: 1.0,
+                                    numberScore: 1.0,
+                                    postcodeScore: 1.0,
+                                    overallScore: 1.0,
+                                    elem: nCaclr->goldenRef,
+                                }
+                            ],
+                        }
+                    );
                     continue;
                 }
 
-                jobs[count%10].arguments[0].items.add(SearchItem{
-                    number: "${nBDAddr->number}",
-                    multipleCode: "",
-                    postcode: nBDAddr->postcode,
-                    street: nBDAddr->street->name,
-                    city: nBDAddr->city->name,
-                    sourceRecord: nBDAddr,
-                });
+                jobs[count % 10].arguments[0].items.add(
+                    SearchItem {
+                        number: "${nBDAddr->number}",
+                        multipleCode: "",
+                        postcode: nBDAddr->postcode,
+                        street: nBDAddr->street->name,
+                        city: nBDAddr->city->name,
+                        sourceRecord: nBDAddr,
+                    }
+                );
                 count++;
-            }            
+            }
         }
 
         await(jobs, MergeStrategy::last_wins);
 
-        
-        for(_, job in jobs) {
-            for(_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
+        for (_, job in jobs) {
+            for (_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
                 var candidates = searchResult.candidates;
-                if(candidates.size() > 0 && candidates[0].overallScore == 1) {
+                if (candidates.size() > 0 && candidates[0].overallScore == 1) {
                     //ExactMatch
                     report.fullMatch.add(searchResult);
                 } else {
                     var reason = MengplazMissmatch::COMPLEX_MISMATCH;
-                    if(candidates.size()>0) {
+                    if (candidates.size() > 0) {
                         var firstCandidate = candidates[0];
-                        if(firstCandidate.cityScore == 1) {
-                            if(firstCandidate.postcodeScore == 1) {
-                                if(firstCandidate.streetScore == 1) {
+                        if (firstCandidate.cityScore == 1) {
+                            if (firstCandidate.postcodeScore == 1) {
+                                if (firstCandidate.streetScore == 1) {
                                     reason = MengplazMissmatch::NUMBER_MISMATCH;
-                                } else if(firstCandidate.numberScore == 1) {
+                                } else if (firstCandidate.numberScore == 1) {
                                     reason = MengplazMissmatch::STREET_MISMATCH;
                                 }
-                            } else if(firstCandidate.streetScore == 1 && firstCandidate.numberScore == 1) {
+                            } else if (firstCandidate.streetScore == 1 && firstCandidate.numberScore == 1) {
                                 reason = MengplazMissmatch::POSTCODE_MISMATCH;
                             }
                         }
                     }
                     var mismatches = report.mismatches.get(reason);
-                    if(mismatches == null) {
-                        mismatches = Array<mengplaz::SearchResult>{};
+                    if (mismatches == null) {
+                        mismatches = Array<mengplaz::SearchResult> {};
                         report.mismatches.set(reason, mismatches);
                     }
                     mismatches.add(searchResult);
@@ -239,7 +240,5 @@ type BDAddressSource extends DataSource {
         return report;
     }
 
-    fn search(req: SearchRequest): mengplaz::SearchResult {
-
-    }
+    fn search(req: SearchRequest): mengplaz::SearchResult {}
 }

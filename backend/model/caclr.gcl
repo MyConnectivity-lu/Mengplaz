@@ -1,4 +1,3 @@
-
 var caclr_consistuency_by_code: nodeIndex<String, node<CaclrConstituency>>;
 var caclr_cantons_by_id: nodeIndex<String, node<CaclrCanton>>;
 var caclr_municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>>;
@@ -18,7 +17,6 @@ enum CaclrAdminStatus {
     OFFICIAL("official");
 }
 
-
 type CaclrEurostatsIds {
     nuts3: String;
     lau1: String;
@@ -26,7 +24,6 @@ type CaclrEurostatsIds {
 }
 
 type CaclrSource extends DataSource {
-
     static NAME: String = "CACLR";
 
     private reconciliationReport: node<ReconciliationReport?>;
@@ -34,11 +31,11 @@ type CaclrSource extends DataSource {
     static fn init() {
         //Declare the source
         var source = sources_by_name.get(CaclrSource::NAME);
-        if(source == null) {
-            var source = CaclrSource{
-                reconciliationReport: node<ReconciliationReport?>{null}
+        if (source == null) {
+            var source = CaclrSource {
+                reconciliationReport: node<ReconciliationReport?> { null }
             };
-            sources_by_name.set(source.name(), node<DataSource>{source});
+            sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
 
@@ -51,77 +48,80 @@ type CaclrSource extends DataSource {
     }
 
     fn reconcile(): ReconciliationReport {
-
-         var report = ReconciliationReport {
+        var report = ReconciliationReport {
             date: time::now(),
-            linked: Array<node<POIRecordProvider>>{},
-            fullMatch: Array<mengplaz::SearchResult>{},
+            linked: Array<node<POIRecordProvider>> {},
+            fullMatch: Array<mengplaz::SearchResult> {},
             totalProcessed: 0,
-            mismatches: Map<MengplazMissmatch, Array<mengplaz::SearchResult>>{},
+            mismatches: Map<MengplazMissmatch, Array<mengplaz::SearchResult>> {},
         };
 
-        var jobs = Array<Job>{};
-        for(var i = 0; i < 10; i++) {
-            jobs.add(Job{
-                function: GoldenServices::search,
-                arguments: [
-                    SearchRequest{
-                        items: Array<SearchItem>{},
-                        params: SearchParameters {
-                            citySimilarityThreshold: 0.7,
-                            streetSimilarityThreshold: 0.7,
-                            buildingSimilarityThreshold: 0.4,
-                            maxCandidatesPerItem: 5,
+        var jobs = Array<Job> {};
+        for (var i = 0; i < 10; i++) {
+            jobs.add(
+                Job {
+                    function: GoldenServices::search,
+                    arguments: [
+                        SearchRequest {
+                            items: Array<SearchItem> {},
+                            params: SearchParameters {
+                                citySimilarityThreshold: 0.7,
+                                streetSimilarityThreshold: 0.7,
+                                buildingSimilarityThreshold: 0.4,
+                                maxCandidatesPerItem: 5,
+                            },
                         },
-                    },
-                ],
-            });
+                    ],
+                }
+            );
         }
 
         var count = 0;
-        for(idx, nBuilding in caclr_buildings_by_id) {
-            if(nBuilding->goldenRef != null) {
+        for (idx, nBuilding in caclr_buildings_by_id) {
+            if (nBuilding->goldenRef != null) {
                 report.linked.add(nBuilding);
             } else {
-                jobs[count%10].arguments[0].items.add(SearchItem{
-                    number: "${nBuilding->number}",
-                    multipleCode: nBuilding->multipleCode,
-                    postcode: nBuilding->postalCode,
-                    street: nBuilding->street->name,
-                    city: nBuilding->street->city->name,
-                    sourceRecord: nBuilding,
-                });
+                jobs[count % 10].arguments[0].items.add(
+                    SearchItem {
+                        number: "${nBuilding->number}",
+                        multipleCode: nBuilding->multipleCode,
+                        postcode: nBuilding->postalCode,
+                        street: nBuilding->street->name,
+                        city: nBuilding->street->city->name,
+                        sourceRecord: nBuilding,
+                    }
+                );
                 count++;
             }
         }
 
         await(jobs, MergeStrategy::last_wins);
 
-        for(_, job in jobs) {
-            for(_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
+        for (_, job in jobs) {
+            for (_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
                 var candidates = searchResult.candidates;
-                if(candidates.size() > 0 && candidates[0].overallScore == 1) {
+                if (candidates.size() > 0 && candidates[0].overallScore == 1) {
                     //ExactMatch
                     report.fullMatch.add(searchResult);
                 } else {
                     var reason = MengplazMissmatch::COMPLEX_MISMATCH;
-                    if(candidates.size()>0) {
+                    if (candidates.size() > 0) {
                         var firstCandidate = candidates[0];
-                        if(firstCandidate.cityScore == 1) {
-                            if(firstCandidate.postcodeScore == 1) {
-                                if(firstCandidate.streetScore == 1) {
+                        if (firstCandidate.cityScore == 1) {
+                            if (firstCandidate.postcodeScore == 1) {
+                                if (firstCandidate.streetScore == 1) {
                                     reason = MengplazMissmatch::NUMBER_MISMATCH;
-                                } else if(firstCandidate.numberScore == 1) {
+                                } else if (firstCandidate.numberScore == 1) {
                                     reason = MengplazMissmatch::STREET_MISMATCH;
                                 }
-                            } else if(firstCandidate.streetScore == 1 && firstCandidate.numberScore == 1) {
+                            } else if (firstCandidate.streetScore == 1 && firstCandidate.numberScore == 1) {
                                 reason = MengplazMissmatch::POSTCODE_MISMATCH;
                             }
                         }
                     }
                     var mismatches = report.mismatches.get(reason);
-                    if(mismatches == null) {
-                        mismatches = Array<mengplaz::SearchResult>{};
+                    if (mismatches == null) {
+                        mismatches = Array<mengplaz::SearchResult> {};
                         report.mismatches.set(reason, mismatches);
                     }
                     mismatches.add(searchResult);
@@ -131,15 +131,12 @@ type CaclrSource extends DataSource {
         }
 
         this.reconciliationReport.set(report);
-        
-        return report;        
+
+        return report;
     }
 
-    fn search(req: SearchRequest): mengplaz::SearchResult {
-
-    }
- }
-
+    fn search(req: SearchRequest): mengplaz::SearchResult {}
+}
 
 type CaclrConstituency {
     code: String;
@@ -166,7 +163,7 @@ type CaclrMunicipality {
     name: String;
     nameUpperCase: String;
     nameLu: String;
-    
+
     status: CaclrDataStatus;
     validityStartDate: time;
     validityEndDate: time?;
@@ -187,7 +184,7 @@ type CaclrCity {
     name: String;
     nameUpperCase: String;
     aliases: Array<Alias>;
-  
+
     isTown: bool;
 
     validityStartDate: time;
@@ -203,7 +200,7 @@ type CaclrStreet {
     name: String;
     nameUpperCase: String;
     keyWord: String;
-  
+
     aliases: Array<Alias>;
 
     administrativeStatus: CaclrAdminStatus;
@@ -221,7 +218,7 @@ type CaclrStreet {
 
 @volatile
 type CaclrPOIFullRecord {
-    id: String;    
+    id: String;
     number: int;
     multipleCode: String;
     postalCode: String;
@@ -242,9 +239,8 @@ type CaclrPOIFullRecord {
 }
 
 type CaclrBuilding extends POIRecordProvider {
-    
     private id: String;
-    
+
     private number: int;
     private isNumberUndefined: bool;
 
@@ -267,8 +263,8 @@ type CaclrBuilding extends POIRecordProvider {
         this.goldenRef = nGolden;
     }
 
-    fn unlinkGolden(me:node<POIRecordProvider>) {
-        if(this.goldenRef != null) {
+    fn unlinkGolden(me: node<POIRecordProvider>) {
+        if (this.goldenRef != null) {
             var idx = this.goldenRef->linkedRecords.index_of(me);
             this.goldenRef->linkedRecords.remove(idx);
             this.goldenRef = null;
@@ -278,7 +274,11 @@ type CaclrBuilding extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
     }
-    
+
+    fn promoteToGolden() {
+        //TODO
+    }
+
     fn toFullRecord(): any {
         return CaclrPOIFullRecord {
             id: this.id,
@@ -300,29 +300,28 @@ type CaclrBuilding extends POIRecordProvider {
     }
 
     fn toMengplazRecord(): POIRecord {
-        var record = POIRecord{
+        var record = POIRecord {
             uid: null,
             number: "${this.number}${this.multipleCode}",
             street: this.street?->name,
             postcode: this.postalCode,
             city: this.street?->city->name,
-            positions: Map<String, geo>{},
+            positions: Map<String, geo> {},
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,
         };
 
-        if(this.street != null) {
-            if(this.street->aliases.size() > 0) {
+        if (this.street != null) {
+            if (this.street->aliases.size() > 0) {
                 record.streetAliases = this.street->aliases;
             }
-            if(this.street->city->aliases.size() > 0) {
+            if (this.street->city->aliases.size() > 0) {
                 record.cityAliases = this.street->city->aliases;
             }
         }
         return record;
     }
 }
-
 
 @volatile
 type CaclrTokenResponse {
@@ -334,6 +333,7 @@ type CaclrTokenResponse {
 }
 
 private var caclr_token: node<CaclrToken?>;
+
 type CaclrToken {
     access_token: String;
     token_type: String;
@@ -342,42 +342,41 @@ type CaclrToken {
     iss: String;
     expiry_time: time;
 
-    fn isValid() : bool {
+    fn isValid(): bool {
         return (time::now() + 60_s) < this.expiry_time;
     }
 
     static fn renew(): CaclrToken {
-        
         var clientId = System::getEnv("CACLR_API_CLIENT_ID");
         var clientSecret = System::getEnv("CACLR_API_CLIENT_SECRET");
 
-        if(clientId == null || clientSecret == null) {
+        if (clientId == null || clientSecret == null) {
             throw "No credentials provided to conect to CACLR source.";
         }
 
-        var endpoint= "https://oauth.api.etat.lu/api/oauth/token";
-        var headers = Map<String, String>{
-            "Content-Type":"application/x-www-form-urlencoded"
+        var endpoint = "https://oauth.api.etat.lu/api/oauth/token";
+        var headers = Map<String, String> {
+            "Content-Type": "application/x-www-form-urlencoded"
         };
 
-        var params = Map<String, String>{
-            "grant_type":"client_credentials",
+        var params = Map<String, String> {
+            "grant_type": "client_credentials",
             "client_id": clientId,
             "client_secret": clientSecret,
-            "scope":"resource.READ", //resource.WRITE
+            "scope": "resource.READ",  //resource.WRITE
         };
 
         var request = HttpRequest {
             method: HttpMethod::POST,
             url: endpoint,
             headers: headers,
-            body: Url::encode(params),   
+            body: Url::encode(params),
         };
 
-        var httpClient = Http<CaclrTokenResponse>{};
+        var httpClient = Http<CaclrTokenResponse> {};
         var response = httpClient.send(request);
 
-        if(response.status_code != 200 || response.content == null) {
+        if (response.status_code != 200 || response.content == null) {
             error(response);
             throw "Error while retrieving token.";
         }
@@ -392,11 +391,11 @@ type CaclrToken {
         };
         caclr_token.set(token);
         return token;
-    } 
+    }
 
     static fn get(): CaclrToken {
         var currentToken = *caclr_token;
-        if(currentToken == null || !currentToken.isValid()) {
+        if (currentToken == null || !currentToken.isValid()) {
             return CaclrToken::renew();
         } else {
             return currentToken;
