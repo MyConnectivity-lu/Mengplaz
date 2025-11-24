@@ -272,3 +272,72 @@ fn mergePositionsToGolden(others: Array<node<POIRecordProvider>>) {
         }
     }
 }
+
+@expose
+@permission("public")
+fn getRecordByGeopartalID(id: String): POIRecordRef? {
+    var record = bda_address_by_geoportalid.get(id);
+    if (record != null) {
+        var nGolden = record->getLinkedGolden();
+        if (nGolden != null) {
+            return POIRecordRef {
+                ref: nGolden,
+                record: nGolden->toMengplazRecord(),
+            };
+        }
+    }
+    return null;
+}
+
+@volatile
+type GoldenIndex {
+    id: String;
+    name: String;
+}
+
+@expose
+@permission("public")
+fn getGoldenCities(): Array<GoldenIndex> {
+    var cities = Array<GoldenIndex> {};
+    for (id, nCity in golden_cities_by_id) {
+        cities.add(GoldenIndex {
+                id: id,
+                name: nCity->name
+            });
+    }
+    return cities;
+}
+
+@expose
+@permission("public")
+fn getGoldenStreetsByCity(city: String): Array<GoldenIndex> {
+    var nCity = golden_cities_by_id.get(city);
+    if (nCity == null) {
+        throw "City with id ${city} not found";
+    }
+    var streets = Array<GoldenIndex> {};
+    for (id, nStreet in nCity->streets_by_id) {
+        streets.add(GoldenIndex {
+                id: id,
+                name: nStreet->name
+            });
+    }
+    return streets;
+}
+
+@expose
+@permission("public")
+fn getGoldenNumbersByStreet(street: String): Array<GoldenIndex> {
+    var nStreet = golden_streets_by_id.get(street);
+    if (nStreet == null) {
+        throw "Street with id ${street} not found";
+    }
+    var numbers = Array<GoldenIndex> {};
+    for (id, nPOI in nStreet->pois_by_id) {
+        numbers.add(GoldenIndex {
+                id: id,
+                name: "${nPOI->number}",
+            });
+    }
+    return numbers;
+}

@@ -11,9 +11,9 @@ export function getQueryParam(key: string) {
   return url.searchParams.get(key);
 }
 
-export function handleGoToRecord(ref: bigint) {
+export function handleGoToRecord(ref: string) {
   const url = new URL(window.location.href);
-  url.searchParams.set('guid', ref.toString());
+  url.searchParams.set('guid', ref);
   url.searchParams.set('page', 'record');
   window.history.pushState(null, '', url);
 }

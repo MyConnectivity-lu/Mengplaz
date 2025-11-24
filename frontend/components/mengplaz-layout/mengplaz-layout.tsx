@@ -2,6 +2,7 @@ import '../../pages/search/search';
 import '../../pages/landing/landing';
 import '../../pages/map/map';
 import '../../pages/reconcile/reconcile';
+import '../../pages/index/index';
 import '../../components/mengplaz-comparator/mengplaz-comparator';
 import { sl } from '@greycat/web';
 import './mengplaz-layout.css';
@@ -57,6 +58,12 @@ export class MengplazLayout extends HTMLElement {
           <sl-button id="search" variant="text" className="sidebar-link">
             <sl-icon slot="prefix" name="search"></sl-icon>
             Search
+          </sl-button>
+        </li>
+        <li>
+          <sl-button id="index" variant="text" className="sidebar-link">
+            <sl-icon slot="prefix" name="list"></sl-icon>
+            Index
           </sl-button>
         </li>
         {gc.$.default.hasPermission('admin') ? (
@@ -183,6 +190,9 @@ export class MengplazLayout extends HTMLElement {
         break;
       case 'record':
         this.main.replaceChildren(<mengplaz-comparator />);
+        break;
+      case 'index':
+        this.main.replaceChildren(<index-page />);
         break;
       default:
         this.main.replaceChildren(<map-page />);
