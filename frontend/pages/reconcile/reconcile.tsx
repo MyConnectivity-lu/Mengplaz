@@ -34,16 +34,18 @@ export class ReconcilePage extends HTMLElement {
 
   private updateLocalReconciliationReport() {
     this.reconcileButton.loading = true;
-    gc.api.getReconciliationReport(this.sourceSelect.value.ref).then((res) => {
-      if (res != null) {
-        this.reconciliationReport = res;
-        this.render();
-      } else {
-        this.reconciliationReport = undefined;
-        this.render();
-      }
-      this.reconcileButton.loading = false;
-    });
+    if (this.sourceSelect.value) {
+      gc.api.getReconciliationReport(this.sourceSelect.value.ref).then((res) => {
+        if (res != null) {
+          this.reconciliationReport = res;
+          this.render();
+        } else {
+          this.reconciliationReport = undefined;
+          this.render();
+        }
+        this.reconcileButton.loading = false;
+      });
+    }
   }
 
   private async reconcile() {

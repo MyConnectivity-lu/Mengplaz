@@ -13,16 +13,16 @@ export class MengplazComparator extends HTMLElement {
 
   connectedCallback() {
     this.userIsAdmin = gc.$.default.hasPermission('admin');
-    this.udpate();
+    this.update();
     this.addEventListener('update', (e) => {
       e.stopPropagation();
-      this.udpate();
+      this.update();
     });
   }
 
   disconnectedCallback() {}
 
-  private async udpate() {
+  private async update() {
     const ref = getQueryParam('guid');
     if (ref != null) {
       const recRef = await gc.api.getGoldenRecordRefByUid(ref);

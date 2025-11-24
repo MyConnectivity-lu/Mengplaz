@@ -6,16 +6,24 @@ import { handleGoToRecord } from '~/common/utils';
 
 export class MengplazAddressCard extends HTMLElement {
   _value?: gc.mengplaz.POIRecordRef | gc.mengplaz.POIFullRecordRef;
+  /**
+   * Displays a button that navigates to the records page, if it's a golden record.
+   */
   showGoTo?: boolean;
+  /**
+   * Display a button that triggers an unlink.
+   */
   showUnlink?: boolean;
+  /**
+   * Display a qr code that navigates to the records page.
+   */
   showQuickLink?: boolean;
+  /**
+   * Displays a button that triggers a link
+   */
   showLink?: gc.node;
 
   private confirm: MengplazConfirmDialog;
-
-  static get observedAttributes() {
-    return ['showLink'];
-  }
 
   constructor() {
     super();
@@ -42,6 +50,7 @@ export class MengplazAddressCard extends HTMLElement {
   disconnectedCallback() {}
 
   private unlinkClicked() {
+    this.confirm.text = 'Are you sure you want to unlink this record ?';
     this.confirm.show().then((confirmed) => {
       if (confirmed) {
         gc.api.unlinkRecord(this._value!.ref).then(() => {
@@ -52,8 +61,8 @@ export class MengplazAddressCard extends HTMLElement {
   }
   private linkClicked() {
     this.confirm.text = 'Are you sure you want to link this item to the Golden record ?';
-    this.confirm.show().then((res) => {
-      if (res) {
+    this.confirm.show().then((confirmed) => {
+      if (confirmed) {
         gc.api.linkRecords(this.showLink!, this._value!.ref);
       }
     });
@@ -121,7 +130,7 @@ export class MengplazAddressCard extends HTMLElement {
   }
 
   private renderMap(record: unknown) {
-    if (typeof record === 'object' && record != null && 'positions' in record) {
+    if (typeof record === 'object' && record != null && 'positions' in record && record['positions'] instanceof Map && record['positions'].size > 0) {
       return <mengplaz-minimap locations={record.positions as Map<string, gc.geo>} />;
     }
   }

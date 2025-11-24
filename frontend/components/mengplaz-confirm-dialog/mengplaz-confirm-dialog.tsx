@@ -37,7 +37,7 @@ export class MengplazConfirmDialog extends HTMLElement {
           variant="warning"
           onclick={() => {
             this.dialog.hide();
-            this.resolve ? this.resolve(true) : undefined;
+            this.resolve?.(true);
           }}
         >
           Yes
@@ -47,7 +47,7 @@ export class MengplazConfirmDialog extends HTMLElement {
           variant="default"
           onclick={() => {
             this.dialog.hide();
-            this.resolve ? this.resolve(false) : undefined;
+            this.resolve?.(false);
           }}
         >
           Cancel

@@ -1,4 +1,4 @@
-import { GuiValue } from '@greycat/web';
+import { GuiValue, toast } from '@greycat/web';
 import { MengplazConfirmDialog } from '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 
@@ -12,7 +12,7 @@ export class LinkedRecordsPane extends HTMLElement {
 
   constructor() {
     super();
-    this.confirm = (<mengplaz-confirm-dialog text="Are you sure you want to unlink this record ?" />) as MengplazConfirmDialog;
+    this.confirm = (<mengplaz-confirm-dialog />) as MengplazConfirmDialog;
   }
 
   connectedCallback() {
@@ -26,15 +26,7 @@ export class LinkedRecordsPane extends HTMLElement {
     this.confirm.show().then((res) => {
       if (res) {
         gc.api.mergePositionsToGolden(this.reconciliationReport!.linked).then(() => {
-            this.dispatchEvent(new CustomEvent('mengplaz-notify', {
-              bubbles: true, 
-              detail:{
-                message: `Positions added to linked Golden Records.`,
-                variant: "primary",
-                duration: 3000,
-                icon: "check2-circle" 
-              },
-            }));
+          toast.notify({ message: `Positions added to linked Golden Records.`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
           this.render();
         });
       }

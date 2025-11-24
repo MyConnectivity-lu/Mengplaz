@@ -1,4 +1,4 @@
-import { CellData, GuiTable, GuiValue } from '@greycat/web';
+import { CellData, GuiTable, GuiValue, toast } from '@greycat/web';
 
 import { MengplazConfirmDialog } from '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
@@ -9,7 +9,6 @@ export class PartialMatchPane extends HTMLElement {
   private currentResultIndex = 0;
 
   private confirm: MengplazConfirmDialog;
-  
 
   constructor() {
     super();
@@ -23,26 +22,23 @@ export class PartialMatchPane extends HTMLElement {
   disconnectedCallback() {}
 
   private link(golden: gc.core.node<gc.mengplaz.POIRecordProvider>) {
-    console.log("Linkage confirmation");
-    
+    console.log('Linkage confirmation');
+
     this.confirm.text = `Are you sure you want to link this golden record to the searched item ?`;
     this.confirm.show().then((res) => {
-      console.log("Confirm closed", res);
+      console.log('Confirm closed', res);
       if (res) {
-         if(this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
-          console.log("Linking");
-          gc.api.linkRecords(golden, this.searchResult[this.currentResultIndex].item.sourceRecord!).then(()=>{
-            this.dispatchEvent(new CustomEvent('mengplaz-notify', {
-              bubbles: true, 
-              detail:{
-                message: 'Records linked !',
-                variant: "primary",
-                duration: 3000,
-                icon: "check2-circle" 
-              },
-            }));
+        if (this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
+          console.log('Linking');
+          gc.api.linkRecords(golden, this.searchResult[this.currentResultIndex].item.sourceRecord!).then(() => {
+            toast.notify({
+              message: 'Records linked !',
+              variant: 'primary',
+              duration: 3000,
+              icon: 'check2-circle',
+            });
           });
-         }
+        }
       }
     });
   }
@@ -76,9 +72,13 @@ export class PartialMatchPane extends HTMLElement {
         { index: gc.api.MatchCandidateDetail.$fields.postcodeScore, value: ({ value }) => `${value} %`, filterable: false },
         { index: gc.api.MatchCandidateDetail.$fields.city },
         { index: gc.api.MatchCandidateDetail.$fields.cityScore, value: ({ value }) => `${value} %`, filterable: false },
-        { index: gc.api.MatchCandidateDetail.$fields.ref, header: "Action", cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
-          return <sl-icon-button name="link-45deg" label="Link" style="font-size: 1.2rem;" onclick={()=>this.link(data.value)}></sl-icon-button>
-        }}
+        {
+          index: gc.api.MatchCandidateDetail.$fields.ref,
+          header: 'Action',
+          cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
+            return <sl-icon-button name="link-45deg" label="Link" style="font-size: 1.2rem;" onclick={() => this.link(data.value)}></sl-icon-button>;
+          },
+        },
       ];
       gc.api.getMatchCandidateDetails(this.searchResult[this.currentResultIndex].candidates).then((res) => {
         candidatesTable.value = res;
@@ -132,7 +132,7 @@ export class PartialMatchPane extends HTMLElement {
             <div className={'card-content'}>{candidatesTable}</div>
           </div>
           {this.confirm}
-        </div>,        
+        </div>,
       );
     }
   }

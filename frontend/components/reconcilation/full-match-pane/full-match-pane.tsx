@@ -1,4 +1,4 @@
-import { GuiValue } from '@greycat/web';
+import { GuiValue, toast } from '@greycat/web';
 import { MengplazAddressContent } from '~/components/mengplaz-address-content/mengplaz-address-content';
 import { MengplazConfirmDialog } from '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
@@ -33,15 +33,7 @@ export class FullMatchPane extends HTMLElement {
             others.push(sr.item.sourceRecord!);
           }
           gc.api.linkAllRecords(goldens, others).then(() => {
-            this.dispatchEvent(new CustomEvent('mengplaz-notify', {
-              bubbles: true, 
-              detail:{
-                message: `${goldens.length} matched records linked.`,
-                variant: "primary",
-                duration: 3000,
-                icon: "check2-circle" 
-              },
-            }));
+            toast.notify({ message: `${goldens.length} matched records linked.`, duration: 3000, icon: 'check2-circle', variant: 'primary' });
           });
         }
       }

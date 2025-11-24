@@ -11,7 +11,6 @@ export class MengplazLayout extends HTMLElement {
   private main: HTMLElement;
   private user?: gc.runtime.User;
 
-
   constructor() {
     super();
     this.main = (<main></main>) as HTMLElement;
@@ -19,10 +18,9 @@ export class MengplazLayout extends HTMLElement {
 
   connectedCallback() {
     this.render();
-    document.addEventListener('mengplaz-notify', (e: any) => { this.notify(e) });
   }
 
-  disconnectedCallback() { }
+  disconnectedCallback() {}
 
   private currentTheme() {
     return document.documentElement.classList.contains('sl-theme-dark') ? 'dark' : 'light';
@@ -93,28 +91,6 @@ export class MengplazLayout extends HTMLElement {
     window.history.pushState(null, '', url);
   }
 
-
-  private escapeHtml(html: any) {
-    const div = document.createElement('div');
-    div.textContent = html;
-    return div.innerHTML;
-  }
-  private notify(e: CustomEvent) {
-    console.log("received notify request", e);
-    const details = e.detail;
-    const alert = Object.assign(document.createElement('sl-alert'), {
-      variant: details.variant ?? 'success',
-      closable: details.closeable ?? true,
-      duration: details.duration,
-      innerHTML: `
-          <sl-icon name="${details.icon ?? 'info-circle'}" slot="icon"></sl-icon>
-          ${this.escapeHtml(details.message)}
-        `
-    });
-    document.body.append(alert);
-    return alert.toast();
-  }
-
   async render() {
     const theme = setupTheme();
     this._pageHandler();
@@ -124,14 +100,14 @@ export class MengplazLayout extends HTMLElement {
     let rootLayout = (
       <>
         <header className="mobile-header">
-          <h1 className="mobile-title">MengPlaz</h1>
+          <h1 className={['mobile-title', 'logo']}>MengPlaz</h1>
           <sl-icon-button name="list" label="Open Menu" className="mobile-menu-icon" onclick={() => this.toggleMobileMenu()}></sl-icon-button>
         </header>
         <div id="app-container">
           <nav id="sidebar">
             <div className="sidebar-content">
               <div className="desktop-title">
-                <h2 className="desktop-title-text">MengPlaz</h2>
+                <h2 className={['desktop-title-text', 'logo']}>MengPlaz</h2>
               </div>
 
               {this.createMenu(currentPage)}
