@@ -1,42 +1,67 @@
-
-
 @expose
 @permission("public")
 fn getPoisInStreet(e: node<StreetRecordProvider>): Array<POIRecordRef> {
     return e->getPOIs();
 }
 
-
-
 @expose
 @permission("public")
 fn searchStreet(e: String): Array<StreetRecordRef> {
     var threshold = 0.7;
     var searchResults = GoldenServices::searchStreet(e, threshold, null);
-    var res = Array<StreetRecordRef>{};
-    for(_, i in searchResults limit 50) {
+    var res = Array<StreetRecordRef> {};
+    for (_, i in searchResults limit 50) {
         //pprint(i);
         res.add(StreetRecordRef {
-            ref: i.elem,
-            record: i.elem->toRecord(),
-        });
+                ref: i.elem,
+                record: i.elem->toRecord(),
+            });
     }
     return res;
 }
 
+@volatile
+type POIFeatures {
+    type: String;
+    geometry: POIGeometry;
+    properties: POIProperties;
+}
+
+@volatile
+type POIGeometry {
+    type: String;
+    coordinates: Array<float>;
+}
+
+@volatile
+type POIProperties {
+    streetNumber: int;
+    ref: int;
+}
 
 @expose
 @permission("public")
-fn getPois(sw: geo, ne: geo): Table {
-    var pois = nodeGeo::sample(Array<nodeGeo>{golden_pois_by_geo}, sw, ne, 1000, SamplingMode::adaptative);
-    for(var i = 0; i < pois.rows(); i++) {
-        var poiNode = pois.get_cell(i,1) as node<GoldenPointOfInterest>;
-        pois.set_cell(i, 1, POIRecordRef{
-            ref: poiNode,
-            record: poiNode->toMengplazRecord(),
-        });
+fn getPois(sw: geo, ne: geo): Array<POIFeatures> {
+    var pois = nodeGeo::sample(Array<nodeGeo> { golden_pois_by_geo }, null, null, 1_000_000, SamplingMode::dense);
+    var feats = Array<POIFeatures> {};
+    feats.set_capacity(pois.rows());
+    for (var i = 0; i < pois.rows(); i++) {
+        var poiNode = pois.get_cell(i, 1) as node<GoldenPointOfInterest>;
+        feats.add(
+            POIFeatures {
+                type: "Feature",
+                geometry: POIGeometry {
+                    type: "Point",
+                    coordinates: Array<float> { (pois.get_cell(i, 0) as geo).lng(), (pois.get_cell(i, 0) as geo).lat() },
+                },
+                properties: POIProperties {
+                    streetNumber: poiNode->number,
+                    ref: poiNode as int
+                }
+            }
+        );
     }
-    return pois;
+    return feats;
 }
 
 @volatile
@@ -46,17 +71,17 @@ type GoldenRecordDetails {
 }
 
 @expose
-fn getGoldenRecordDetails(ref: node<GoldenPointOfInterest>) : GoldenRecordDetails {
-    var linked: Array<POIFullRecordRef> = Array<POIFullRecordRef>{};
-    for(_, l in ref->linkedRecords) {
-        linked.add(POIFullRecordRef{
-            ref: l,
-            record:  l->toFullRecord(),
-        });
+fn getGoldenRecordDetails(ref: node<GoldenPointOfInterest>): GoldenRecordDetails {
+    var linked: Array<POIFullRecordRef> = Array<POIFullRecordRef> {};
+    for (_, l in ref->linkedRecords) {
+        linked.add(POIFullRecordRef {
+                ref: l,
+                record: l->toFullRecord(),
+            });
     }
 
     return GoldenRecordDetails {
-        golden: POIRecordRef{
+        golden: POIRecordRef {
             ref: ref,
             record: ref->toMengplazRecord(),
         },
@@ -71,17 +96,17 @@ type LinkedRecordsDetails {
 }
 
 @expose
-fn getLinkedRecordDetails(other: node<POIRecordProvider>) : LinkedRecordsDetails? {
+fn getLinkedRecordDetails(other: node<POIRecordProvider>): LinkedRecordsDetails? {
     var nGolden = other->getLinkedGolden();
-    if(nGolden == null) {
+    if (nGolden == null) {
         return null;
     } else {
         return LinkedRecordsDetails {
-            golden: POIRecordRef{
+            golden: POIRecordRef {
                 ref: nGolden,
                 record: nGolden->toMengplazRecord(),
             },
-            associated: POIFullRecordRef{
+            associated: POIFullRecordRef {
                 ref: other,
                 record: other->toFullRecord(),
             },
@@ -90,21 +115,21 @@ fn getLinkedRecordDetails(other: node<POIRecordProvider>) : LinkedRecordsDetails
 }
 
 @expose
-fn getPoiRecordRef(ref: node<POIRecordProvider>) : POIRecordRef {
-    return POIRecordRef{
+fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
+    return POIRecordRef {
         ref: ref,
-        record:  ref->toMengplazRecord(),
+        record: ref->toMengplazRecord(),
     };
 }
 
 @expose
-fn getGoldenRecordRefByUid(uid: String) : POIRecordRef? {
+fn getGoldenRecordRefByUid(uid: String): POIRecordRef? {
     var nGolden = golden_pois_by_id.get(uid);
-    if(nGolden != null) {
-        return POIRecordRef{
+    if (nGolden != null) {
+        return POIRecordRef {
             ref: nGolden,
-            record:  nGolden->toMengplazRecord(),
-        };   
+            record: nGolden->toMengplazRecord(),
+        };
     }
     return null;
 }
@@ -122,20 +147,20 @@ type SourceRef {
 
 @expose
 fn getSources(): Array<SourceRef> {
-    var res = Array<SourceRef>{};
-    for(name, nSource in sources_by_name) {
-        res.add(SourceRef{ref: nSource, name: name});
+    var res = Array<SourceRef> {};
+    for (name, nSource in sources_by_name) {
+        res.add(SourceRef { ref: nSource, name: name });
     }
     return res;
 }
 
 @expose
 fn reconcile(source: node<DataSource>) {
-     var progress = ProgressTracker{
+    var progress = ProgressTracker {
         start: time::now(),
     };
     var recRes = clone(*source).reconcile();
-    progress.total = recRes.totalProcessed; 
+    progress.total = recRes.totalProcessed;
     progress.update(recRes.totalProcessed);
 
     return recRes;
@@ -155,7 +180,7 @@ type MatchCandidateDetail {
     overallScore: float;
     postcodeScore: float;
     uid: String?;
-    number:  String?;
+    number: String?;
     street: String?;
     postcode: String?;
     city: String?;
@@ -164,25 +189,26 @@ type MatchCandidateDetail {
 
 @expose
 fn getMatchCandidateDetails(elements: Array<CandidateMatch<node<POIRecordProvider>>>): Array<MatchCandidateDetail> {
-    var res = Array<MatchCandidateDetail>{};
-    for(i, e in elements) {
-
+    var res = Array<MatchCandidateDetail> {};
+    for (i, e in elements) {
         var record = e.elem->toMengplazRecord();
 
-        res.add(MatchCandidateDetail{
-            ref: e.elem,
-            numberScore: trunc(e.numberScore * 100),
-            streetScore: trunc(e.streetScore * 100),
-            cityScore: trunc(e.cityScore * 100),
-            overallScore: trunc(e.overallScore * 100),
-            postcodeScore: trunc(e.postcodeScore * 100),
-            uid: record.uid,
-            number: record.number,
-            street: record.street,
-            postcode: record.postcode,
-            city: record.city,
-            positions: record.positions,
-        });
+        res.add(
+            MatchCandidateDetail {
+                ref: e.elem,
+                numberScore: trunc(e.numberScore * 100),
+                streetScore: trunc(e.streetScore * 100),
+                cityScore: trunc(e.cityScore * 100),
+                overallScore: trunc(e.overallScore * 100),
+                postcodeScore: trunc(e.postcodeScore * 100),
+                uid: record.uid,
+                number: record.number,
+                street: record.street,
+                postcode: record.postcode,
+                city: record.city,
+                positions: record.positions,
+            }
+        );
     }
     return res;
 }
@@ -190,38 +216,38 @@ fn getMatchCandidateDetails(elements: Array<CandidateMatch<node<POIRecordProvide
 @expose
 fn searchByItem(item: SearchItem): mengplaz::SearchResult {
     var goldenSource = sources_by_name.get(GoldenSource::NAME)!!;
-    var searchResult = goldenSource->search(SearchRequest{
-        params: SearchParameters{
-            citySimilarityThreshold: 0.7,
-            streetSimilarityThreshold: 0.7,
-            buildingSimilarityThreshold: 0.7,
-            maxCandidatesPerItem: 20,
-        },        
-        items: Array<SearchItem>{item},
-    });
+    var searchResult = goldenSource->search(
+        SearchRequest {
+            params: SearchParameters {
+                citySimilarityThreshold: 0.7,
+                streetSimilarityThreshold: 0.7,
+                buildingSimilarityThreshold: 0.7,
+                maxCandidatesPerItem: 20,
+            },
+            items: Array<SearchItem> { item },
+        }
+    );
     return searchResult[0];
 }
 
 @expose
 @permission("admin")
 fn linkRecords(nGolden: node<POIRecordProvider>, nOther: node<POIRecordProvider>) {
-   
     var golden = *nGolden;
-    if(golden is GoldenPointOfInterest) {
-        if(golden.linkedRecords.index_of(nOther) == -1) {
+    if (golden is GoldenPointOfInterest) {
+        if (golden.linkedRecords.index_of(nOther) == -1) {
             golden.linkedRecords.add(nOther);
         }
     }
 
     var other = *nOther;
     other.linkToGolden(nGolden as node<GoldenPointOfInterest>);
-
 }
 
 @expose
 @permission("admin")
 fn linkAllRecords(goldens: Array<node<POIRecordProvider>>, others: Array<node<POIRecordProvider>>) {
-    for(i, nGolden in goldens) {
+    for (i, nGolden in goldens) {
         linkRecords(nGolden, others[i]);
     }
 }
@@ -236,10 +262,10 @@ fn unlinkRecord(nOther: node<POIRecordProvider>) {
 @expose
 @permission("admin")
 fn mergePositionsToGolden(others: Array<node<POIRecordProvider>>) {
-    for(_, nOther in others) {
+    for (_, nOther in others) {
         var nGolden = nOther->getLinkedGolden();
-        if(nGolden != null) {
-            for(k,v in nOther->toFullRecord().positions) {
+        if (nGolden != null) {
+            for (k, v in nOther->toFullRecord().positions) {
                 golden_pois_by_geo.set(v as geo, nGolden);
                 nGolden->positions.set(k as String, v as geo);
             }

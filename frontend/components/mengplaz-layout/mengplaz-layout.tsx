@@ -93,7 +93,7 @@ export class MengplazLayout extends HTMLElement {
 
   async render() {
     const theme = setupTheme();
-    this._pageHandler();
+    this._navigationHandler();
     const currentPage = getQueryParam('page') ?? 'map';
     this.changePage(currentPage);
     this.user = await gc.User.me();
@@ -170,30 +170,38 @@ export class MengplazLayout extends HTMLElement {
   }
 
   private _pageHandler() {
+    const id = getQueryParam('page');
+    switch (id) {
+      case 'search':
+        this.main.replaceChildren(<search-page />);
+        break;
+      case 'map':
+        this.main.replaceChildren(<map-page />);
+        break;
+      case 'reconcile':
+        this.main.replaceChildren(<reconcile-page />);
+        break;
+      case 'record':
+        this.main.replaceChildren(<mengplaz-comparator />);
+        break;
+      default:
+        this.main.replaceChildren(<map-page />);
+    }
+  }
+
+  private _navigationHandler() {
     const { pushState, replaceState } = history;
     history.pushState = (...args) => {
       pushState.apply(history, args);
-      const id = getQueryParam('page');
-      switch (id) {
-        case 'search':
-          this.main.replaceChildren(<search-page />);
-          break;
-        case 'map':
-          this.main.replaceChildren(<map-page />);
-          break;
-        case 'reconcile':
-          this.main.replaceChildren(<reconcile-page />);
-          break;
-        case 'record':
-          this.main.replaceChildren(<mengplaz-comparator />);
-          break;
-        default:
-          this.main.replaceChildren(<map-page />);
-      }
+      this._pageHandler();
     };
     history.replaceState = function (...args) {
       replaceState.apply(this, args);
     };
+
+    addEventListener('popstate', () => {
+      this._pageHandler();
+    });
   }
 }
 

@@ -392,3 +392,10 @@ gui-table::part(subheader) {
   margin-top: 20px;
   margin-right: 40px;
 }
+
+.maplibregl-popup-content {
+  background-color: var(--color-bg);
+}
+.maplibregl-popup {
+  max-width: max-content !important;
+}
