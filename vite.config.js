@@ -1,22 +1,11 @@
 import { basename, dirname, join, resolve } from 'node:path';
 import { defineConfig } from 'vite';
-import { viteStaticCopy } from 'vite-plugin-static-copy'
 import greycat from '@greycat/web/vite-plugin';
 
 const root = resolve(__dirname, 'frontend');
 
 export default defineConfig((_) => ({
-  plugins: [
-    greycat(),
-    viteStaticCopy({
-      targets: [
-        {
-          src: resolve(__dirname, 'frontend/login.html'),
-          dest: './',
-        },
-      ],
-    }),
-  ],
+  plugins: [greycat()],
   base: './', // makes generated urls relative to each file
   appType: 'spa',
   root,

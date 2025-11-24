@@ -82,19 +82,15 @@ h4 {
   --sl-color-success: var(--primary);
   /* --sl-color-neutral-0: var(--color-card-bg); */
   /* --sl-color-neutral-900: var(--color-text); */
-
 }
 
 /*  Layout Styles */
-
-/* --- Layout: Mobile-First --- */
 #app-container {
   display: flex;
   height: calc(100vh - 4rem);
   overflow: hidden;
 }
 
-/* Mobile Header */
 .mobile-header {
   position: sticky;
   top: 0;
@@ -102,22 +98,20 @@ h4 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
+  padding: var(--sl-spacing-medium);
   background-color: var(--color-sidebar-bg);
   box-shadow: 0 1px 3px var(--color-shadow);
   width: 100%;
-  height: 4rem; /* Fixed height for the header */
+  height: 4rem;
 }
 
-/* Sidebar Navigation */
 #sidebar {
-  /* Mobile: Fixed, hidden off-canvas */
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   z-index: 40;
-  width: 256px; /* w-64 */
+  width: 256px;
   background-color: var(--color-sidebar-bg);
   box-shadow: 2px 0 5px var(--color-shadow);
   transform: translateX(-100%);
@@ -131,12 +125,10 @@ h4 {
   flex-direction: column;
 }
 
-/* Class for opening the mobile menu */
 .mobile-menu-open {
   transform: translateX(0) !important;
 }
 
-/* Mobile Backdrop */
 #backdrop {
   position: fixed;
   inset: 0;
@@ -149,17 +141,15 @@ h4 {
   display: block;
 }
 
-/* Main Content Area */
 #main-content-wrapper {
-  flex: 1 1 0%; /* flex-1 */
+  flex: 1 1 0%;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  /* On mobile, add margin equivalent to header height */
 }
 
 main {
-  flex-grow: 1; /* flex-grow */
+  flex-grow: 1;
   padding: var(--sl-spacing-large);
   background-color: var(--color-bg);
 }
@@ -172,12 +162,12 @@ main {
   color: var(--secondary);
   width: 100%;
   place-content: flex-start;
-  font-size: 1.3rem;
+  font-size: var(--sl-font-size-large);
 }
 
 .sidebar-link sl-icon {
   margin-right: var(--sl-spacing-small);
-  font-size: 1rem;
+  font-size: var(--sl-font-size-large);
   color: var(--secondary);
 }
 
@@ -200,28 +190,26 @@ main {
   color: #10069f;
 }
 
-/* New: Styles extracted from inline H1 and SL-icon-button in mobile header */
 .mobile-title,
 .mobile-menu-icon {
   color: var(--secondary);
 }
 
 .mobile-title {
-  font-size: 1.25rem; /* text-xl */
-  font-weight: 700; /* font-bold */
+  font-size: var(--sl-font-size-x-large);
+  font-weight: 700;
 }
 
 .mobile-menu-icon {
-  font-size: 1.75rem;
+  font-size: var(--sl-font-size-medium);
 }
 
-/* New: Styles extracted from desktop title and sidebar footer elements */
 .desktop-title {
   display: none;
-  margin-bottom: 2rem;
+  margin-bottom: var(--sl-spacing-large);
 }
 .desktop-title-text {
-  font-size: 1.875rem;
+  font-size: var(--sl-font-size-2x-large);
   font-weight: 800;
   color: var(--secondary);
 }
@@ -235,8 +223,6 @@ main {
   gap: var(--sl-spacing-medium);
   flex-grow: 1;
 }
-
-/* Theme Switch styles */
 
 .theme-switch-container {
   display: flex;
@@ -284,7 +270,7 @@ footer {
   text-align: center;
   font-size: var(--sl-font-size-small);
   border-top: 1px solid var(--color-sidebar-border);
-  background-color: var(--color-sidebar-bg); /* Use sidebar bg for slightly different tone */
+  background-color: var(--color-sidebar-bg);
 
   a {
     text-decoration: none;
@@ -292,26 +278,24 @@ footer {
   }
 }
 
-/* --- Media Queries (Tablet/Desktop: 768px and up) --- */
+/* Tablet Layout */
 @media (min-width: 768px) {
   main {
     padding: var(--sl-spacing-large);
   }
 }
 
-/* --- Media Queries (Desktop: 1024px and up) --- */
+/* Desktop Layout */
 @media (min-width: 1024px) {
-  /* Desktop Layout */
   #app-container {
     min-height: 100vh;
   }
 
   .mobile-header {
-    display: none; /* Hide mobile header on desktop */
+    display: none;
   }
 
   #sidebar {
-    /* Desktop: Static, permanent, fixed width, subtle border */
     position: static;
     transform: translateX(0);
     box-shadow: none;
@@ -327,6 +311,13 @@ footer {
   color: var(--color-text);
 }
 
+.logo {
+  font-weight: 800;
+  color: var(--tertiary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 /* Component Styles */
 
 .card {
@@ -337,8 +328,14 @@ footer {
   border: 1px solid var(--color-card-border);
 }
 
+.card-title {
+  font-size: var(--sl-font-size-large);
+  font-weight: 600;
+  color: var(--secondary);
+}
+
 .content-title {
-  font-size: 1.875rem;
+  font-size: var(--sl-font-size-2x-large);
   font-weight: 600;
   margin-bottom: var(--spacing);
 }
@@ -346,12 +343,6 @@ footer {
   color: var(--color-text);
   opacity: 0.7;
   margin: 0;
-}
-
-.card-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--secondary);
 }
 
 body {
@@ -401,4 +392,3 @@ gui-table::part(subheader) {
   margin-top: 20px;
   margin-right: 40px;
 }
-
