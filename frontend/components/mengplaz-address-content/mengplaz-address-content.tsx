@@ -41,6 +41,7 @@ export class MengplazAddressContent extends HTMLElement {
 
   private renderAttr(key: string, value: unknown) {
     if (value instanceof gc.node || key === 'goldenRef') return;
+    if (key === 'sourceName') return;
     return (
       <div className={'field'}>
         <div className={'field-key'}> {prettifyCamelCase(key)}</div>
@@ -54,8 +55,14 @@ export class MengplazAddressContent extends HTMLElement {
     if (typeof value === 'string' || typeof value === 'number') return value;
     if (value instanceof gc.sdk.GCEnum) return value.key;
     if (Array.isArray(value)) return this.renderArray(value);
-    if (value instanceof Map && value.size > 0) return this.renderMapPositions(value);
     if (value instanceof gc.time) return <sl-format-date date={value.toDate()} lang="fr"></sl-format-date>;
+    if (value instanceof Map) {
+      if (value.size > 0) {
+        return this.renderMapPositions(value);
+      } else {
+        return '--';
+      }
+    }
     return <gui-value value={value} />;
   }
 
