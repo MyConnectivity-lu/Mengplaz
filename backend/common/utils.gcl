@@ -1,0 +1,61 @@
+type SplitAlphaNumericalString {
+    alpha: String;
+    numerical: int;
+}
+
+fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString {
+    var alphaCars = Array<char> {
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+        'G',
+        'H',
+        'I',
+        'J',
+        'K',
+        'L',
+        'M',
+        'N',
+        'O',
+        'P',
+        'Q',
+        'R',
+        'S',
+        'T',
+        'U',
+        'V',
+        'W',
+        'X',
+        'Y',
+        'Z'
+    };
+
+    var idx = int::max;
+    for (_, c in alphaCars) {
+        var i = number.indexOf(c);
+        if (i != -1 && i < idx) {
+            idx = i;
+        }
+    }
+    try {
+        if (idx != -1 && idx != int::max) {
+            var alpha = number.slice(idx, number.size());
+            //TODO! We can encounter strange numbers like "42-42A" from osm
+            var num = parseNumber(number.slice(0, idx)) as int;
+            return SplitAlphaNumericalString {
+                alpha: alpha,
+                numerical: num
+            };
+        }
+
+        return SplitAlphaNumericalString {
+            alpha: "",
+            numerical: parseNumber(number) as int
+        };
+    } catch (err) {
+        throw "Unable to parse address number";
+    }
+}

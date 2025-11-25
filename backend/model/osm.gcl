@@ -70,8 +70,27 @@ type OsmAddress extends POIRecordProvider {
         }
     }
 
-    fn promoteToGolden() {
-        //TODO
+    fn promoteToGolden(): node<GoldenPointOfInterest>? {
+        //TODO? Should we also handle the street ? 
+        var newUID: String;
+        do {
+            newUID = GoldenServices::generateUID();
+        } while (golden_pois_by_id.get(newUID) != null);
+        var alphaNum = extractAlphaCharsFromStreetNumber(this.number);
+        var nGoldenPOI = node<GoldenPointOfInterest> {
+            GoldenPointOfInterest {
+                uid: newUID,
+                number: alphaNum.numerical,
+                multipleCode: alphaNum.alpha,
+                postCode: this.postcode,
+                positions: Map<String, geo> { "default": this.position },
+                lastUpdate: time::now(),
+                linkedRecords: Array<node<POIRecordProvider>> {},
+            }
+        };
+        this.linkToGolden(nGoldenPOI);
+        golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+        return nGoldenPOI;
     }
 
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {

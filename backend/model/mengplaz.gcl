@@ -53,7 +53,7 @@ abstract type POIRecordProvider {
     abstract fn getLinkedGolden(): node<GoldenPointOfInterest>?;
     abstract fn toMengplazRecord(): POIRecord;
     abstract fn toFullRecord(): any;
-    abstract fn promoteToGolden();
+    abstract fn promoteToGolden(): node<GoldenPointOfInterest>?;
 }
 
 @volatile
