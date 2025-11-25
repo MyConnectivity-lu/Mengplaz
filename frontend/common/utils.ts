@@ -20,8 +20,11 @@ export function handleGoToRecord(ref: string) {
 
 export function prettifyCamelCase(str: string): string {
   if (!str) return '';
+
+  const noSnake = str.replace(/_/g, ' ');
+
   return (
-    str
+    noSnake
       // Insert a space before all caps that are followed by lowercase (e.g. "userName" → "user Name")
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       // Insert a space before sequences of capital letters followed by lowercase (e.g. "APIResponse" → "API Response")
