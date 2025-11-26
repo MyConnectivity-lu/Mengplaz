@@ -124,7 +124,13 @@ export class MapPage extends HTMLElement {
     this.render();
   }
 
-  disconnectedCallback() {}
+  disconnectedCallback() {
+    // Solves a leak inside maplibre
+    (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: [],
+    });
+  }
 
   private async updatePOIs() {
     const attc = this.map._controls.find((c) => c instanceof AttributionControl);
@@ -132,15 +138,19 @@ export class MapPage extends HTMLElement {
       attc._updateCompactMinimize();
     }
 
-    gc.api.getPois().then((result) => {
-      (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
-        type: 'FeatureCollection',
-        features: result.map((p) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [p.coords.lng, p.coords.lat] },
-          properties: { streetNumber: p.number, coords: p.coords.value.toString() },
-        })),
-      });
+    let features: any = (window as any)._gc_pois;
+    if (!features) {
+      const points = await gc.api.getPois();
+      features = points.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.coords.lng, p.coords.lat] },
+        properties: { streetNumber: p.number, coords: p.coords.value.toString() },
+      }));
+      (window as any)._gc_pois = features;
+    }
+    (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: features,
     });
   }
 
