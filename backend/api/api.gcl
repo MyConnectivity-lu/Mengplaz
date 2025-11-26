@@ -336,7 +336,7 @@ fn getGoldenNumbersByStreet(street: String): Array<GoldenIndex> {
     for (id, nPOI in nStreet->pois_by_id) {
         numbers.add(GoldenIndex {
                 id: id,
-                name: "${nPOI->number}",
+                name: "${nPOI->number} ${nPOI->multipleCode}",
             });
     }
     return numbers;
