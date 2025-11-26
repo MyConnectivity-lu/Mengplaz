@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@greycat/web':
-        specifier: https://get.greycat.io/files/sdk/web/stable/7.3/7.3.26-stable.tgz
-        version: https://get.greycat.io/files/sdk/web/stable/7.3/7.3.26-stable.tgz(@floating-ui/utils@0.2.10)(@types/react@19.1.12)
+        specifier: https://get.greycat.io/files/sdk/web/stable/7.3/7.3.27-stable.tgz
+        version: https://get.greycat.io/files/sdk/web/stable/7.3/7.3.27-stable.tgz(@floating-ui/utils@0.2.10)(@types/react@19.1.12)
       maplibre-gl:
         specifier: 5.10.0
         version: 5.10.0
@@ -202,9 +202,9 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
-  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/7.3/7.3.26-stable.tgz':
-    resolution: {tarball: https://get.greycat.io/files/sdk/web/stable/7.3/7.3.26-stable.tgz}
-    version: 7.3.26-stable
+  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/7.3/7.3.27-stable.tgz':
+    resolution: {tarball: https://get.greycat.io/files/sdk/web/stable/7.3/7.3.27-stable.tgz}
+    version: 7.3.27-stable
 
   '@lit-labs/ssr-dom-shim@1.4.0':
     resolution: {integrity: sha512-ficsEARKnmmW5njugNYKipTm4SFnbik7CXtoencDZzmzo/dQ+2Q0bgkzJuoJP20Aj0F+izzJjOqsnkd6F/o1bw==}
@@ -1003,7 +1003,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/7.3/7.3.26-stable.tgz(@floating-ui/utils@0.2.10)(@types/react@19.1.12)':
+  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/7.3/7.3.27-stable.tgz(@floating-ui/utils@0.2.10)(@types/react@19.1.12)':
     dependencies:
       '@shoelace-style/shoelace': 2.20.0(@floating-ui/utils@0.2.10)(@types/react@19.1.12)
       d3: 7.9.0
