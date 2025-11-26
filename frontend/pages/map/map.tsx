@@ -59,7 +59,7 @@ export class MapPage extends HTMLElement {
         source: 'points',
         minzoom: 17,
         paint: {
-          'circle-radius': 12,
+          'circle-radius': 14,
           'circle-color': '#ffffff',
           'circle-stroke-color': '#000000',
           'circle-stroke-width': 1,
@@ -72,7 +72,7 @@ export class MapPage extends HTMLElement {
         minzoom: 17,
         layout: {
           'text-field': ['get', 'streetNumber'],
-          'text-size': 14,
+          'text-size': 12,
           'text-allow-overlap': true,
         },
         paint: {
@@ -96,31 +96,30 @@ export class MapPage extends HTMLElement {
       });
       this.map.on('click', 'points', async (e: any) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
-        const ref = e.features[0].properties.ref;
-
-        const record = await gc.api.getGoldenRecordDetails(gc.node.create(BigInt(ref)) as any);
-
+        const coords = e.features[0].properties.coords;
+        const record = await gc.api.getPoisByGeo(gc.geo.create(BigInt(coords)));
         new maplibregl.Popup()
           .setLngLat(coordinates)
-          .setDOMContent(<mengplaz-address-card value={record.golden} showGoTo />)
+          .setDOMContent(<mengplaz-address-card value={record ?? undefined} showGoTo />)
           .addTo(this.map);
       });
 
       this.map.on('click', 'street-numbers-bg', async (e: any) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
-        const ref = e.features[0].properties.ref;
+        const coords = e.features[0].properties.coords;
 
-        const record = await gc.api.getGoldenRecordDetails(gc.node.create(BigInt(ref)) as any);
+        const record = await gc.api.getPoisByGeo(gc.geo.create(BigInt(coords)));
 
         new maplibregl.Popup()
           .setLngLat(coordinates)
-          .setDOMContent(<mengplaz-address-card value={record.golden} showGoTo />)
+          .setDOMContent(<mengplaz-address-card value={record ?? undefined} showGoTo />)
           .addTo(this.map);
       });
       this.updatePOIs();
     });
   }
-
+  //5.9759064903482795
+  //6.276111602783203
   connectedCallback() {
     this.render();
   }
@@ -133,12 +132,14 @@ export class MapPage extends HTMLElement {
       attc._updateCompactMinimize();
     }
 
-    const bounds = this.map.getBounds();
-
-    gc.api.getPois(gc.core.geo.fromLatLng(bounds.getSouthWest()), gc.core.geo.fromLatLng(bounds.getNorthEast())).then((result) => {
+    gc.api.getPois().then((result) => {
       (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
         type: 'FeatureCollection',
-        features: result as any,
+        features: result.map((p) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [p.coords.lng, p.coords.lat] },
+          properties: { streetNumber: p.number, coords: p.coords.value.toString() },
+        })),
       });
     });
   }

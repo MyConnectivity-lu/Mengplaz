@@ -22,46 +22,34 @@ fn searchStreet(e: String): Array<StreetRecordRef> {
 
 @volatile
 type POIFeatures {
-    type: String;
-    geometry: POIGeometry;
-    properties: POIProperties;
-}
-
-@volatile
-type POIGeometry {
-    type: String;
-    coordinates: Array<float>;
-}
-
-@volatile
-type POIProperties {
-    streetNumber: int;
-    ref: int;
+    coords: geo;
+    number: String;
 }
 
 @expose
 @permission("public")
-fn getPois(sw: geo, ne: geo): Array<POIFeatures> {
-    var pois = nodeGeo::sample(Array<nodeGeo> { golden_pois_by_geo }, null, null, 1_000_000, SamplingMode::dense);
+fn getPois(): Array<POIFeatures> {
     var feats = Array<POIFeatures> {};
-    feats.set_capacity(pois.rows());
-    for (var i = 0; i < pois.rows(); i++) {
-        var poiNode = pois.get_cell(i, 1) as node<GoldenPointOfInterest>;
-        feats.add(
-            POIFeatures {
-                type: "Feature",
-                geometry: POIGeometry {
-                    type: "Point",
-                    coordinates: Array<float> { (pois.get_cell(i, 0) as geo).lng(), (pois.get_cell(i, 0) as geo).lat() },
-                },
-                properties: POIProperties {
-                    streetNumber: poiNode->number,
-                    ref: poiNode as int
-                }
-            }
-        );
+    feats.set_capacity(golden_pois_by_geo.size());
+    for (key, value in golden_pois_by_geo) {
+        feats.add(POIFeatures {
+                coords: key,
+                number: "${value->number}${value->multipleCode}"
+            });
     }
     return feats;
+}
+
+@expose
+@permission("public")
+fn getPoisByGeo(coords: geo): POIRecordRef? {
+    var poi = golden_pois_by_geo.get(coords);
+    if (poi != null) {
+        return POIRecordRef {
+            ref: poi,
+            record: poi->toMengplazRecord(),
+        };
+    }
 }
 
 @volatile
