@@ -16,6 +16,55 @@ export class PartialMatchPane extends HTMLElement {
   constructor() {
     super();
     this.confirm = (<mengplaz-confirm-dialog text="Are you sure ?" />) as MengplazConfirmDialog;
+    this.searchItemTable.columns = [
+      { index: gc.mengplaz.SearchItem.$fields.number, filterable: false },
+      { index: gc.mengplaz.SearchItem.$fields.street, filterable: false },
+      { index: gc.mengplaz.SearchItem.$fields.postcode, filterable: false },
+      { index: gc.mengplaz.SearchItem.$fields.city, filterable: false },
+      {
+        index: gc.mengplaz.SearchItem.$fields.sourceRecord,
+        header: 'Action',
+        cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
+          return (
+            <sl-icon-button
+              title="Promote"
+              name="chevron-double-up"
+              label="promote"
+              style="font-size: 1.2rem;"
+              onclick={() => this.link(data.value)}
+            ></sl-icon-button>
+          );
+        },
+      },
+    ];
+    this.candidatesTable.columns = [
+      { index: gc.api.MatchCandidateDetail.$fields.overallScore, value: ({ value }) => `${value} %`, filterable: false },
+      { index: gc.api.MatchCandidateDetail.$fields.number },
+      { index: gc.api.MatchCandidateDetail.$fields.numberScore, value: ({ value }) => `${value} %`, filterable: false },
+      { index: gc.api.MatchCandidateDetail.$fields.street },
+      { index: gc.api.MatchCandidateDetail.$fields.streetScore, value: ({ value }) => `${value} %`, filterable: false },
+      { index: gc.api.MatchCandidateDetail.$fields.postcode },
+      { index: gc.api.MatchCandidateDetail.$fields.postcodeScore, value: ({ value }) => `${value} %`, filterable: false },
+      { index: gc.api.MatchCandidateDetail.$fields.city },
+      { index: gc.api.MatchCandidateDetail.$fields.cityScore, value: ({ value }) => `${value} %`, filterable: false },
+      {
+        index: gc.api.MatchCandidateDetail.$fields.ref,
+        header: 'Action',
+        cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
+          return (
+            <sl-icon-button
+              title="Link"
+              name="link-45deg"
+              label="Link"
+              style="font-size: 1.2rem;"
+              onclick={() => this.link(data.value)}
+            ></sl-icon-button>
+          );
+        },
+      },
+    ];
+    this.searchItemTable.rowHeight = 40;
+    this.candidatesTable.rowHeight = 40;
   }
 
   connectedCallback() {
@@ -70,58 +119,9 @@ export class PartialMatchPane extends HTMLElement {
       const index = new GuiValue();
       index.value = this.currentResultIndex + 1;
 
-      this.searchItemTable.columns = [
-        { index: gc.mengplaz.SearchItem.$fields.number, filterable: false },
-        { index: gc.mengplaz.SearchItem.$fields.street, filterable: false },
-        { index: gc.mengplaz.SearchItem.$fields.postcode, filterable: false },
-        { index: gc.mengplaz.SearchItem.$fields.city, filterable: false },
-        {
-          index: gc.mengplaz.SearchItem.$fields.sourceRecord,
-          header: 'Action',
-          cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
-            return (
-              <sl-icon-button
-                title="Promote"
-                name="chevron-double-up"
-                label="promote"
-                style="font-size: 1.2rem;"
-                onclick={() => this.link(data.value)}
-              ></sl-icon-button>
-            );
-          },
-        },
-      ];
       this.searchItemTable.style.maxHeight = '70px';
-      this.searchItemTable.rowHeight = 40;
       this.searchItemTable.value = [this.searchResult[this.currentResultIndex].item];
 
-      this.candidatesTable.rowHeight = 40;
-      this.candidatesTable.columns = [
-        { index: gc.api.MatchCandidateDetail.$fields.overallScore, value: ({ value }) => `${value} %`, filterable: false },
-        { index: gc.api.MatchCandidateDetail.$fields.number },
-        { index: gc.api.MatchCandidateDetail.$fields.numberScore, value: ({ value }) => `${value} %`, filterable: false },
-        { index: gc.api.MatchCandidateDetail.$fields.street },
-        { index: gc.api.MatchCandidateDetail.$fields.streetScore, value: ({ value }) => `${value} %`, filterable: false },
-        { index: gc.api.MatchCandidateDetail.$fields.postcode },
-        { index: gc.api.MatchCandidateDetail.$fields.postcodeScore, value: ({ value }) => `${value} %`, filterable: false },
-        { index: gc.api.MatchCandidateDetail.$fields.city },
-        { index: gc.api.MatchCandidateDetail.$fields.cityScore, value: ({ value }) => `${value} %`, filterable: false },
-        {
-          index: gc.api.MatchCandidateDetail.$fields.ref,
-          header: 'Action',
-          cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
-            return (
-              <sl-icon-button
-                title="Link"
-                name="link-45deg"
-                label="Link"
-                style="font-size: 1.2rem;"
-                onclick={() => this.link(data.value)}
-              ></sl-icon-button>
-            );
-          },
-        },
-      ];
       gc.api.getMatchCandidateDetails(this.searchResult[this.currentResultIndex].candidates).then((res) => {
         this.candidatesTable.value = res;
         this.candidatesTable.sortBy = [0, gc.SortOrder.desc.key];
