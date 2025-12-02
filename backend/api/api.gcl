@@ -339,3 +339,25 @@ fn getGoldenRecords(): Array<POIRecord> {
     }
     return records;
 }
+
+@expose
+@permission("public")
+fn openapi() {
+    var oa = OpenApi::v3();
+    var tmpPaths = Map<String, runtime::PathItemObject> {};
+
+    if (oa.paths?.contains("/api::getRecordByGeopartalID") == true) {
+        var path = oa.paths.get("/api::getRecordByGeopartalID")!!;
+        path.description = "Returns a Golden Record associated with an geopartal id";
+        tmpPaths.set("/api::getRecordByGeopartalID", path);
+    }
+
+    if (oa.paths?.contains("/api::getGoldenRecords") == true) {
+        var path = oa.paths.get("/api::getGoldenRecords")!!;
+        path.description = "Returns all golden records";
+        tmpPaths.set("/api::getGoldenRecords", path);
+    }
+
+    oa.paths = tmpPaths;
+    return oa;
+}
