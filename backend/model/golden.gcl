@@ -166,6 +166,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
             city: this.street?->city->name,
             positions: this.positions,
             sourceName: GoldenSource::NAME,
+            quality: GoldenServices::computeQuality(this.linkedRecords)
         };
         if (this.street != null) {
             if (this.street->nameAliases.size() > 0) {

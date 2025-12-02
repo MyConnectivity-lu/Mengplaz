@@ -109,6 +109,7 @@ type BDAddress extends POIRecordProvider {
 
 type BDAddressSource extends DataSource {
     static NAME: String = "BDA";
+    static CONFIDENCE: float = 0.9;
 
     private reconciliationReport: node<ReconciliationReport?>;
 

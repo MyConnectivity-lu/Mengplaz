@@ -118,6 +118,7 @@ type OsmAddress extends POIRecordProvider {
 
 type OsmSource extends DataSource {
     static NAME: String = "OSM";
+    static CONFIDENCE: float = 0.2;
 
     private reconciliationReport: node<ReconciliationReport?>;
 

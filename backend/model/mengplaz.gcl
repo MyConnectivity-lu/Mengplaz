@@ -45,6 +45,7 @@ type POIRecord {
     positions: Map<String, geo>;
     sourceName: String?;
     goldenRef: node<GoldenPointOfInterest>?;
+    quality: float?;
 }
 
 abstract type POIRecordProvider {

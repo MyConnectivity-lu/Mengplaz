@@ -40,8 +40,16 @@ export class MengplazAddressContent extends HTMLElement {
   }
 
   private renderAttr(key: string, value: unknown) {
-    if (value instanceof gc.node || key === 'goldenRef') return;
-    if (key === 'sourceName') return;
+    if (value instanceof gc.node || key === 'goldenRef' || key === 'sourceName') return;
+    if (key === 'quality')
+      return (
+        <div className={'field'}>
+          <div className={'field-key'}> {prettifyCamelCase(key)}</div>
+          <div className={'field-value'}>
+            <sl-rating readonly label="Rating" value={Number(value) * 5}></sl-rating>
+          </div>
+        </div>
+      );
     return (
       <div className={'field'}>
         <div className={'field-key'}> {prettifyCamelCase(key)}</div>

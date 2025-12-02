@@ -306,5 +306,23 @@ type GoldenServices {
             golden_consistuency_by_code.set(constutiency.code, node<GoldenConstituency> { constutiency });
         }
     }
+
+    static fn computeQuality(linkedRecords: Array<node<POIRecordProvider>>): float? {
+        var score: float = 0.0;
+        for (_, nRecord in linkedRecords) {
+            var r = *nRecord;
+            if (r is CaclrBuilding) {
+                score = CaclrSource::CONFIDENCE;
+                break;
+            }
+            if (r is OsmAddress && score < OsmSource::CONFIDENCE) {
+                score = OsmSource::CONFIDENCE;
+            } else if (r is BDAddress && score < BDAddressSource::CONFIDENCE) {
+                score = BDAddressSource::CONFIDENCE;
+            }
+        }
+
+        return score;
+    }
 }
 

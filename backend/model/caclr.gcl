@@ -25,6 +25,7 @@ type CaclrEurostatsIds {
 
 type CaclrSource extends DataSource {
     static NAME: String = "CACLR";
+    static CONFIDENCE: float = 1.0;
 
     private reconciliationReport: node<ReconciliationReport?>;
 
