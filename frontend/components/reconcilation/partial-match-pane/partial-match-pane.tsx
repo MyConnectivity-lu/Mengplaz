@@ -31,7 +31,7 @@ export class PartialMatchPane extends HTMLElement {
               name="chevron-double-up"
               label="promote"
               style="font-size: 1.2rem;"
-              onclick={() => this.link(data.value)}
+              onclick={() => this.promote(data.value)}
             ></sl-icon-button>
           );
         },
