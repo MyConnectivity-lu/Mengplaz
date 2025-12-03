@@ -1,7 +1,10 @@
 @expose
 @permission("public")
 fn getPoisInStreet(e: node<StreetRecordProvider>): Array<POIRecordRef> {
-    return e->getPOIs();
+    var ts = Traffic_Service::start(getPoisInStreet);
+    var pois = e->getPOIs();
+    ts.end();
+    return pois;
 }
 
 @expose
@@ -29,6 +32,7 @@ type POIFeatures {
 @expose
 @permission("public")
 fn getPois(): Array<POIFeatures> {
+    var ts = Traffic_Service::start(getPoisInStreet);
     var feats = Array<POIFeatures> {};
     feats.set_capacity(golden_pois_by_geo.size());
     for (key, value in golden_pois_by_geo) {
@@ -37,6 +41,7 @@ fn getPois(): Array<POIFeatures> {
                 number: "${value->number}${value->multipleCode}"
             });
     }
+    ts.end();
     return feats;
 }
 
