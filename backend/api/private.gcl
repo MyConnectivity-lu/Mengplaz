@@ -1,15 +1,20 @@
 @expose
 @permission("admin")
 fn promoteRecord(record: node<POIRecordProvider>) {
+    var ts = Traffic_Service::start(getPoisInStreet);
+
     if (record->getLinkedGolden() != null) {
         throw "This record is already linked to a golden Record";
     }
     record->promoteToGolden();
+    ts.end();
 }
 
 @expose
 @permission("admin")
 fn linkRecords(nGolden: node<POIRecordProvider>, nOther: node<POIRecordProvider>) {
+    var ts = Traffic_Service::start(getPoisInStreet);
+
     var golden = *nGolden;
     if (golden is GoldenPointOfInterest) {
         if (golden.linkedRecords.index_of(nOther) == -1) {
@@ -19,26 +24,35 @@ fn linkRecords(nGolden: node<POIRecordProvider>, nOther: node<POIRecordProvider>
 
     var other = *nOther;
     other.linkToGolden(nGolden as node<GoldenPointOfInterest>);
+    ts.end();
 }
 
 @expose
 @permission("admin")
 fn linkAllRecords(goldens: Array<node<POIRecordProvider>>, others: Array<node<POIRecordProvider>>) {
+    var ts = Traffic_Service::start(getPoisInStreet);
+
     for (i, nGolden in goldens) {
         linkRecords(nGolden, others[i]);
     }
+    ts.end();
 }
 
 @expose
 @permission("admin")
 fn unlinkRecord(nOther: node<POIRecordProvider>) {
+    var ts = Traffic_Service::start(getPoisInStreet);
+
     var other = *nOther;
     other.unlinkGolden(nOther);
+    ts.end();
 }
 
 @expose
 @permission("admin")
 fn mergePositionsToGolden(others: Array<node<POIRecordProvider>>) {
+    var ts = Traffic_Service::start(getPoisInStreet);
+
     for (_, nOther in others) {
         var nGolden = nOther->getLinkedGolden();
         if (nGolden != null) {
@@ -48,4 +62,5 @@ fn mergePositionsToGolden(others: Array<node<POIRecordProvider>>) {
             }
         }
     }
+    ts.end();
 }
