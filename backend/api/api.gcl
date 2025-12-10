@@ -293,6 +293,9 @@ type GoldenIndex {
 fn getGoldenCities(): Array<GoldenIndex> {
     var cities = Array<GoldenIndex> {};
     for (id, nCity in golden_cities_by_id) {
+        if (id == "UNKNOWN") {
+            continue;
+        }
         cities.add(GoldenIndex {
                 id: id,
                 name: nCity->name
@@ -311,6 +314,9 @@ fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
     }
     var streets = Array<GoldenIndex> {};
     for (id, nStreet in nCity->streets_by_id) {
+        if (id == "UNKNOWN") {
+            continue;
+        }
         streets.add(GoldenIndex {
                 id: id,
                 name: nStreet->name
