@@ -71,6 +71,9 @@ type OsmAddress extends POIRecordProvider {
     }
 
     fn promoteToGolden(): node<GoldenPointOfInterest>? {
+        if (this.goldenRef != null) {
+            throw "Record is linked to Golden";
+        }
         //TODO? Should we also handle the street ? 
         var newUID: String;
         do {

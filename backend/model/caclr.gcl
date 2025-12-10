@@ -281,12 +281,6 @@ type CaclrBuilding extends POIRecordProvider {
             throw "Record is linked to Golden";
         }
 
-        //TODO? Should we create the street if it doesn't exist ? 
-        var nGoldenStreet: node<GoldenStreet>?;
-        if (this.street != null) {
-            nGoldenStreet = golden_streets_by_id.get(this.street->id);
-        }
-
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
@@ -302,12 +296,10 @@ type CaclrBuilding extends POIRecordProvider {
                 postCode: this.postalCode,
                 positions: Map<String, geo> { "default": this.position },
                 lastUpdate: this.lastUpdate,
-                street: nGoldenStreet,
                 linkedRecords: Array<node<POIRecordProvider>> {},
             }
         };
         this.linkToGolden(nGoldenPOI);
-        nGoldenStreet?->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
         golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
 
         return nGoldenPOI;

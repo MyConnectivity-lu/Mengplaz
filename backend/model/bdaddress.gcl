@@ -66,14 +66,29 @@ type BDAddress extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
     }
-    //TODO! verify validity of this assumption, since all bda addresses are linked to an calcr record we promote that one first.
     fn promoteToGolden(): node<GoldenPointOfInterest>? {
-        var nCaclr = caclr_buildings_by_id.get("${this.id_caclr}");
-        if (nCaclr != null) {
-            var nGolden = nCaclr->promoteToGolden();
-            this.linkToGolden(nGolden);
-            return nGolden;
+        if (this.goldenRef != null) {
+            throw "Record is linked to Golden";
         }
+        var newUID: String;
+        do {
+            newUID = GoldenServices::generateUID();
+        } while (golden_pois_by_id.get(newUID) != null);
+        var alphaNum = extractAlphaCharsFromStreetNumber(this.number);
+        var nGoldenPOI = node<GoldenPointOfInterest> {
+            GoldenPointOfInterest {
+                uid: newUID,
+                number: alphaNum.numerical,
+                multipleCode: alphaNum.alpha,
+                postCode: this.postcode,
+                positions: Map<String, geo> { "default": this.position },
+                lastUpdate: time::now(),
+                linkedRecords: Array<node<POIRecordProvider>> {},
+            }
+        };
+        this.linkToGolden(nGoldenPOI);
+        golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+        return nGoldenPOI;
     }
 
     fn toFullRecord(): BDAddressFullRecord {
