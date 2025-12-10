@@ -298,15 +298,16 @@ fn getGoldenCities(): Array<GoldenIndex> {
                 name: nCity->name
             });
     }
+    cities.sort_by(GoldenIndex::name, SortOrder::asc);
     return cities;
 }
 
 @expose
 @permission("public")
-fn getGoldenStreetsByCity(city: String): Array<GoldenIndex> {
-    var nCity = golden_cities_by_id.get(city);
+fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
+    var nCity = golden_cities_by_id.get(cityId);
     if (nCity == null) {
-        throw "City with id ${city} not found";
+        throw "City with id ${cityId} not found";
     }
     var streets = Array<GoldenIndex> {};
     for (id, nStreet in nCity->streets_by_id) {
@@ -315,15 +316,16 @@ fn getGoldenStreetsByCity(city: String): Array<GoldenIndex> {
                 name: nStreet->name
             });
     }
+    streets.sort_by(GoldenIndex::name, SortOrder::asc);
     return streets;
 }
 
 @expose
 @permission("public")
-fn getGoldenNumbersByStreet(street: String): Array<GoldenIndex> {
-    var nStreet = golden_streets_by_id.get(street);
+fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
+    var nStreet = golden_streets_by_id.get(streetId);
     if (nStreet == null) {
-        throw "Street with id ${street} not found";
+        throw "Street with id ${streetId} not found";
     }
     var numbers = Array<GoldenIndex> {};
     for (id, nPOI in nStreet->pois_by_id) {
@@ -332,6 +334,7 @@ fn getGoldenNumbersByStreet(street: String): Array<GoldenIndex> {
                 name: "${nPOI->number} ${nPOI->multipleCode}",
             });
     }
+    numbers.sort_by(GoldenIndex::name, SortOrder::asc);
     return numbers;
 }
 
@@ -349,6 +352,7 @@ fn getGoldenRecords(): Array<POIRecord> {
 @permission("public")
 fn openapi() {
     var oa = OpenApi::v3();
+    oa.info.title = "MengPlaz";
     var tmpPaths = Map<String, runtime::PathItemObject> {};
 
     if (oa.paths?.contains("/api::getRecordByGeopartalID") == true) {
