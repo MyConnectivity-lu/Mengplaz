@@ -224,49 +224,6 @@ fn searchByItem(item: SearchItem): mengplaz::SearchResult {
 }
 
 @expose
-@permission("admin")
-fn linkRecords(nGolden: node<POIRecordProvider>, nOther: node<POIRecordProvider>) {
-    var golden = *nGolden;
-    if (golden is GoldenPointOfInterest) {
-        if (golden.linkedRecords.index_of(nOther) == -1) {
-            golden.linkedRecords.add(nOther);
-        }
-    }
-
-    var other = *nOther;
-    other.linkToGolden(nGolden as node<GoldenPointOfInterest>);
-}
-
-@expose
-@permission("admin")
-fn linkAllRecords(goldens: Array<node<POIRecordProvider>>, others: Array<node<POIRecordProvider>>) {
-    for (i, nGolden in goldens) {
-        linkRecords(nGolden, others[i]);
-    }
-}
-
-@expose
-@permission("admin")
-fn unlinkRecord(nOther: node<POIRecordProvider>) {
-    var other = *nOther;
-    other.unlinkGolden(nOther);
-}
-
-@expose
-@permission("admin")
-fn mergePositionsToGolden(others: Array<node<POIRecordProvider>>) {
-    for (_, nOther in others) {
-        var nGolden = nOther->getLinkedGolden();
-        if (nGolden != null) {
-            for (k, v in nOther->toFullRecord().positions) {
-                golden_pois_by_geo.set(v as geo, nGolden);
-                nGolden->positions.set(k as String, v as geo);
-            }
-        }
-    }
-}
-
-@expose
 @permission("public")
 fn getRecordByGeopartalID(id: String): POIRecordRef? {
     var record = bda_address_by_geoportalid.get(id);

@@ -53,7 +53,7 @@ export class MengplazAddressCard extends HTMLElement {
     this.confirm.text = 'Are you sure you want to unlink this record ?';
     this.confirm.show().then((confirmed) => {
       if (confirmed) {
-        gc.api.unlinkRecord(this._value!.ref).then(() => {
+        gc.private_.unlinkRecord(this._value!.ref).then(() => {
           this.dispatchEvent(new CustomEvent('update', { bubbles: true }));
         });
       }
@@ -63,7 +63,7 @@ export class MengplazAddressCard extends HTMLElement {
     this.confirm.text = 'Are you sure you want to link this item to the Golden record ?';
     this.confirm.show().then((confirmed) => {
       if (confirmed) {
-        gc.api.linkRecords(this.showLink!, this._value!.ref);
+        gc.private_.linkRecords(this.showLink!, this._value!.ref);
       }
     });
   }

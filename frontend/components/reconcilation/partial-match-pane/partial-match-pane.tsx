@@ -74,15 +74,11 @@ export class PartialMatchPane extends HTMLElement {
   disconnectedCallback() {}
 
   private link(golden: gc.core.node<gc.mengplaz.POIRecordProvider>) {
-    console.log('Linkage confirmation');
-
     this.confirm.text = `Are you sure you want to link this golden record to the searched item ?`;
     this.confirm.show().then((res) => {
-      console.log('Confirm closed', res);
       if (res) {
         if (this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
-          console.log('Linking');
-          gc.api.linkRecords(golden, this.searchResult[this.currentResultIndex].item.sourceRecord!).then(() => {
+          gc.private_.linkRecords(golden, this.searchResult[this.currentResultIndex].item.sourceRecord!).then(() => {
             toast.notify({
               message: 'Records linked !',
               variant: 'primary',
