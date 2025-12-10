@@ -1,0 +1,164 @@
+@volatile
+type GoldenPOIDTO {
+    uid: String;
+    number: int;
+    multipleCode: String;
+    postCode: String;
+    positions: Map<String, geo>;
+    streetId: String?;
+    lastUpdate: time;
+    linkedRef: Map<String, String>; // { Source Name : Id }
+}
+
+@volatile
+type GoldenStreetDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    cityId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type GoldenCityDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    municipalityId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type GoldenMunicipalityDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    cantonId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type GoldenCantonDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    constituencyId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type GoldenConstituencyDTO {
+    code: String;
+    name: String;
+    nameAliases: Array<Alias>;
+}
+
+type GoldenExporter {
+    static poiPath: String = "files/dump/golden_poi_dump.ndjson";
+    static streetPath: String = "files/dump/golden_street_dump.ndjson";
+    static cityPath: String = "files/dump/golden_city_dump.ndjson";
+    static municipalityPath: String = "files/dump/golden_municipality_dump.ndjson";
+    static cantonsPath: String = "files/dump/golden_canton_dump.ndjson";
+    static constituencyPath: String = "files/dump/golden_constituency_dump.ndjson";
+
+    static fn exportAll() {
+        GoldenExporter::exportGoldenMunicipality();
+        GoldenExporter::exportGoldenCities();
+        GoldenExporter::exportGoldenStreets();
+        GoldenExporter::exportGoldenPOIs();
+        GoldenExporter::exportGoldenCantons();
+        GoldenExporter::exportGoldenConstituency();
+    }
+
+    static fn exportGoldenPOIs() {
+        var fw = JsonWriter<GoldenPOIDTO> { path: GoldenExporter::poiPath };
+        for (key, nPOI in golden_pois_by_id) {
+            var d = GoldenPOIDTO {
+                uid: nPOI->uid,
+                multipleCode: nPOI->multipleCode,
+                number: nPOI->number,
+                positions: nPOI->positions,
+                postCode: nPOI->postCode,
+                streetId: nPOI->street?->id,
+                lastUpdate: nPOI->lastUpdate,
+                linkedRef: Map<String, String> {}
+            };
+
+            for (_, nRecord in nPOI->linkedRecords) {
+                var rec = nRecord->toMengplazRecord();
+                if (rec.sourceName != null && rec.uid != null) {
+                    d.linkedRef.set(rec.sourceName, rec.uid);
+                }
+            }
+            fw.writeln(d);
+        }
+    }
+
+    static fn exportGoldenStreets() {
+        var fw = JsonWriter<GoldenStreetDTO> { path: GoldenExporter::streetPath };
+        for (key, nStreet in golden_streets_by_id) {
+            var d = GoldenStreetDTO {
+                id: nStreet->id,
+                name: nStreet->name,
+                nameAliases: nStreet->nameAliases,
+                cityId: nStreet->city->id,
+                lastUpdate: nStreet->lastUpdate
+            };
+            fw.writeln(d);
+        }
+    }
+
+    static fn exportGoldenCities() {
+        var fw = JsonWriter<GoldenCityDTO> { path: GoldenExporter::cityPath };
+        for (key, nCity in golden_cities_by_id) {
+            var d = GoldenCityDTO {
+                id: nCity->id,
+                name: nCity->name,
+                nameAliases: nCity->nameAliases,
+                municipalityId: nCity->municipality->id,
+                lastUpdate: nCity->lastUpdate
+            };
+            fw.writeln(d);
+        }
+    }
+
+    static fn exportGoldenMunicipality() {
+        var fw = JsonWriter<GoldenMunicipalityDTO> { path: GoldenExporter::municipalityPath };
+        for (key, nMunicipality in golden_municipalities_by_id) {
+            var d = GoldenMunicipalityDTO {
+                id: nMunicipality->id,
+                name: nMunicipality->name,
+                nameAliases: nMunicipality->nameAliases,
+                cantonId: nMunicipality->canton->id,
+                lastUpdate: nMunicipality->lastUpdate
+            };
+            fw.writeln(d);
+        }
+    }
+
+    static fn exportGoldenCantons() {
+        var fw = JsonWriter<GoldenCantonDTO> { path: GoldenExporter::cantonsPath };
+        for (key, nCanton in golden_cantons_by_id) {
+            var d = GoldenCantonDTO {
+                id: nCanton->id,
+                name: nCanton->name,
+                nameAliases: nCanton->nameAliases,
+                constituencyId: nCanton->constituency->code,
+                lastUpdate: nCanton->lastUpdate
+            };
+            fw.writeln(d);
+        }
+    }
+    static fn exportGoldenConstituency() {
+        var fw = JsonWriter<GoldenConstituencyDTO> { path: GoldenExporter::constituencyPath };
+        for (key, nConstituency in golden_constituency_by_code) {
+            var d = GoldenConstituencyDTO {
+                code: nConstituency->code,
+                name: nConstituency->name,
+                nameAliases: nConstituency->nameAliases
+            };
+            fw.writeln(d);
+        }
+    }
+}
+

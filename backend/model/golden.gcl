@@ -1,4 +1,4 @@
-var golden_consistuency_by_code: nodeIndex<String, node<GoldenConstituency>>;
+var golden_constituency_by_code: nodeIndex<String, node<GoldenConstituency>>;
 var golden_cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
 var golden_municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
 var golden_cities_by_id: nodeIndex<String, node<GoldenCity>>;

@@ -335,7 +335,7 @@ type CaclrBuilding extends POIRecordProvider {
 
     fn toMengplazRecord(): POIRecord {
         var record = POIRecord {
-            uid: null,
+            uid: this.id,
             number: "${this.number}${this.multipleCode}",
             street: this.street?->name,
             postcode: this.postalCode,

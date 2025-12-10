@@ -198,12 +198,16 @@ type GoldenServices {
                     cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
                 }
             };
-            golden_consistuency_by_code.set(constCode, nGoldenConstituency);
+            golden_constituency_by_code.set(constCode, nGoldenConstituency);
 
             for (cantonId, nCanton in nConstituency->cantons_by_id) {
+                var newCantonUID: String;
+                do {
+                    newCantonUID = GoldenServices::generateUID();
+                } while (golden_cantons_by_id.get(newCantonUID) != null);
                 var nGoldenCanton = node<GoldenCanton> {
                     GoldenCanton {
-                        id: nCanton->id,
+                        id: newCantonUID,
                         name: nCanton->name,
                         nameAliases: Array<Alias> {},
                         lastUpdate: nCanton->lastUpdate,
@@ -211,13 +215,17 @@ type GoldenServices {
                         municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
                     }
                 };
-                nGoldenConstituency->cantons_by_id.set(cantonId, nGoldenCanton);
-                golden_cantons_by_id.set(cantonId, nGoldenCanton);
+                nGoldenConstituency->cantons_by_id.set(newCantonUID, nGoldenCanton);
+                golden_cantons_by_id.set(newCantonUID, nGoldenCanton);
 
                 for (municipalityId, nMunicipality in nCanton->municipalities_by_id) {
+                    var newMunicipalityUID: String;
+                    do {
+                        newMunicipalityUID = GoldenServices::generateUID();
+                    } while (golden_municipalities_by_id.get(newMunicipalityUID) != null);
                     var nGoldenMunicipality = node<GoldenMunicipality> {
                         GoldenMunicipality {
-                            id: nMunicipality->id,
+                            id: newMunicipalityUID,
                             name: nMunicipality->name,
                             nameAliases: Array<Alias> {},
                             lastUpdate: nMunicipality->lastUpdate,
@@ -225,13 +233,17 @@ type GoldenServices {
                             cities_by_id: nodeIndex<String, node<GoldenCity>> {},
                         }
                     };
-                    nGoldenCanton->municipalities_by_id.set(municipalityId, nGoldenMunicipality);
-                    golden_municipalities_by_id.set(municipalityId, nGoldenMunicipality);
+                    nGoldenCanton->municipalities_by_id.set(newMunicipalityUID, nGoldenMunicipality);
+                    golden_municipalities_by_id.set(newMunicipalityUID, nGoldenMunicipality);
 
                     for (cityId, nCity in nMunicipality->cities_by_id) {
+                        var newCityUID: String;
+                        do {
+                            newCityUID = GoldenServices::generateUID();
+                        } while (golden_municipalities_by_id.get(newCityUID) != null);
                         var nGoldenCity = node<GoldenCity> {
                             GoldenCity {
-                                id: nCity->id,
+                                id: newCityUID,
                                 name: nCity->name,
                                 nameAliases: Array<Alias> {},
                                 lastUpdate: nCity->lastUpdate,
@@ -242,13 +254,17 @@ type GoldenServices {
                         for (_, alias in nCity->aliases) {
                             nGoldenCity->nameAliases.add(clone(alias));
                         }
-                        nGoldenMunicipality->cities_by_id.set(cityId, nGoldenCity);
-                        golden_cities_by_id.set(cityId, nGoldenCity);
+                        nGoldenMunicipality->cities_by_id.set(newCityUID, nGoldenCity);
+                        golden_cities_by_id.set(newCityUID, nGoldenCity);
 
                         for (streetId, nStreet in nCity->streets_by_id) {
+                            var newStreetUID: String;
+                            do {
+                                newStreetUID = GoldenServices::generateUID();
+                            } while (golden_municipalities_by_id.get(newStreetUID) != null);
                             var nGoldenStreet = node<GoldenStreet> {
                                 GoldenStreet {
-                                    id: nStreet->id,
+                                    id: newStreetUID,
                                     name: nStreet->name,
                                     nameAliases: Array<Alias> {},
                                     lastUpdate: nStreet->lastUpdate,
@@ -259,8 +275,8 @@ type GoldenServices {
                             for (_, alias in nStreet->aliases) {
                                 nGoldenStreet->nameAliases.add(clone(alias));
                             }
-                            nGoldenCity->streets_by_id.set(streetId, nGoldenStreet);
-                            golden_streets_by_id.set(streetId, nGoldenStreet);
+                            nGoldenCity->streets_by_id.set(newStreetUID, nGoldenStreet);
+                            golden_streets_by_id.set(newStreetUID, nGoldenStreet);
 
                             for (buildingId, nBuilding in nStreet->buildings_by_id) {
                                 var newUID: String;
@@ -293,7 +309,7 @@ type GoldenServices {
 
     static fn createBbackup() {
         var writer = GcbWriter<GoldenConstituency> { path: "./backups/${time::now()}.gcb" };
-        for (k, v in golden_consistuency_by_code) {
+        for (k, v in golden_constituency_by_code) {
             writer.write(*v);
         }
         writer.flush();
@@ -303,7 +319,7 @@ type GoldenServices {
         var reader = GcbReader<GoldenConstituency> { path: path };
         while (reader.can_read()) {
             var constutiency = reader.read();
-            golden_consistuency_by_code.set(constutiency.code, node<GoldenConstituency> { constutiency });
+            golden_constituency_by_code.set(constutiency.code, node<GoldenConstituency> { constutiency });
         }
     }
 

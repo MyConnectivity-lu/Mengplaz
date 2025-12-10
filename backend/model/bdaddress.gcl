@@ -66,7 +66,7 @@ type BDAddress extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
     }
-    //TODO! verify validity of this assumption, since all bda addresses are linked to an calcr record with promote that one first.
+    //TODO! verify validity of this assumption, since all bda addresses are linked to an calcr record we promote that one first.
     fn promoteToGolden(): node<GoldenPointOfInterest>? {
         var nCaclr = caclr_buildings_by_id.get("${this.id_caclr}");
         if (nCaclr != null) {

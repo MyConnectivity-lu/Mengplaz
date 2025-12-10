@@ -1,0 +1,146 @@
+type GoldenLoader {
+    static fn loadAll() {
+        GoldenLoader::loadGoldenConstituency();
+        GoldenLoader::loadGoldenCantons();
+        GoldenLoader::loadGoldenMunicipalities();
+        GoldenLoader::loadGoldenCities();
+        GoldenLoader::loadGoldenStreets();
+        GoldenLoader::loadGoldenPOIs();
+    }
+
+    static fn loadGoldenConstituency() {
+        var fr = JsonReader<GoldenConstituencyDTO> { path: GoldenExporter::constituencyPath };
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nGoldenConstituency = node<GoldenConstituency> {
+                GoldenConstituency {
+                    code: l.code,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
+                }
+            };
+            golden_constituency_by_code.set(nGoldenConstituency->code, nGoldenConstituency);
+        }
+    }
+
+    static fn loadGoldenCantons() {
+        var fr = JsonReader<GoldenCantonDTO> { path: GoldenExporter::cantonsPath };
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nGoldenConstituency = golden_constituency_by_code.get(l.constituencyId)!!;
+            var nGoldenCanton = node<GoldenCanton> {
+                GoldenCanton {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    constituency: nGoldenConstituency,
+                    municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
+                }
+            };
+            nGoldenConstituency->cantons_by_id.set(nGoldenCanton->id, nGoldenCanton);
+            golden_cantons_by_id.set(nGoldenCanton->id, nGoldenCanton);
+        }
+    }
+
+    static fn loadGoldenMunicipalities() {
+        var fr = JsonReader<GoldenMunicipalityDTO> { path: GoldenExporter::municipalityPath };
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nGoldenCanton = golden_cantons_by_id.get(l.cantonId)!!;
+            var nGoldenMunicipality = node<GoldenMunicipality> {
+                GoldenMunicipality {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    canton: nGoldenCanton,
+                    cities_by_id: nodeIndex<String, node<GoldenCity>> {},
+                }
+            };
+            nGoldenCanton->municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
+            golden_municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
+        }
+    }
+
+    static fn loadGoldenCities() {
+        var fr = JsonReader<GoldenCityDTO> { path: GoldenExporter::cityPath };
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nGoldenMunicipality = golden_municipalities_by_id.get(l.municipalityId)!!;
+            var nGoldenCity = node<GoldenCity> {
+                GoldenCity {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    municipality: nGoldenMunicipality,
+                    streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
+                }
+            };
+            nGoldenMunicipality->cities_by_id.set(nGoldenCity->id, nGoldenCity);
+            golden_cities_by_id.set(nGoldenCity->id, nGoldenCity);
+        }
+    }
+
+    static fn loadGoldenStreets() {
+        var fr = JsonReader<GoldenStreetDTO> { path: GoldenExporter::streetPath };
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nGoldenCity = golden_cities_by_id.get(l.cityId)!!;
+            var nGoldenStreet = node<GoldenStreet> {
+                GoldenStreet {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    city: nGoldenCity,
+                    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+                }
+            };
+            nGoldenCity->streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
+            golden_streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
+        }
+    }
+
+    static fn loadGoldenPOIs() {
+        var fr = JsonReader<GoldenPOIDTO> { path: GoldenExporter::poiPath };
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nGoldenStreet: node<GoldenStreet>?;
+            if (l.streetId != null) {
+                nGoldenStreet = golden_streets_by_id.get(l.streetId);
+            }
+            var nGoldenPOI = node<GoldenPointOfInterest> {
+                GoldenPointOfInterest {
+                    uid: l.uid,
+                    number: l.number,
+                    multipleCode: l.multipleCode,
+                    postCode: l.postCode,
+                    positions: Map<String, geo> {},
+                    lastUpdate: l.lastUpdate,
+                    street: nGoldenStreet,
+                    linkedRecords: Array<node<POIRecordProvider>> {},
+                }
+            };
+
+            for (key, value in l.linkedRef) {
+                var ref: node<POIRecordProvider>?;
+                if (key == OsmSource::NAME) {
+                    var ref = osm_by_id.get(parseNumber(value) as int);
+                } else if (key == CaclrSource::NAME) {
+                    var ref = caclr_buildings_by_id.get(value);
+                } else if (key == BDAddressSource::NAME) {
+                    var ref = bda_address_by_cacrid.get(parseNumber(value) as int);
+                }
+                if (ref != null) {
+                    ref->linkToGolden(nGoldenPOI);
+                }
+            }
+            nGoldenStreet?->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+            golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+            // golden_pois_by_geo.set(nGoldenPOI->uid, nGoldenPOI);
+        }
+    }
+}
