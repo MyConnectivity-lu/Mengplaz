@@ -29,7 +29,7 @@ export class MapPage extends HTMLElement {
             source: 'osm',
           },
         ],
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+        glyphs: './font/{fontstack}/{range}.pbf',
       },
       center: gc.core.geo.fromLatLng(49.8, 6.12),
       zoom: 9,
@@ -49,7 +49,7 @@ export class MapPage extends HTMLElement {
         paint: {
           'circle-color': '#ff18a4',
           'circle-stroke-color': 'white',
-          'circle-stroke-width': 1,
+          'circle-stroke-width': 0.5,
           'circle-radius': 3,
         },
       });
@@ -74,11 +74,7 @@ export class MapPage extends HTMLElement {
           'text-field': ['get', 'streetNumber'],
           'text-size': 12,
           'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#000000',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 2,
+          'text-font': ['Noto Sans Regular'],
         },
       });
 
