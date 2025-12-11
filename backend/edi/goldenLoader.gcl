@@ -1,26 +1,30 @@
 type GoldenLoader {
     static fn loadAll() {
+        info("Loading All Golden Records from dump");
         GoldenLoader::loadGoldenConstituency();
         GoldenLoader::loadGoldenCantons();
         GoldenLoader::loadGoldenMunicipalities();
         GoldenLoader::loadGoldenCities();
         GoldenLoader::loadGoldenStreets();
         GoldenLoader::loadGoldenPOIs();
+        info("Loading finished");
     }
 
     static fn loadGoldenConstituency() {
         var fr = JsonReader<GoldenConstituencyDTO> { path: GoldenExporter::constituencyPath };
         while (fr.can_read()) {
             var l = fr.read();
-            var nGoldenConstituency = node<GoldenConstituency> {
-                GoldenConstituency {
-                    code: l.code,
-                    name: l.name,
-                    nameAliases: l.nameAliases,
-                    cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
-                }
-            };
-            golden_constituency_by_code.set(nGoldenConstituency->code, nGoldenConstituency);
+            if (golden_constituency_by_code.get(l.code) == null) {
+                var nGoldenConstituency = node<GoldenConstituency> {
+                    GoldenConstituency {
+                        code: l.code,
+                        name: l.name,
+                        nameAliases: l.nameAliases,
+                        cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
+                    }
+                };
+                golden_constituency_by_code.set(nGoldenConstituency->code, nGoldenConstituency);
+            }
         }
     }
 
@@ -28,19 +32,21 @@ type GoldenLoader {
         var fr = JsonReader<GoldenCantonDTO> { path: GoldenExporter::cantonsPath };
         while (fr.can_read()) {
             var l = fr.read();
-            var nGoldenConstituency = golden_constituency_by_code.get(l.constituencyId)!!;
-            var nGoldenCanton = node<GoldenCanton> {
-                GoldenCanton {
-                    id: l.id,
-                    name: l.name,
-                    nameAliases: l.nameAliases,
-                    lastUpdate: l.lastUpdate,
-                    constituency: nGoldenConstituency,
-                    municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
-                }
-            };
-            nGoldenConstituency->cantons_by_id.set(nGoldenCanton->id, nGoldenCanton);
-            golden_cantons_by_id.set(nGoldenCanton->id, nGoldenCanton);
+            if (golden_cantons_by_id.get(l.id) == null) {
+                var nGoldenConstituency = golden_constituency_by_code.get(l.constituencyId)!!;
+                var nGoldenCanton = node<GoldenCanton> {
+                    GoldenCanton {
+                        id: l.id,
+                        name: l.name,
+                        nameAliases: l.nameAliases,
+                        lastUpdate: l.lastUpdate,
+                        constituency: nGoldenConstituency,
+                        municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
+                    }
+                };
+                nGoldenConstituency->cantons_by_id.set(nGoldenCanton->id, nGoldenCanton);
+                golden_cantons_by_id.set(nGoldenCanton->id, nGoldenCanton);
+            }
         }
     }
 
@@ -48,19 +54,21 @@ type GoldenLoader {
         var fr = JsonReader<GoldenMunicipalityDTO> { path: GoldenExporter::municipalityPath };
         while (fr.can_read()) {
             var l = fr.read();
-            var nGoldenCanton = golden_cantons_by_id.get(l.cantonId)!!;
-            var nGoldenMunicipality = node<GoldenMunicipality> {
-                GoldenMunicipality {
-                    id: l.id,
-                    name: l.name,
-                    nameAliases: l.nameAliases,
-                    lastUpdate: l.lastUpdate,
-                    canton: nGoldenCanton,
-                    cities_by_id: nodeIndex<String, node<GoldenCity>> {},
-                }
-            };
-            nGoldenCanton->municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
-            golden_municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
+            if (golden_municipalities_by_id.get(l.id) == null) {
+                var nGoldenCanton = golden_cantons_by_id.get(l.cantonId)!!;
+                var nGoldenMunicipality = node<GoldenMunicipality> {
+                    GoldenMunicipality {
+                        id: l.id,
+                        name: l.name,
+                        nameAliases: l.nameAliases,
+                        lastUpdate: l.lastUpdate,
+                        canton: nGoldenCanton,
+                        cities_by_id: nodeIndex<String, node<GoldenCity>> {},
+                    }
+                };
+                nGoldenCanton->municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
+                golden_municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
+            }
         }
     }
 
@@ -68,19 +76,21 @@ type GoldenLoader {
         var fr = JsonReader<GoldenCityDTO> { path: GoldenExporter::cityPath };
         while (fr.can_read()) {
             var l = fr.read();
-            var nGoldenMunicipality = golden_municipalities_by_id.get(l.municipalityId)!!;
-            var nGoldenCity = node<GoldenCity> {
-                GoldenCity {
-                    id: l.id,
-                    name: l.name,
-                    nameAliases: l.nameAliases,
-                    lastUpdate: l.lastUpdate,
-                    municipality: nGoldenMunicipality,
-                    streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
-                }
-            };
-            nGoldenMunicipality->cities_by_id.set(nGoldenCity->id, nGoldenCity);
-            golden_cities_by_id.set(nGoldenCity->id, nGoldenCity);
+            if (golden_cities_by_id.get(l.id) == null) {
+                var nGoldenMunicipality = golden_municipalities_by_id.get(l.municipalityId)!!;
+                var nGoldenCity = node<GoldenCity> {
+                    GoldenCity {
+                        id: l.id,
+                        name: l.name,
+                        nameAliases: l.nameAliases,
+                        lastUpdate: l.lastUpdate,
+                        municipality: nGoldenMunicipality,
+                        streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
+                    }
+                };
+                nGoldenMunicipality->cities_by_id.set(nGoldenCity->id, nGoldenCity);
+                golden_cities_by_id.set(nGoldenCity->id, nGoldenCity);
+            }
         }
     }
 
@@ -88,19 +98,21 @@ type GoldenLoader {
         var fr = JsonReader<GoldenStreetDTO> { path: GoldenExporter::streetPath };
         while (fr.can_read()) {
             var l = fr.read();
-            var nGoldenCity = golden_cities_by_id.get(l.cityId)!!;
-            var nGoldenStreet = node<GoldenStreet> {
-                GoldenStreet {
-                    id: l.id,
-                    name: l.name,
-                    nameAliases: l.nameAliases,
-                    lastUpdate: l.lastUpdate,
-                    city: nGoldenCity,
-                    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
-                }
-            };
-            nGoldenCity->streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
-            golden_streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
+            if (golden_streets_by_id.get(l.id) == null) {
+                var nGoldenCity = golden_cities_by_id.get(l.cityId)!!;
+                var nGoldenStreet = node<GoldenStreet> {
+                    GoldenStreet {
+                        id: l.id,
+                        name: l.name,
+                        nameAliases: l.nameAliases,
+                        lastUpdate: l.lastUpdate,
+                        city: nGoldenCity,
+                        pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+                    }
+                };
+                nGoldenCity->streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
+                golden_streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
+            }
         }
     }
 
@@ -108,6 +120,9 @@ type GoldenLoader {
         var fr = JsonReader<GoldenPOIDTO> { path: GoldenExporter::poiPath };
         while (fr.can_read()) {
             var l = fr.read();
+            if (golden_streets_by_id.get(l.uid) != null) {
+                continue;
+            }
             var nGoldenStreet: node<GoldenStreet>?;
             if (l.streetId != null) {
                 nGoldenStreet = golden_streets_by_id.get(l.streetId);

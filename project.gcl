@@ -9,6 +9,8 @@
 fn main() {
     createAdmin();
     info("MengPlaz Ready !");
+
+    Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, null);
 }
 
 fn bootstrap() {
@@ -37,9 +39,15 @@ fn bootstrap() {
     }
 
     try {
-        GoldenServices::fillFromCaclr();
+        GoldenLoader::loadAll();
     } catch (err) {
-        error("Golden Fill from caclr Failed : ${err.message}}");
+        error("Load From Dumped Data Failed : ${err.message}}");
+        try {
+            info("Using Caclr to fill Golden");
+            GoldenServices::fillFromCaclr();
+        } catch (err) {
+            error("Fil From Caclr Failed : ${err.message}}");
+        }
     }
 }
 
