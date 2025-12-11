@@ -195,7 +195,7 @@ type MatchCandidateDetail {
     street: String?;
     postcode: String?;
     city: String?;
-    positions: Map<String, geo>;
+    primaryLocation: geo?;
 }
 
 @expose
@@ -218,7 +218,7 @@ fn getMatchCandidateDetails(elements: Array<CandidateMatch<node<POIRecordProvide
                 street: record.street,
                 postcode: record.postcode,
                 city: record.city,
-                positions: record.positions,
+                primaryLocation: record.primaryLocation,
             }
         );
     }

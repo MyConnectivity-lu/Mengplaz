@@ -129,7 +129,9 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     postCode: String;
 
-    positions: Map<String, geo>;
+    primaryLocation: geo?;
+
+    secondaryLocations: Map<String, geo>;
 
     lastUpdate: time;
 
@@ -164,7 +166,8 @@ type GoldenPointOfInterest extends POIRecordProvider {
             street: this.street?->name,
             postcode: this.postCode,
             city: this.street?->city->name,
-            positions: this.positions,
+            primaryLocation: this.primaryLocation,
+            secondaryLocations: this.secondaryLocations,
             sourceName: GoldenSource::NAME,
             quality: GoldenServices::computeQuality(this.linkedRecords)
         };

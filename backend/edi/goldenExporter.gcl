@@ -4,7 +4,8 @@ type GoldenPOIDTO {
     number: int;
     multipleCode: String;
     postCode: String;
-    positions: Map<String, geo>;
+    primaryLocation: geo?;
+    secondaryLocations: Map<String, geo>;
     streetId: String?;
     lastUpdate: time;
     linkedRef: Map<String, String>; // { Source Name : Id }
@@ -77,7 +78,8 @@ type GoldenExporter {
                 uid: nPOI->uid,
                 multipleCode: nPOI->multipleCode,
                 number: nPOI->number,
-                positions: nPOI->positions,
+                primaryLocation: nPOI->primaryLocation,
+                secondaryLocations: nPOI->secondaryLocations,
                 postCode: nPOI->postCode,
                 streetId: nPOI->street?->id,
                 lastUpdate: nPOI->lastUpdate,

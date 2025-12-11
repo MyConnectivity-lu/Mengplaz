@@ -55,10 +55,11 @@ fn mergePositionsToGolden(others: Array<node<POIRecordProvider>>) {
 
     for (_, nOther in others) {
         var nGolden = nOther->getLinkedGolden();
-        if (nGolden != null) {
-            for (k, v in nOther->toFullRecord().positions) {
-                golden_pois_by_geo.set(v as geo, nGolden);
-                nGolden->positions.set(k as String, v as geo);
+        if (nGolden != null && nGolden->primaryLocation == null) {
+            var g = nOther->toMengplazRecord().primaryLocation;
+            if (g != null) {
+                golden_pois_by_geo.set(g, nGolden);
+                nGolden->primaryLocation = g;
             }
         }
     }

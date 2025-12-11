@@ -5,9 +5,6 @@ import maplibregl from 'maplibre-gl';
 import './components/mengplaz-layout/mengplaz-layout';
 // initialize GreyCat SDK
 
-await gc.sdk.init({ maplibregl: maplibregl as any });
-if (import.meta.env.MODE === 'development') {
-  gc.sdk.registerDebugLogger();
-}
+await gc.sdk.init({ maplibregl: maplibregl as any, debug: import.meta.env.MODE === 'development' });
 
 document.body.replaceChildren(<mengplaz-layout />);

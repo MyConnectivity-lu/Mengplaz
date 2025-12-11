@@ -1,7 +1,7 @@
 @include("backend");
 
-@library("std", "7.3.302-stable");
-@library("explorer", "7.3.13-stable");
+@library("std", "7.4.231-stable");
+@library("explorer", "7.4.20-stable");
 //@library("strplus");
 
 @role("public", "files", "api");
@@ -21,13 +21,26 @@ fn bootstrap() {
 
     try {
         CACLRLoader::load();
-        GoldenServices::fillFromCaclr();
-    } catch (e) {
-        error(e);
+    } catch (err) {
+        error("CACLR Failed : ${err.message}}");
     }
 
-    BDAddressLoader::load();
-    OSMLoader::load();
+    try {
+        BDAddressLoader::load();
+    } catch (err) {
+        error("BDA Failed : ${err.message}}");
+    }
+    try {
+        OSMLoader::load();
+    } catch (err) {
+        error("OSM Failed : ${err.message}}");
+    }
+
+    try {
+        GoldenServices::fillFromCaclr();
+    } catch (err) {
+        error("Golden Fill from caclr Failed : ${err.message}}");
+    }
 }
 
 private fn createAdmin() {

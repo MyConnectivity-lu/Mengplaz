@@ -229,6 +229,8 @@ type CaclrPOIFullRecord {
     canton: String?;
     constituency: String?;
 
+    primaryLocation: geo?;
+
     administrativeStatus: CaclrAdminStatus;
 
     validityStartDate: time;
@@ -294,7 +296,8 @@ type CaclrBuilding extends POIRecordProvider {
                 number: this.number,
                 multipleCode: this.multipleCode,
                 postCode: this.postalCode,
-                positions: Map<String, geo> { "default": this.position },
+                primaryLocation: this.position,
+                secondaryLocations: Map<String, geo> {},
                 lastUpdate: this.lastUpdate,
                 linkedRecords: Array<node<POIRecordProvider>> {},
             }
@@ -322,6 +325,7 @@ type CaclrBuilding extends POIRecordProvider {
             lastUpdate: this.lastUpdate,
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,
+            primaryLocation: this.position
         };
     }
 
@@ -332,7 +336,7 @@ type CaclrBuilding extends POIRecordProvider {
             street: this.street?->name,
             postcode: this.postalCode,
             city: this.street?->city->name,
-            positions: Map<String, geo> {},
+            primaryLocation: this.position,
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,
         };

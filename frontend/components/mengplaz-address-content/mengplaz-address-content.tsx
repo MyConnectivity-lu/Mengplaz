@@ -30,17 +30,17 @@ export class MengplazAddressContent extends HTMLElement {
     if (this.value instanceof gc.mengplaz.SearchItem) {
       this.replaceChildren(
         <div className={'card-content'}>
-          {Object.keys(this.value).map((k) => this.renderAttr(k, this.value![k]))}
+          {Object.keys(this.value).map((k) => this.renderAttr(k, (this._value as any)[k]))}
           {/*this._value?.position != null ? <mengplaz-minimap location={this._value.position!} /> : ''*/}
         </div>,
       );
     } else {
-      this.replaceChildren(<div className={'card-content'}>{Object.keys(this.value).map((k) => this.renderAttr(k, this.value![k]))}</div>);
+      this.replaceChildren(<div className={'card-content'}>{Object.keys(this.value).map((k) => this.renderAttr(k, (this._value as any)[k]))}</div>);
     }
   }
 
   private renderAttr(key: string, value: unknown) {
-    if (value instanceof gc.node || key === 'goldenRef' || key === 'sourceName') return;
+    if (value instanceof gc.node || key === 'goldenRef' || key === 'sourceName' || key === 'primaryLocation') return;
     if (key === 'quality')
       return (
         <div className={'field'}>
@@ -75,12 +75,12 @@ export class MengplazAddressContent extends HTMLElement {
   }
 
   private renderArray(value: Array<unknown>) {
-    if (value[0] instanceof gc.Alias) return (value as gc.Alias[]).map((v) => v.name).join(', ');
+    if (value[0] instanceof gc.Alias) return (value as gc.Alias[]).map((v) => v.value).join(', ');
   }
 
   private renderMapPositions(value: Map<string, gc.core.geo>) {
-    return [...value].map(([k]) => (
-      <sl-badge pill className={'position-map-badge'} title="Go To">
+    return [...value].map(([k, v]) => (
+      <sl-badge pill className={'position-map-badge'} title={v.toString()}>
         <sl-icon name="geo-alt"></sl-icon> {k}
       </sl-badge>
     ));

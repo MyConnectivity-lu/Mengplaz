@@ -53,7 +53,7 @@ export class MengplazAddressCard extends HTMLElement {
     this.confirm.text = 'Are you sure you want to unlink this record ?';
     this.confirm.show().then((confirmed) => {
       if (confirmed) {
-        gc.private_.unlinkRecord(this._value!.ref).then(() => {
+        gc.unlinkRecord(this._value!.ref).then(() => {
           this.dispatchEvent(new CustomEvent('update', { bubbles: true }));
         });
       }
@@ -63,7 +63,7 @@ export class MengplazAddressCard extends HTMLElement {
     this.confirm.text = 'Are you sure you want to link this item to the Golden record ?';
     this.confirm.show().then((confirmed) => {
       if (confirmed) {
-        gc.private_.linkRecords(this.showLink!, this._value!.ref);
+        gc.linkRecords(this.showLink!, this._value!.ref);
       }
     });
   }
@@ -130,8 +130,8 @@ export class MengplazAddressCard extends HTMLElement {
   }
 
   private renderMap(record: unknown) {
-    if (typeof record === 'object' && record != null && 'positions' in record && record['positions'] instanceof Map && record['positions'].size > 0) {
-      return <mengplaz-minimap locations={record.positions as Map<string, gc.geo>} />;
+    if (typeof record === 'object' && record != null && 'primaryLocation' in record && record['primaryLocation'] != null) {
+      return <mengplaz-minimap primary={record['primaryLocation'] as gc.geo} />;
     }
   }
 }

@@ -27,8 +27,7 @@ type BDAddressFullRecord {
 
     number: String;
     postcode: String;
-    positions: Map<String, geo>;
-
+    primaryLocation: geo?;
     municipatlity: String;
     city: String;
     street: String;
@@ -81,7 +80,8 @@ type BDAddress extends POIRecordProvider {
                 number: alphaNum.numerical,
                 multipleCode: alphaNum.alpha,
                 postCode: this.postcode,
-                positions: Map<String, geo> { "default": this.position },
+                primaryLocation: this.position,
+                secondaryLocations: Map<String, geo> {},
                 lastUpdate: time::now(),
                 linkedRecords: Array<node<POIRecordProvider>> {},
             }
@@ -97,7 +97,7 @@ type BDAddress extends POIRecordProvider {
             id_caclr: this.id_caclr,
             number: this.number,
             postcode: this.postcode,
-            positions: Map<String, geo> { "default": this.position },
+            primaryLocation: this.position,
             municipatlity: this.municipatlity->name,
             city: this.city->name,
             street: this.street->name,
@@ -107,14 +107,13 @@ type BDAddress extends POIRecordProvider {
     }
 
     fn toMengplazRecord(): POIRecord {
-        var positions = Map<String, geo> { "default": this.position };
         var record = POIRecord {
             uid: "${this.id_caclr}",
             number: "${this.number}",
             street: this.street->name,
             postcode: this.postcode,
             city: this.city->name,
-            positions: positions,
+            primaryLocation: this.position,
             sourceName: BDAddressSource::NAME,
             goldenRef: this.goldenRef,
         };

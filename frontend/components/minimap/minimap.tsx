@@ -1,6 +1,7 @@
 import { GeoData, GuiMap, GuiMapMarkers } from '@greycat/web';
 
 export class MiniMap extends HTMLElement {
+  primary?: gc.geo;
   locations?: Map<string, gc.geo>;
 
   private map: GuiMap;
@@ -40,11 +41,9 @@ export class MiniMap extends HTMLElement {
     this.render();
     this.map.style.height = '200px';
     this.map.ready.then((m) => {
-      if (this.locations) {
-        const markers: GeoData<string>[] = [];
-        this.locations.forEach((v, k) => {
-          markers.push({ geo: v, data: k });
-        });
+      if (this.primary) {
+        const markers: GeoData<null>[] = [];
+        markers.push({ geo: this.primary, data: null });
         this.markers.value = markers;
         m.setCenter([markers[0].geo.lng, markers[0].geo.lat]);
       }

@@ -118,10 +118,11 @@ type GoldenLoader {
                     number: l.number,
                     multipleCode: l.multipleCode,
                     postCode: l.postCode,
-                    positions: Map<String, geo> {},
                     lastUpdate: l.lastUpdate,
                     street: nGoldenStreet,
                     linkedRecords: Array<node<POIRecordProvider>> {},
+                    primaryLocation: l.primaryLocation,
+                    secondaryLocations: l.secondaryLocations,
                 }
             };
 
@@ -140,7 +141,10 @@ type GoldenLoader {
             }
             nGoldenStreet?->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
             golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-            // golden_pois_by_geo.set(nGoldenPOI->uid, nGoldenPOI);
+
+            if (nGoldenPOI->primaryLocation != null) {
+                golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
+            }
         }
     }
 }

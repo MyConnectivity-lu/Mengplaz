@@ -86,7 +86,8 @@ type OsmAddress extends POIRecordProvider {
                 number: alphaNum.numerical,
                 multipleCode: alphaNum.alpha,
                 postCode: this.postcode,
-                positions: Map<String, geo> { "default": this.position },
+                primaryLocation: this.position,
+                secondaryLocations: Map<String, geo> {},
                 lastUpdate: time::now(),
                 linkedRecords: Array<node<POIRecordProvider>> {},
             }
@@ -111,7 +112,7 @@ type OsmAddress extends POIRecordProvider {
             street: this.street,
             postcode: this.postcode,
             city: this.city,
-            positions: Map<String, geo> { "default": this.position },
+            primaryLocation: this.position,
             sourceName: OsmSource::NAME,
             goldenRef: this.goldenRef,
         };

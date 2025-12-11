@@ -78,7 +78,7 @@ export class PartialMatchPane extends HTMLElement {
     this.confirm.show().then((res) => {
       if (res) {
         if (this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
-          gc.private_.linkRecords(golden, this.searchResult[this.currentResultIndex].item.sourceRecord!).then(() => {
+          gc.linkRecords(golden, this.searchResult[this.currentResultIndex].item.sourceRecord!).then(() => {
             toast.notify({
               message: 'Records linked !',
               variant: 'primary',
@@ -96,7 +96,7 @@ export class PartialMatchPane extends HTMLElement {
     this.confirm.show().then((res) => {
       if (res) {
         if (this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
-          gc.private_.promoteRecord(record).then(() => {
+          gc.promoteRecord(record).then(() => {
             toast.notify({
               message: 'Not implemented yet !',
               variant: 'primary',

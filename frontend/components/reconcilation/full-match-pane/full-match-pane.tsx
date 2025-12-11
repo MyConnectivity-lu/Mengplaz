@@ -32,7 +32,7 @@ export class FullMatchPane extends HTMLElement {
             goldens.push(sr.candidates[0].elem);
             others.push(sr.item.sourceRecord!);
           }
-          gc.private_.linkAllRecords(goldens, others).then(() => {
+          gc.linkAllRecords(goldens, others).then(() => {
             toast.notify({ message: `${goldens.length} matched records linked.`, duration: 3000, icon: 'check2-circle', variant: 'primary' });
           });
         }

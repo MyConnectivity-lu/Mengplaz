@@ -25,7 +25,7 @@ export class LinkedRecordsPane extends HTMLElement {
     this.confirm.text = 'Are you sure you want to merge all linked records positions into their GoldenRecords ?';
     this.confirm.show().then((res) => {
       if (res) {
-        gc.private_.mergePositionsToGolden(this.reconciliationReport!.linked).then(() => {
+        gc.mergePositionsToGolden(this.reconciliationReport!.linked).then(() => {
           toast.notify({ message: `Positions added to linked Golden Records.`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
           this.render();
         });

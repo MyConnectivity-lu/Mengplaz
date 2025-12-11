@@ -42,7 +42,8 @@ type POIRecord {
     postcode: String?;
     city: String?;
     cityAliases: Array<Alias>?;
-    positions: Map<String, geo>;
+    primaryLocation: geo?;
+    secondaryLocations: Map<String, geo>?;
     sourceName: String?;
     goldenRef: node<GoldenPointOfInterest>?;
     quality: float?;

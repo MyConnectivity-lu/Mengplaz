@@ -290,7 +290,7 @@ type GoldenServices {
                                         number: nBuilding->number,
                                         multipleCode: nBuilding->multipleCode,
                                         postCode: nBuilding->postalCode,
-                                        positions: Map<String, geo> {},
+                                        secondaryLocations: Map<String, geo> {},
                                         lastUpdate: nBuilding->lastUpdate,
                                         street: nGoldenStreet,
                                         linkedRecords: Array<node<POIRecordProvider>> { nBuilding },
