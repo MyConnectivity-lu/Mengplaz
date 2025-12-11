@@ -111,6 +111,14 @@ export class MapPage extends HTMLElement {
           .setDOMContent(<mengplaz-address-card value={record ?? undefined} showGoTo />)
           .addTo(this.map);
       });
+      this.map.once('sourcedata', (e) => {
+        if (e.sourceId === 'points') {
+          this.map.once('idle', () => {
+            (document.getElementById('map-loading-alert') as any)?.hide();
+          });
+        }
+      });
+
       this.updatePOIs();
     });
   }
@@ -151,7 +159,17 @@ export class MapPage extends HTMLElement {
   }
 
   render() {
-    this.replaceChildren(this.mapContainer);
+    this.replaceChildren(
+      <>
+        <div style={{ maxWidth: '300px', position: 'fixed', top: 'var(--sl-spacing-large)', right: 'var(--sl-spacing-large)', zIndex: '999' }}>
+          <sl-alert variant="primary" open closable id="map-loading-alert">
+            <sl-icon slot="icon" name="info-circle"></sl-icon>
+            Loading Map Data
+          </sl-alert>
+        </div>
+        {this.mapContainer}
+      </>,
+    );
   }
 }
 
