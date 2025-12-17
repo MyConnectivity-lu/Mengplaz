@@ -24,29 +24,29 @@ fn bootstrap() {
     try {
         CACLRLoader::load();
     } catch (err) {
-        error("CACLR Failed : ${err.message}}");
+        error("CACLR Failed : ${err.message}");
     }
 
     try {
         BDAddressLoader::load();
     } catch (err) {
-        error("BDA Failed : ${err.message}}");
+        error("BDA Failed : ${err.message}");
     }
     try {
         OSMLoader::load();
     } catch (err) {
-        error("OSM Failed : ${err.message}}");
+        error("OSM Failed : ${err.message}");
     }
 
     try {
         GoldenLoader::loadAll();
     } catch (err) {
-        error("Load From Dumped Data Failed : ${err.message}}");
+        error("Load From Dumped Data Failed : ${err.message}");
         try {
             info("Using Caclr to fill Golden");
             GoldenServices::fillFromCaclr();
         } catch (err) {
-            error("Fil From Caclr Failed : ${err.message}}");
+            error("Fil From Caclr Failed : ${err.message}");
         }
     }
 }
