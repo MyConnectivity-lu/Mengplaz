@@ -28,7 +28,7 @@ export class PartialMatchPane extends HTMLElement {
       {
         index: gc.mengplaz.SearchItem.$fields.sourceRecord,
         header: 'Action',
-        cell: (data: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
+        cell: (_: CellData<gc.core.node<gc.mengplaz.POIRecordProvider>>) => {
           return (
             <sl-icon-button
               title="Promote"
