@@ -357,10 +357,32 @@ fn openapi() {
         tmpPaths.set("/api::getRecordByGeopartalID", path);
     }
 
+    if (oa.paths?.contains("/api::getGoldenRecordRefByUid") == true) {
+        var path = oa.paths.get("/api::getGoldenRecordRefByUid")!!;
+        path.description = "Returns a Golden Record by its uid";
+        tmpPaths.set("/api::getGoldenRecordRefByUid", path);
+    }
+
     if (oa.paths?.contains("/api::getGoldenRecords") == true) {
         var path = oa.paths.get("/api::getGoldenRecords")!!;
         path.description = "Returns all golden records";
         tmpPaths.set("/api::getGoldenRecords", path);
+    }
+
+    if (oa.paths?.contains("/api::getGoldenCities") == true) {
+        var path = oa.paths.get("/api::getGoldenCities")!!;
+        path.description = "Returns all golden cities";
+        tmpPaths.set("/api::getGoldenCities", path);
+    }
+    if (oa.paths?.contains("/api::getGoldenStreetsByCityId") == true) {
+        var path = oa.paths.get("/api::getGoldenStreetsByCityId")!!;
+        path.description = "Returns all golden Streets in the city";
+        tmpPaths.set("/api::getGoldenStreetsByCityId", path);
+    }
+    if (oa.paths?.contains("/api::getGoldenNumbersByStreetId") == true) {
+        var path = oa.paths.get("/api::getGoldenNumbersByStreetId")!!;
+        path.description = "Returns all golden numbers in the street";
+        tmpPaths.set("/api::getGoldenNumbersByStreetId", path);
     }
 
     oa.paths = tmpPaths;
