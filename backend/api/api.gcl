@@ -10,7 +10,7 @@ fn getPoisInStreet(e: node<StreetRecordProvider>): Array<POIRecordRef> {
 @expose
 @permission("public")
 fn searchStreet(e: String): Array<StreetRecordRef> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(searchStreet);
     var threshold = 0.7;
     var searchResults = GoldenServices::searchStreet(e, threshold, null);
     var res = Array<StreetRecordRef> {};
@@ -34,7 +34,7 @@ type POIFeatures {
 @expose
 @permission("public")
 fn getPois(): Array<POIFeatures> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getPois);
     var feats = Array<POIFeatures> {};
     feats.set_capacity(golden_pois_by_geo.size());
     for (key, value in golden_pois_by_geo) {
@@ -50,7 +50,7 @@ fn getPois(): Array<POIFeatures> {
 @expose
 @permission("public")
 fn getPoisByGeo(coords: geo): POIRecordRef? {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getPoisByGeo);
     var poi = golden_pois_by_geo.get(coords);
     ts.end();
     if (poi != null) {
@@ -69,7 +69,7 @@ type GoldenRecordDetails {
 
 @expose
 fn getGoldenRecordDetails(ref: node<GoldenPointOfInterest>): GoldenRecordDetails {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getGoldenRecordDetails);
 
     var linked: Array<POIFullRecordRef> = Array<POIFullRecordRef> {};
     for (_, l in ref->linkedRecords) {
@@ -98,7 +98,7 @@ type LinkedRecordsDetails {
 
 @expose
 fn getLinkedRecordDetails(other: node<POIRecordProvider>): LinkedRecordsDetails? {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getLinkedRecordDetails);
     var nGolden = other->getLinkedGolden();
     ts.end();
     if (nGolden == null) {
@@ -119,7 +119,7 @@ fn getLinkedRecordDetails(other: node<POIRecordProvider>): LinkedRecordsDetails?
 
 @expose
 fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getPoiRecordRef);
     ts.end();
     return POIRecordRef {
         ref: ref,
@@ -129,7 +129,7 @@ fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
 
 @expose
 fn getGoldenRecordRefByUid(uid: String): POIRecordRef? {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getGoldenRecordRefByUid);
     var nGolden = golden_pois_by_id.get(uid);
     ts.end();
     if (nGolden != null) {
@@ -154,7 +154,7 @@ type SourceRef {
 
 @expose
 fn getSources(): Array<SourceRef> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getSources);
     var res = Array<SourceRef> {};
     for (name, nSource in sources_by_name) {
         res.add(SourceRef { ref: nSource, name: name });
@@ -165,7 +165,7 @@ fn getSources(): Array<SourceRef> {
 
 @expose
 fn reconcile(source: node<DataSource>) {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(reconcile);
     var progress = ProgressTracker {
         start: time::now(),
     };
@@ -178,7 +178,7 @@ fn reconcile(source: node<DataSource>) {
 
 @expose
 fn getReconciliationReport(source: node<DataSource>): ReconciliationReport? {
-    var ts = Traffic_Service::start(getPoisInStreet).end();
+    var ts = Traffic_Service::start(getReconciliationReport).end();
     return source->getReconciliationReport();
 }
 
@@ -200,7 +200,7 @@ type MatchCandidateDetail {
 
 @expose
 fn getMatchCandidateDetails(elements: Array<CandidateMatch<node<POIRecordProvider>>>): Array<MatchCandidateDetail> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getMatchCandidateDetails);
     var res = Array<MatchCandidateDetail> {};
     for (i, e in elements) {
         var record = e.elem->toMengplazRecord();
@@ -228,7 +228,7 @@ fn getMatchCandidateDetails(elements: Array<CandidateMatch<node<POIRecordProvide
 
 @expose
 fn searchByItem(item: SearchItem): mengplaz::SearchResult {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(searchByItem);
     var goldenSource = sources_by_name.get(GoldenSource::NAME)!!;
     var searchResult = goldenSource->search(
         SearchRequest {
@@ -248,7 +248,7 @@ fn searchByItem(item: SearchItem): mengplaz::SearchResult {
 @expose
 @permission("public")
 fn getRecordByGeopartalID(id: String): POIRecordRef? {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getRecordByGeopartalID);
     var record = bda_address_by_geoportalid.get(id);
     ts.end();
     if (record != null) {
@@ -272,7 +272,7 @@ type GoldenIndex {
 @expose
 @permission("public")
 fn getGoldenCities(): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getGoldenCities);
     var cities = Array<GoldenIndex> {};
     for (id, nCity in golden_cities_by_id) {
         if (id == "UNKNOWN") {
@@ -291,7 +291,7 @@ fn getGoldenCities(): Array<GoldenIndex> {
 @expose
 @permission("public")
 fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getGoldenStreetsByCityId);
     var nCity = golden_cities_by_id.get(cityId);
     if (nCity == null) {
         throw "City with id ${cityId} not found";
@@ -314,7 +314,7 @@ fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
 @expose
 @permission("public")
 fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getGoldenNumbersByStreetId);
     var nStreet = golden_streets_by_id.get(streetId);
     if (nStreet == null) {
         throw "Street with id ${streetId} not found";
@@ -334,7 +334,7 @@ fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
 @expose
 @permission("public")
 fn getGoldenRecords(): Array<POIRecord> {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(getGoldenRecords);
     var records = Array<POIRecord> {};
     for (id, nPOI in golden_pois_by_id) {
         records.add(nPOI->toMengplazRecord());
@@ -346,7 +346,7 @@ fn getGoldenRecords(): Array<POIRecord> {
 @expose
 @permission("public")
 fn openapi() {
-    var ts = Traffic_Service::start(getPoisInStreet);
+    var ts = Traffic_Service::start(openapi);
     var oa = OpenApi::v3();
     oa.info.title = "MengPlaz";
     var tmpPaths = Map<String, runtime::PathItemObject> {};
