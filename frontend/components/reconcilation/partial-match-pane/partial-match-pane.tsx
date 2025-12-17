@@ -2,6 +2,8 @@ import { CellData, GuiTable, GuiValue, toast } from '@greycat/web';
 
 import { MengplazConfirmDialog } from '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import '~/components/mengplaz-confirm-dialog/mengplaz-confirm-dialog';
+import { MengplazPromotionDialog } from '~/components/mengplaz-promotion-dialog/mengplaz-promotion-dialog';
+import '~/components/mengplaz-promotion-dialog/mengplaz-promotion-dialog';
 
 export class PartialMatchPane extends HTMLElement {
   missmatchKind?: gc.MengplazMissmatch;
@@ -9,6 +11,7 @@ export class PartialMatchPane extends HTMLElement {
   private currentResultIndex = 0;
 
   private confirm: MengplazConfirmDialog;
+  private promote: MengplazPromotionDialog;
 
   private candidatesTable = new GuiTable();
   private searchItemTable = new GuiTable();
@@ -16,6 +19,7 @@ export class PartialMatchPane extends HTMLElement {
   constructor() {
     super();
     this.confirm = (<mengplaz-confirm-dialog text="Are you sure ?" />) as MengplazConfirmDialog;
+    this.promote = (<mengplaz-promotion-dialog />) as MengplazPromotionDialog;
     this.searchItemTable.columns = [
       { index: gc.mengplaz.SearchItem.$fields.number, filterable: false },
       { index: gc.mengplaz.SearchItem.$fields.street, filterable: false },
@@ -31,7 +35,9 @@ export class PartialMatchPane extends HTMLElement {
               name="chevron-double-up"
               label="promote"
               style="font-size: 1.2rem;"
-              onclick={() => this.promote(data.value)}
+              onclick={() => {
+                this.handlePromote(this.searchResult?.[this.currentResultIndex]);
+              }}
             ></sl-icon-button>
           );
         },
@@ -91,20 +97,19 @@ export class PartialMatchPane extends HTMLElement {
     });
   }
 
-  private promote(record: gc.core.node<gc.mengplaz.POIRecordProvider>) {
-    this.confirm.text = `Are you sure you want promote this record to a golden record ?`;
-    this.confirm.show().then((res) => {
-      if (res) {
-        if (this.searchResult != null && this.searchResult[this.currentResultIndex].item.sourceRecord != null) {
-          gc.promoteRecord(record).then(() => {
-            toast.notify({
-              message: 'Not implemented yet !',
-              variant: 'primary',
-              duration: 3000,
-              icon: 'check2-circle',
-            });
+  private handlePromote(record?: gc.mengplaz.SearchResult) {
+    if (!record) return;
+    this.promote.value = record;
+    this.promote.show().then((res) => {
+      if (res && record.item.sourceRecord) {
+        gc.promoteRecord(record.item.sourceRecord, res).then(() => {
+          toast.notify({
+            message: 'Record Promoted',
+            variant: 'primary',
+            duration: 3000,
+            icon: 'check2-circle',
           });
-        }
+        });
       }
     });
   }
@@ -170,6 +175,7 @@ export class PartialMatchPane extends HTMLElement {
             <div className={'card-content'}>{this.candidatesTable}</div>
           </div>
           {this.confirm}
+          {this.promote}
         </div>,
       );
     }

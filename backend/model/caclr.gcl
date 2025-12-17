@@ -278,9 +278,13 @@ type CaclrBuilding extends POIRecordProvider {
         return this.goldenRef;
     }
 
-    fn promoteToGolden(): node<GoldenPointOfInterest> {
+    fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest> {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
+        }
+        var street = golden_streets_by_id.get(streetIdx);
+        if (street == null) {
+            throw "Could not find street";
         }
 
         var newUID: String;
@@ -300,6 +304,7 @@ type CaclrBuilding extends POIRecordProvider {
                 secondaryLocations: Map<String, geo> {},
                 lastUpdate: this.lastUpdate,
                 linkedRecords: Array<node<POIRecordProvider>> {},
+                street: street
             }
         };
         this.linkToGolden(nGoldenPOI);

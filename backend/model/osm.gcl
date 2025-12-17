@@ -70,11 +70,16 @@ type OsmAddress extends POIRecordProvider {
         }
     }
 
-    fn promoteToGolden(): node<GoldenPointOfInterest>? {
+    fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest>? {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
         }
-        //TODO? Should we also handle the street ? 
+
+        var street = golden_streets_by_id.get(streetIdx);
+        if (street == null) {
+            throw "Could not find street";
+        }
+
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
@@ -90,6 +95,7 @@ type OsmAddress extends POIRecordProvider {
                 secondaryLocations: Map<String, geo> {},
                 lastUpdate: time::now(),
                 linkedRecords: Array<node<POIRecordProvider>> {},
+                street: street
             }
         };
         this.linkToGolden(nGoldenPOI);

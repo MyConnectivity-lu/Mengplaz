@@ -65,9 +65,13 @@ type BDAddress extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
     }
-    fn promoteToGolden(): node<GoldenPointOfInterest>? {
+    fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest>? {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
+        }
+        var street = golden_streets_by_id.get(streetIdx);
+        if (street == null) {
+            throw "Could not find street";
         }
         var newUID: String;
         do {
@@ -84,6 +88,7 @@ type BDAddress extends POIRecordProvider {
                 secondaryLocations: Map<String, geo> {},
                 lastUpdate: time::now(),
                 linkedRecords: Array<node<POIRecordProvider>> {},
+                street: street
             }
         };
         this.linkToGolden(nGoldenPOI);

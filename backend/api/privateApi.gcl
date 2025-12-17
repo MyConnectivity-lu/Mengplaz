@@ -1,12 +1,12 @@
 @expose
 @permission("admin")
-fn promoteRecord(record: node<POIRecordProvider>) {
+fn promoteRecord(record: node<POIRecordProvider>, streetIdx: String) {
     var ts = Traffic_Service::start(promoteRecord);
 
     if (record->getLinkedGolden() != null) {
         throw "This record is already linked to a golden Record";
     }
-    record->promoteToGolden();
+    record->promoteToGolden(streetIdx);
     ts.end();
 }
 
