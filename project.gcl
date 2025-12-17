@@ -51,6 +51,10 @@ fn bootstrap() {
     }
 }
 
+fn dump() {
+    GoldenExporter::exportAll();
+}
+
 private fn createAdmin() {
     var admLogin = System::getEnv("MENGPLAZ_ADMIN_LOGIN");
     if (admLogin != null && User::getByName(admLogin) == null) {
