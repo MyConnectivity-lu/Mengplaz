@@ -152,6 +152,7 @@ type GoldenLoader {
                 }
                 if (ref != null) {
                     ref->linkToGolden(nGoldenPOI);
+                    nGoldenPOI->linkedRecords.add(ref);
                 }
             }
             nGoldenStreet?->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
