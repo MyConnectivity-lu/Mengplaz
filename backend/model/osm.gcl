@@ -21,6 +21,20 @@ type OsmPartialAddress {
     }
 }
 
+@volatile
+type OSMFullRecord {
+    id: String;
+
+    number: String;
+    postcode: String;
+    primaryLocation: geo?;
+    city: String;
+    street: String;
+
+    sourceName: String;
+    goldenRef: node<GoldenPointOfInterest>?;
+}
+
 type OsmAddress extends POIRecordProvider {
     private id: int;
     private position: geo;
@@ -107,8 +121,17 @@ type OsmAddress extends POIRecordProvider {
         return this.goldenRef;
     }
 
-    fn toFullRecord(): any {
-        return this.toMengplazRecord();
+    fn toFullRecord(): OSMFullRecord {
+        return OSMFullRecord {
+            id: "${this.id}",
+            number: "${this.number}",
+            street: this.street,
+            postcode: this.postcode,
+            city: this.city,
+            primaryLocation: this.position,
+            sourceName: OsmSource::NAME,
+            goldenRef: this.goldenRef,
+        };
     }
 
     fn toMengplazRecord(): POIRecord {
