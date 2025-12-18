@@ -1,6 +1,6 @@
 @include("backend");
 
-@library("std", "7.4.231-stable");
+@library("std", "7.4.232-stable");
 @library("explorer", "7.4.20-stable");
 //@library("strplus");
 
@@ -38,6 +38,9 @@ fn bootstrap() {
         error("OSM Failed : ${err.message}");
     }
 
+    GoldenServices::fillFromCaclr();
+
+    /*
     try {
         GoldenLoader::loadAll();
     } catch (err) {
@@ -49,6 +52,7 @@ fn bootstrap() {
             error("Fil From Caclr Failed : ${err.message}");
         }
     }
+    */
 }
 
 fn dump() {

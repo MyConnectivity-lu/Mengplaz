@@ -1,4 +1,4 @@
-import { GuiSelect, GuiOption, sl } from '@greycat/web';
+import { GuiSelect, GuiOption, sl, toast } from '@greycat/web';
 
 import '../../components/reconcilation/full-match-pane/full-match-pane';
 import '../../components/reconcilation/partial-match-pane/partial-match-pane';
@@ -24,7 +24,7 @@ export class ReconcilePage extends HTMLElement {
   }
 
   async connectedCallback() {
-    const sources = await gc.api.getSources();
+    const sources = await gc.privateApi.getSources();
     this.sourceSelect.options = sources.filter((v) => v.name !== 'Golden').map((s) => ({ value: s, text: s.name }) as GuiOption);
 
     this.render();
@@ -32,34 +32,42 @@ export class ReconcilePage extends HTMLElement {
 
   disconnectedCallback() {}
 
-  private updateLocalReconciliationReport() {
+  private async updateLocalReconciliationReport() {
     this.reconcileButton.loading = true;
     if (this.sourceSelect.value) {
-      gc.api.getReconciliationReport(this.sourceSelect.value.ref).then((res) => {
-        if (res != null) {
-          this.reconciliationReport = res;
+      try {
+        let task = await gc.privateApi.getReconciliationReport.spawn(this.sourceSelect.value.ref);
+        let recRes = await task.result();
+
+        if (recRes != null) {
+          this.reconciliationReport = recRes;
           this.render();
         } else {
           this.reconciliationReport = undefined;
           this.render();
         }
+      } catch(e) {
+        toast.notify({ message: `An error occured while generating reconciliation report.`, duration: 3000, icon: 'check2-circle', variant: 'danger' });
+        console.error(e);      
+      } finally {
         this.reconcileButton.loading = false;
-      });
+      }
     }
   }
 
   private async reconcile() {
     this.reconcileButton.loading = true;
-
-    gc.$.default
-      .spawnAwait<gc.mengplaz.ReconciliationReport>('api::reconcile', [this.sourceSelect.value.ref])
-      .then((recRes) => {
-        this.reconciliationReport = recRes;
-        this.render();
-      })
-      .finally(() => {
-        this.reconcileButton.loading = false;
-      });
+    try {
+      let task = await gc.privateApi.reconcile.spawn(this.sourceSelect.value.ref);
+      let recRes = await task.result();
+      this.reconciliationReport = recRes;
+      this.render();
+    } catch(e) {
+      toast.notify({ message: `An error occured while generating reconciliation report.`, duration: 3000, icon: 'check2-circle', variant: 'danger' });
+      console.error(e);      
+    } finally {
+      this.reconcileButton.loading = false;
+    }
   }
 
   render() {
