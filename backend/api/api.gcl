@@ -163,8 +163,8 @@ fn searchByItem(item: SearchItem): mengplaz::SearchResult {
 
 @expose
 @permission("public")
-fn getRecordByGeoportalID(id: String): POIRecordRef? {
-    var ts = Traffic_Service::start(getRecordByGeoportalID);
+fn getRecordByGeoportailID(id: String): POIRecordRef? {
+    var ts = Traffic_Service::start(getRecordByGeoportailID);
     var record = bda_address_by_geoportalid.get(id);
     ts.end();
     if (record != null) {
@@ -290,10 +290,10 @@ fn openapi() {
         tmpPaths.set("/api::getGoldenRecords", path);
     }
 
-    if (oa.paths?.contains("/api::getRecordByGeoportalID") == true) {
-        var path = oa.paths.get("/api::getRecordByGeoportalID")!!;
+    if (oa.paths?.contains("/api::getRecordByGeoportailID") == true) {
+        var path = oa.paths.get("/api::getRecordByGeoportailID")!!;
         path.post.description = "Returns the Golden POI associated with the given *geoportal_id*";
-        tmpPaths.set("/api::getRecordByGeoportalID", path);
+        tmpPaths.set("/api::getRecordByGeoportailID", path);
     }
 
     if (oa.paths?.contains("/api::getGoldenRecordRefByUid") == true) {
