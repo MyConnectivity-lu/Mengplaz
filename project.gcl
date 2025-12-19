@@ -1,6 +1,6 @@
 @include("backend");
 
-@library("std", "7.4.232-stable");
+@library("std", "7.4.234-stable");
 @library("explorer", "7.4.20-stable");
 //@library("strplus");
 
