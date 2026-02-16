@@ -1,0 +1,39 @@
+mengplaz-pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-spacing-small);
+}
+
+mengplaz-pagination .pagination-info {
+  font-size: var(--sl-font-size-medium);
+  color: var(--sl-color-neutral-700);
+  min-width: 80px;
+  text-align: center;
+}
+
+mengplaz-pagination .pagination-id-container {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-spacing-x-small);
+  margin-left: var(--sl-spacing-small);
+}
+
+mengplaz-pagination .pagination-id-label {
+  font-size: var(--sl-font-size-small);
+  color: var(--sl-color-neutral-600);
+}
+
+mengplaz-pagination .pagination-id-input {
+  width: 120px;
+  padding: var(--sl-spacing-x-small) var(--sl-spacing-small);
+  font-size: var(--sl-font-size-small);
+  border: 1px solid var(--sl-color-neutral-300);
+  border-radius: var(--sl-border-radius-medium);
+  background: var(--sl-color-neutral-0);
+}
+
+mengplaz-pagination .pagination-id-input:focus {
+  outline: none;
+  border-color: var(--sl-color-primary-500);
+  box-shadow: 0 0 0 var(--sl-focus-ring-width) var(--sl-color-primary-200);
+}

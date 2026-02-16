@@ -6,6 +6,18 @@
   --secondary: #10069f;
   --tertiary: #ff18a4;
 
+  /* Match Quality Colors */
+  --match-exact: #04e104;
+  --match-good: #0ea5e9;
+  --match-partial: #f59e0b;
+  --match-poor: #ef4444;
+
+  /* Match Quality Background Colors (for badges) */
+  --match-exact-bg: #d1fae5;
+  --match-good-bg: #e0f2fe;
+  --match-partial-bg: #fef3c7;
+  --match-poor-bg: #fee2e2;
+
   /* Light Theme */
   --color-bg: #ffffff;
   --color-text: #1e293b;
@@ -172,14 +184,12 @@ main {
 }
 
 .sidebar-link:hover::part(base),
-.sidebar-link:focus::part(base),
 .sidebar-link.active::part(base) {
   background-color: var(--primary);
 }
 
 .sl-theme-dark {
   .sidebar-link:hover::part(base),
-  .sidebar-link:focus::part(base),
   .sidebar-link.active::part(base),
   .sidebar-link:hover sl-icon {
     color: #10069f;
@@ -263,6 +273,30 @@ main {
 
 .login-button sl-icon {
   margin-right: var(--sl-spacing-medium);
+}
+
+.nav-spacer {
+  flex-grow: 1;
+}
+
+.sidebar-link-external {
+  display: flex;
+  align-items: center;
+  padding: var(--sl-spacing-x-small) var(--sl-spacing-medium);
+  color: var(--secondary);
+  text-decoration: none;
+  font-size: var(--sl-font-size-large);
+  border-radius: var(--sl-border-radius-medium);
+  width: 100%;
+}
+
+.sidebar-link-external:hover {
+  background-color: var(--color-hover);
+}
+
+.sidebar-link-external sl-icon {
+  margin-right: var(--sl-spacing-small);
+  font-size: var(--sl-font-size-large);
 }
 
 /* Layout Footer */
@@ -398,4 +432,64 @@ gui-table::part(subheader) {
 }
 .maplibregl-popup {
   max-width: max-content !important;
+}
+
+/* ==========================================================================
+   Match Quality Styles
+   Used for displaying match scores throughout the application
+   ========================================================================== */
+
+/* Text colors for match quality */
+.match-exact {
+  color: var(--match-exact);
+}
+
+.match-good {
+  color: var(--match-good);
+}
+
+.match-partial {
+  color: var(--match-partial);
+}
+
+.match-poor {
+  color: var(--match-poor);
+}
+
+/* Background colors for match quality badges */
+.match-exact-bg {
+  background-color: var(--match-exact-bg);
+  color: var(--match-exact);
+}
+
+.match-good-bg {
+  background-color: var(--match-good-bg);
+  color: var(--match-good);
+}
+
+.match-partial-bg {
+  background-color: var(--match-partial-bg);
+  color: var(--match-partial);
+}
+
+.match-poor-bg {
+  background-color: var(--match-poor-bg);
+  color: var(--match-poor);
+}
+
+/* Border colors for match quality indicators */
+.match-exact-border {
+  border-color: var(--match-exact);
+}
+
+.match-good-border {
+  border-color: var(--match-good);
+}
+
+.match-partial-border {
+  border-color: var(--match-partial);
+}
+
+.match-poor-border {
+  border-color: var(--match-poor);
 }

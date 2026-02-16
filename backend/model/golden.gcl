@@ -9,15 +9,17 @@ var golden_pois_by_geo: nodeGeo<node<GoldenPointOfInterest>>;
 
 type GoldenSource extends DataSource {
     static NAME: String = "Golden";
+    static WEIGHT: float = 0.0;
 
-    private reconciliationReport: node<ReconciliationReport?>;
+    qualityHistory: nodeTime<float>;
 
     static fn init() {
         //Declare the source
         var source = sources_by_name.get(GoldenSource::NAME);
         if (source == null) {
             var source = GoldenSource {
-                reconciliationReport: node<ReconciliationReport?> { null }
+                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() },
+                qualityHistory: nodeTime<float> {}
             };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
@@ -27,16 +29,20 @@ type GoldenSource extends DataSource {
         return GoldenSource::NAME;
     }
 
+    fn getWeight(): float {
+        return GoldenSource::WEIGHT;
+    }
+
     fn getReconciliationReport(): ReconciliationReport? {
         return *this.reconciliationReport;
     }
 
-    fn reconcile(): ReconciliationReport {
-        throw "Cannot reconcile GolderService with itself.";
-    }
-
     fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
         return GoldenServices::search(req);
+    }
+
+    fn getIndex():nodeIndex<String, node<POIRecordProvider>> {
+        return golden_pois_by_id;
     }
 }
 
@@ -137,7 +143,9 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     street: node<GoldenStreet>?;
 
-    linkedRecords: Array<node<POIRecordProvider>>;
+    linkedRecords: Array<LinkedRecordEntry>;
+
+    quality: nodeTime<QualityEvent>;
 
     @permission("admin")
     fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
@@ -153,7 +161,9 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return null;
     }
 
-    fn toFullRecord(): any {}
+    fn toFullRecord(): any {
+        return this.toMengplazRecord();
+    }
 
     fn promoteToGolden(record: node<POIRecordProvider>) {
         throw "Record is already Golden, it can't be promoted";
@@ -180,5 +190,81 @@ type GoldenPointOfInterest extends POIRecordProvider {
             }
         }
         return record;
+    }
+
+    fn getSource(): node<DataSource> {
+        return sources_by_name.get(GoldenSource::NAME)!!;
+    }
+
+    fn getId(): String {
+        return this.uid;
+    }
+
+    fn toSearchItem(){};
+
+    fn getSourceName(): String {
+        return GoldenSource::NAME;
+    }
+
+    fn addStreetAlias(name:String){
+        if (this.street != null && name != this.street->name) {
+            var found = false;
+            for (_, alias in this.street->nameAliases) {
+                if (alias.value == name) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found == false ) {
+                this.street->nameAliases.add(Alias { value: name, id: ""});
+            }
+        }
+    }    
+    
+    fn addCityAlias(name:String){
+        var city = this.street?->city;
+        if (city != null && name != city->name) {
+            var found = false;
+            for (_, alias in city->nameAliases) {
+                if (alias.value == name) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found == false ) {
+                city->nameAliases.add(Alias { value: name, id: ""});
+            }
+        }
+    }
+
+    fn removeStreetAlias(name: String) {
+        if (this.street != null) {
+            for (i, alias in this.street->nameAliases) {
+                if (alias.value == name) {
+                    this.street->nameAliases.remove(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    fn removeCityAlias(name: String) {
+        var city = this.street?->city;
+        if (city != null) {
+            for (i, alias in city->nameAliases) {
+                if (alias.value == name) {
+                    city->nameAliases.remove(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    fn getStreet(): String? {
+        return this.street?->name;
+    }
+
+    fn getCity(): String? {
+        return this.street?->city->name;
     }
 }

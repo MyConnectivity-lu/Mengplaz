@@ -13,7 +13,7 @@ export class SearchPage extends HTMLElement {
     super();
 
     this.searchInput = (<gui-input-string placeholder="Type Street Name" />) as GuiInputString;
-    this.searchInput.addEventListener('gui-input', (e) => this.search(e))
+    this.searchInput.addEventListener('gui-input', (e) => this.search(e));
 
     this.resultTable = new GuiTable();
     this.resultTable.rowHeight = 40;
@@ -59,27 +59,29 @@ export class SearchPage extends HTMLElement {
           <div className={'card'}>
             <h4 className={'card-title'}> Street Numbers </h4>
             <div className={'street-numbers'}>
-              {this.availablePOIs.map((e) => {
-                return (
-                  <sl-badge
-                    variant="neutral"
-                    pill
-                    data-ref={e.ref}
-                    onclick={(_e2) => {
-                      this.addressSelected = e;
-                      this.render();
-                    }}
-                  >
-                    {e.record.number}
-                  </sl-badge>
-                );
-              })}
+              {this.availablePOIs
+                .sort((a, b) => Number(a.record.number) - Number(b.record.number))
+                .map((e) => {
+                  return (
+                    <sl-badge
+                      variant="neutral"
+                      pill
+                      data-ref={e.ref}
+                      onclick={(_e2) => {
+                        this.addressSelected = e;
+                        this.render();
+                      }}
+                    >
+                      {e.record.number}
+                    </sl-badge>
+                  );
+                })}
             </div>
           </div>
         ) : (
           ''
         )}
-        {this.addressSelected ? <mengplaz-address-card value={this.addressSelected} showGoTo={true}/> : null}
+        {this.addressSelected ? <mengplaz-address-card value={this.addressSelected} showGoTo={true} /> : null}
       </div>
     );
 

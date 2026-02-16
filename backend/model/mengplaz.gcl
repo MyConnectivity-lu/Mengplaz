@@ -1,18 +1,160 @@
 var sources_by_name: nodeIndex<String, node<DataSource>>;
 
+enum QualityEventType {
+    link;
+    unlink;
+}
+
+type QualityEvent {
+    @precision(0.01)
+    score: float;
+    sourceRecord: node<POIRecordProvider>;
+    eventType: QualityEventType;
+}
+
+type LinkedRecordEntry {
+    record: node<POIRecordProvider>;
+    @precision(0.01)
+    score: float;
+}
+
+
+
 abstract type DataSource {
+    private reconciliationReport: node<ReconciliationReport>;
+    private isReconciling : node<bool>?;
+
     abstract fn name(): String;
+    abstract fn getWeight(): float;
     abstract fn getReconciliationReport(): ReconciliationReport?;
-    abstract fn reconcile(): ReconciliationReport;
-    abstract fn search(req: SearchRequest): Array<SearchResult>;
+    // abstract fn reconcile(searchParams: SearchParameters?): ReconciliationReport;
+    // abstract fn search(req: SearchRequest): Array<SearchResult>;
+    abstract fn getIndex(): nodeIndex<String, node<POIRecordProvider>>;
+
+    static fn reconcile(nSource: node<DataSource> , searchParams: SearchParameters?, pois : Array<node<POIRecordProvider>>?): ReconciliationReport {
+        if (searchParams == null) {
+            searchParams = SearchParameters::default();
+        }
+        var workers = 8;
+        var jobs = Array<Job> {};
+        for (var i = 0; i < workers; i++) {
+            jobs.add(
+                Job<any?> {
+                    function: GoldenServices::search,
+                    arguments: [SearchRequest {
+                            items: Array<node<POIRecordProvider>> {},
+                            params: searchParams
+                        },],
+                }
+            );
+        }
+
+        var count = 0;
+        for (_, sourceRecord in pois ?? nSource->getIndex()) {
+            if (sourceRecord->getLinkedGolden() == null) {
+                jobs[count % workers].arguments!![0]!!.items.add(sourceRecord);
+                count++;
+            }
+        }
+
+        await(jobs, MergeStrategy::last_wins);
+
+        var report = nSource->reconciliationReport.resolve();
+        for (_, job in jobs) {
+            for (_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
+                var candidates = searchResult.candidates;
+                var results = Array<ReconciliationCandidate> {  };
+                var perfectMatch = 0;
+                for (_, candidate in candidates) {
+                    var reconCandidate = ReconciliationCandidate {
+                        candidateRecord :candidate.elem,
+                        mismatch: null,
+                        score :ReconciliationCandidateScore {
+                            cityScore : candidate.cityScore,
+                            numberScore : candidate.numberScore,
+                            postcodeScore : candidate.postcodeScore,
+                            streetScore : candidate.streetScore,
+                            geoScore: candidate.geoScore,
+                            overallScore: candidate.overallScore
+                        }
+                    };
+                    if(candidate.overallScore != 1){
+                        var reason = MengplazMissmatch::COMPLEX_MISMATCH;
+                        if (candidate.cityScore == 1) {
+                            if (candidate.postcodeScore == 1) {
+                                if (candidate.streetScore == 1) {
+                                    reason = MengplazMissmatch::NUMBER_MISMATCH;
+                                } else if (candidate.numberScore == 1) {
+                                    reason = MengplazMissmatch::STREET_MISMATCH;
+                                }
+                            } else if (candidate.streetScore == 1 && candidate.numberScore == 1) {
+                                reason = MengplazMissmatch::POSTCODE_MISMATCH;
+                            }
+                        }
+                        reconCandidate.mismatch = reason;
+                    } else{
+                        perfectMatch++;
+                    }
+                    results.add(reconCandidate);
+                }
+                if(perfectMatch > 1){
+                    for (_, res in results) {
+                        res.mismatch = MengplazMissmatch::MULTIPLE_MATCHES;
+                    }
+                }
+                report.unlinked.set(searchResult.sourceRecord, results);
+            }
+        }
+        return report;
+    }
+
+    fn setIsReconciling(){
+        if(this.isReconciling == null){
+            this.isReconciling = node<bool> {true};
+        }else{
+            this.isReconciling.set(true);
+        }
+    }
+
+    fn removeIsReconciling(){
+        this.isReconciling?.set(false);
+    }
+}
+
+type ReconciliationCandidateScore {
+    @precision(0.01)
+    cityScore: float;
+    @precision(0.01)
+    streetScore: float;
+    @precision(0.01)
+    numberScore: float;
+    @precision(0.01)
+    postcodeScore: float;
+    @precision(0.01)
+    geoScore: float?;
+    @precision(0.01)
+    overallScore: float;
+}
+
+// if score is null, we assume a score of 1, to save space
+type ReconciliationCandidate {
+    candidateRecord: node<POIRecordProvider>;
+    score: ReconciliationCandidateScore?;
+    mismatch: MengplazMissmatch?;
 }
 
 type ReconciliationReport {
     date: time;
-    linked: Array<node<POIRecordProvider>>;
-    fullMatch: Array<SearchResult>;
-    totalProcessed: int;
-    mismatches: Map<MengplazMissmatch, Array<SearchResult>>;
+    linked: nodeIndex<node<POIRecordProvider> , ReconciliationCandidate>;
+    unlinked: nodeIndex<node<POIRecordProvider> , Array<ReconciliationCandidate>>;
+
+    static fn init(): ReconciliationReport{
+        return  ReconciliationReport {
+            date: time::now(),
+            linked: nodeIndex<node<POIRecordProvider> , ReconciliationCandidate> {},
+            unlinked : nodeIndex<node<POIRecordProvider> , Array<ReconciliationCandidate>> {}
+        };
+    };
 }
 
 @volatile
@@ -30,6 +172,7 @@ type POIRecordRef {
 @volatile
 type POIFullRecordRef {
     ref: node<POIRecordProvider>;
+    id: String;
     record: any;
 }
 
@@ -37,25 +180,31 @@ type POIFullRecordRef {
 type POIRecord {
     uid: String?;
     number: String?;
+    postcode: String?;
     street: String?;
     streetAliases: Array<Alias>?;
-    postcode: String?;
     city: String?;
     cityAliases: Array<Alias>?;
     primaryLocation: geo?;
     secondaryLocations: Map<String, geo>?;
-    sourceName: String?;
+    sourceName: String;
     goldenRef: node<GoldenPointOfInterest>?;
     quality: float?;
 }
 
 abstract type POIRecordProvider {
     abstract fn linkToGolden(nGolden: node<GoldenPointOfInterest>);
-    abstract fn unlinkGolden(me: node<POIRecordProvider>);
+    abstract fn unlinkGolden();
     abstract fn getLinkedGolden(): node<GoldenPointOfInterest>?;
     abstract fn toMengplazRecord(): POIRecord;
     abstract fn toFullRecord(): any;
-    abstract fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest>?;
+    abstract fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest>;
+    abstract fn getSource(): node<DataSource>;
+    abstract fn getSourceName(): String;
+    abstract fn getId(): String;
+    abstract fn toSearchItem(): SearchItem;
+    abstract fn getStreet():String?;
+    abstract fn getCity(): String?;
 }
 
 @volatile
@@ -75,31 +224,89 @@ abstract type StreetRecordProvider {
 
 @volatile
 type SearchRequest {
-    items: Array<SearchItem>;
+    items: Array<node<POIRecordProvider>>;
     params: SearchParameters;
 }
 
 @volatile
 type SearchItem {
-    sourceRecord: node<POIRecordProvider>?;
     number: String;
     street: String;
     multipleCode: String;
     postcode: String;
     city: String;
+    coordinates: geo?;
+}
+
+@volatile
+type ScoringWeights {
+    cityWeight: float;
+    streetWeight: float;
+    postcodeWeight: float;
+    numberWeight: float;
+    geoWeight: float;
+
+    static fn default(): ScoringWeights {
+        return ScoringWeights {
+            cityWeight: 4.0,
+            streetWeight: 3.0,
+            postcodeWeight: 3.0,
+            numberWeight: 1.0,
+            geoWeight: 3.0,
+        };
+    }
+
+    fn total(): float {
+        return this.cityWeight + this.streetWeight + this.postcodeWeight + this.numberWeight + this.geoWeight;
+    }
+}
+
+@volatile
+type GeoParameters {
+    /// Distance in meters below which geo score is 1.0 (perfect match)
+    minDistance: int;
+    /// Distance in meters above which geo score is 0.0 (no match)
+    maxDistance: int;
+
+    static fn default(): GeoParameters {
+        return GeoParameters {
+            minDistance: 0,
+            maxDistance: 1000,
+        };
+    }
 }
 
 @volatile
 type SearchParameters {
     citySimilarityThreshold: float;
     streetSimilarityThreshold: float;
-    buildingSimilarityThreshold: float;
+    postcodeSimilarityThreshold: float;
+    coordinatesSimilarityThreshold: float;
     maxCandidatesPerItem: int;
+    postcodeMaxDistance: int;
+    weights: ScoringWeights;
+    geoParams: GeoParameters;
+    /// When true, performs a global POI search if no street-level candidates are found. Off by default (heavy operation).
+    deepSearch: bool;
+
+    static fn default(): SearchParameters {
+        return SearchParameters {
+            citySimilarityThreshold: 0.7,
+            streetSimilarityThreshold: 0.7,
+            postcodeSimilarityThreshold: 0.4,
+            coordinatesSimilarityThreshold : 0.7,
+            maxCandidatesPerItem: 10,
+            postcodeMaxDistance: 200,
+            weights: ScoringWeights::default(),
+            geoParams: GeoParameters::default(),
+            deepSearch: false,
+        };
+    }
 }
 
 @volatile
 type SearchResult {
-    item: SearchItem;
+    sourceRecord: node<POIRecordProvider>;
     candidates: Array<CandidateMatch<node<POIRecordProvider>>>;
 }
 
@@ -110,19 +317,12 @@ type Match<T> {
 }
 
 @volatile
-type BuildingMatch<T> {
-    overallScore: float;
-    postcodeScore: float;
-    numberScore: float;
-    elem: T;
-}
-
-@volatile
 type CandidateMatch<T> {
     cityScore: float;
     streetScore: float;
     numberScore: float;
     postcodeScore: float;
+    geoScore: float?;
     overallScore: float;
     elem: T;
 }

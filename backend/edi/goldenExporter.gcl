@@ -1,3 +1,21 @@
+// New format (v2) - includes score per linked record
+
+@volatile
+type LinkedRecordDTO {
+    sourceName: String;
+    id: String;
+    score: float;
+}
+
+@volatile
+type QualityDTO {
+    t: time;
+    score: float;
+    id: String;
+    sourceName: String;
+    eventType: QualityEventType;
+}
+
 @volatile
 type GoldenPOIDTO {
     uid: String;
@@ -8,7 +26,10 @@ type GoldenPOIDTO {
     secondaryLocations: Map<String, geo>;
     streetId: String?;
     lastUpdate: time;
-    linkedRef: Map<String, String>; // { Source Name : Id }
+
+    linkedRecords: Array<LinkedRecordDTO>?;
+
+    quality: Array<QualityDTO>?;
 }
 
 @volatile
@@ -54,6 +75,12 @@ type GoldenConstituencyDTO {
     nameAliases: Array<Alias>;
 }
 
+@volatile
+type GoldenQualityHistoryDTO {
+    t: time;
+    score: float;
+}
+
 type GoldenExporter {
     static poiPath: String = "files/dump/golden_poi_dump.ndjson";
     static streetPath: String = "files/dump/golden_street_dump.ndjson";
@@ -61,6 +88,7 @@ type GoldenExporter {
     static municipalityPath: String = "files/dump/golden_municipality_dump.ndjson";
     static cantonsPath: String = "files/dump/golden_canton_dump.ndjson";
     static constituencyPath: String = "files/dump/golden_constituency_dump.ndjson";
+    static qualityHistory: String = "files/dump/quality_history.csv";
 
     static fn exportAll() {
         GoldenExporter::exportGoldenMunicipality();
@@ -69,11 +97,31 @@ type GoldenExporter {
         GoldenExporter::exportGoldenPOIs();
         GoldenExporter::exportGoldenCantons();
         GoldenExporter::exportGoldenConstituency();
+        GoldenExporter::exportQualityHistory();
     }
 
     static fn exportGoldenPOIs() {
         var fw = JsonWriter<GoldenPOIDTO> { path: GoldenExporter::poiPath };
         for (key, nPOI in golden_pois_by_id) {
+            var linkedRecords = Array<LinkedRecordDTO> {};
+            for (_, entry in nPOI->linkedRecords) {
+                linkedRecords.add(LinkedRecordDTO {
+                        sourceName: entry.record->getSourceName(),
+                        id: entry.record->getId(),
+                        score: entry.score
+                    });
+            }
+            var quality = Array<QualityDTO> {};
+            for (t, entry in nPOI->quality) {
+                quality.add(QualityDTO {
+                        sourceName: entry.sourceRecord->getSourceName(),
+                        id: entry.sourceRecord->getId(),
+                        score: entry.score,
+                        eventType: entry.eventType,
+                        t: t
+                    });
+            }
+
             var d = GoldenPOIDTO {
                 uid: nPOI->uid,
                 multipleCode: nPOI->multipleCode,
@@ -83,15 +131,9 @@ type GoldenExporter {
                 postCode: nPOI->postCode,
                 streetId: nPOI->street?->id,
                 lastUpdate: nPOI->lastUpdate,
-                linkedRef: Map<String, String> {}
+                linkedRecords: linkedRecords,
+                quality: quality
             };
-
-            for (_, nRecord in nPOI->linkedRecords) {
-                var rec = nRecord->toMengplazRecord();
-                if (rec.sourceName != null && rec.uid != null) {
-                    d.linkedRef.set(rec.sourceName, rec.uid);
-                }
-            }
             fw.writeln(d);
         }
     }
@@ -160,6 +202,16 @@ type GoldenExporter {
                 nameAliases: nConstituency->nameAliases
             };
             fw.writeln(d);
+        }
+    }
+
+    static fn exportQualityHistory() {
+        var fw = CsvWriter<GoldenQualityHistoryDTO> { path: GoldenExporter::qualityHistory };
+        var goldenSource = sources_by_name.get(GoldenSource::NAME);
+        if (goldenSource is node<GoldenSource>) {
+            for (key, value in goldenSource->qualityHistory) {
+                fw.write(GoldenQualityHistoryDTO { t: key, score: value });
+            }
         }
     }
 }

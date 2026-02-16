@@ -8,22 +8,22 @@ export default defineConfig((_) => ({
   plugins: [greycat()],
   base: './', // makes generated urls relative to each file
   appType: 'spa',
-  root,
+  root: resolve(__dirname, 'frontend'),
   resolve: {
     alias: {
       // matches the `paths` definitions in `tsconfig.json`
-      '~': resolve(__dirname, 'frontend'),
+      '~': resolve(__dirname),
     },
   },
-  publicDir: resolve(__dirname, 'frontend/public'),
+  publicDir: resolve(__dirname, 'frontend', 'public'),
   build: {
     outDir: resolve(__dirname, 'webroot'),
     target: 'esnext',
     rollupOptions: {
-      input: resolve(__dirname, 'frontend/index.html'),
+      input: resolve(__dirname, 'frontend', 'index.html'),
       output: {
         entryFileNames: (chunk) => {
-          let dir = dirname(chunk.facadeModuleId.slice(root.length + 1));
+          let dir = dirname(chunk.facadeModuleId!.slice(root.length + 1));
           let name;
           if (dir === '.') {
             dir = '.';

@@ -23,122 +23,6 @@ type CaclrEurostatsIds {
     lau2: String;
 }
 
-type CaclrSource extends DataSource {
-    static NAME: String = "CACLR";
-    static CONFIDENCE: float = 1.0;
-
-    private reconciliationReport: node<ReconciliationReport?>;
-
-    static fn init() {
-        //Declare the source
-        var source = sources_by_name.get(CaclrSource::NAME);
-        if (source == null) {
-            var source = CaclrSource {
-                reconciliationReport: node<ReconciliationReport?> { null }
-            };
-            sources_by_name.set(source.name(), node<DataSource> { source });
-        }
-    }
-
-    fn name(): String {
-        return CaclrSource::NAME;
-    }
-
-    fn getReconciliationReport(): ReconciliationReport? {
-        return *this.reconciliationReport;
-    }
-
-    fn reconcile(): ReconciliationReport {
-        var report = ReconciliationReport {
-            date: time::now(),
-            linked: Array<node<POIRecordProvider>> {},
-            fullMatch: Array<mengplaz::SearchResult> {},
-            totalProcessed: 0,
-            mismatches: Map<MengplazMissmatch, Array<mengplaz::SearchResult>> {},
-        };
-
-        var jobs = Array<Job> {};
-        for (var i = 0; i < 10; i++) {
-            jobs.add(
-                Job {
-                    function: GoldenServices::search,
-                    arguments: [
-                        SearchRequest {
-                            items: Array<SearchItem> {},
-                            params: SearchParameters {
-                                citySimilarityThreshold: 0.7,
-                                streetSimilarityThreshold: 0.7,
-                                buildingSimilarityThreshold: 0.4,
-                                maxCandidatesPerItem: 5,
-                            },
-                        },
-                    ],
-                }
-            );
-        }
-
-        var count = 0;
-        for (idx, nBuilding in caclr_buildings_by_id) {
-            if (nBuilding->goldenRef != null) {
-                report.linked.add(nBuilding);
-            } else {
-                jobs[count % 10].arguments[0].items.add(
-                    SearchItem {
-                        number: "${nBuilding->number}",
-                        multipleCode: nBuilding->multipleCode,
-                        postcode: nBuilding->postalCode,
-                        street: nBuilding->street->name,
-                        city: nBuilding->street->city->name,
-                        sourceRecord: nBuilding,
-                    }
-                );
-                count++;
-            }
-        }
-
-        await(jobs, MergeStrategy::last_wins);
-
-        for (_, job in jobs) {
-            for (_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
-                var candidates = searchResult.candidates;
-                if (candidates.size() > 0 && candidates[0].overallScore == 1) {
-                    //ExactMatch
-                    report.fullMatch.add(searchResult);
-                } else {
-                    var reason = MengplazMissmatch::COMPLEX_MISMATCH;
-                    if (candidates.size() > 0) {
-                        var firstCandidate = candidates[0];
-                        if (firstCandidate.cityScore == 1) {
-                            if (firstCandidate.postcodeScore == 1) {
-                                if (firstCandidate.streetScore == 1) {
-                                    reason = MengplazMissmatch::NUMBER_MISMATCH;
-                                } else if (firstCandidate.numberScore == 1) {
-                                    reason = MengplazMissmatch::STREET_MISMATCH;
-                                }
-                            } else if (firstCandidate.streetScore == 1 && firstCandidate.numberScore == 1) {
-                                reason = MengplazMissmatch::POSTCODE_MISMATCH;
-                            }
-                        }
-                    }
-                    var mismatches = report.mismatches.get(reason);
-                    if (mismatches == null) {
-                        mismatches = Array<mengplaz::SearchResult> {};
-                        report.mismatches.set(reason, mismatches);
-                    }
-                    mismatches.add(searchResult);
-                }
-                report.totalProcessed++;
-            }
-        }
-
-        this.reconciliationReport.set(report);
-
-        return report;
-    }
-
-    fn search(req: SearchRequest): mengplaz::SearchResult {}
-}
-
 type CaclrConstituency {
     code: String;
     name: String;
@@ -224,7 +108,9 @@ type CaclrPOIFullRecord {
     multipleCode: String;
     postalCode: String;
     street: String?;
+    streetAliases: Array<Alias>?;
     city: String?;
+    cityAliases: Array<Alias>?;
     municipality: String?;
     canton: String?;
     constituency: String?;
@@ -243,7 +129,6 @@ type CaclrPOIFullRecord {
 
 type CaclrBuilding extends POIRecordProvider {
     private id: String;
-
     private number: int;
     private isNumberUndefined: bool;
 
@@ -266,12 +151,8 @@ type CaclrBuilding extends POIRecordProvider {
         this.goldenRef = nGolden;
     }
 
-    fn unlinkGolden(me: node<POIRecordProvider>) {
-        if (this.goldenRef != null) {
-            var idx = this.goldenRef->linkedRecords.index_of(me);
-            this.goldenRef->linkedRecords.remove(idx);
-            this.goldenRef = null;
-        }
+    fn unlinkGolden() {
+        this.goldenRef = null;
     }
 
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
@@ -282,8 +163,8 @@ type CaclrBuilding extends POIRecordProvider {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
         }
-        var street = golden_streets_by_id.get(streetIdx);
-        if (street == null) {
+        var nGoldenStreet = golden_streets_by_id.get(streetIdx);
+        if (nGoldenStreet == null) {
             throw "Could not find street";
         }
 
@@ -303,18 +184,21 @@ type CaclrBuilding extends POIRecordProvider {
                 primaryLocation: this.position,
                 secondaryLocations: Map<String, geo> {},
                 lastUpdate: this.lastUpdate,
-                linkedRecords: Array<node<POIRecordProvider>> {},
-                street: street
+                linkedRecords: Array<LinkedRecordEntry> {},
+                street: nGoldenStreet,
+                quality: nodeTime<QualityEvent> {}
             }
         };
-        this.linkToGolden(nGoldenPOI);
+        nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
         golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-
+        if (nGoldenPOI->primaryLocation != null) {
+            golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
+        }
         return nGoldenPOI;
     }
 
     fn toFullRecord(): any {
-        return CaclrPOIFullRecord {
+        var record = CaclrPOIFullRecord {
             id: this.id,
             number: this.number,
             multipleCode: this.multipleCode,
@@ -332,6 +216,17 @@ type CaclrBuilding extends POIRecordProvider {
             goldenRef: this.goldenRef,
             primaryLocation: this.position
         };
+
+        if (this.street != null) {
+            if (this.street->aliases.size() > 0) {
+                record.streetAliases = this.street->aliases;
+            }
+            if (this.street->city->aliases.size() > 0) {
+                record.cityAliases = this.street->city->aliases;
+            }
+        }
+
+        return record;
     }
 
     fn toMengplazRecord(): POIRecord {
@@ -355,6 +250,37 @@ type CaclrBuilding extends POIRecordProvider {
             }
         }
         return record;
+    }
+
+    fn getSource(): node<DataSource> {
+        return sources_by_name.get(CaclrSource::NAME)!!;
+    }
+
+    fn getId(): String {
+        return this.id;
+    }
+
+    fn getSourceName(): String {
+        return CaclrSource::NAME;
+    }
+
+    fn toSearchItem(): SearchItem {
+        return SearchItem {
+            number: "${this.number}",
+            multipleCode: "${this.multipleCode}",
+            postcode: this.postalCode,
+            street: this.street?->name.lowercase() ?? "",
+            city: this.street?->city->name.lowercase() ?? "",
+            coordinates: this.position,
+        };
+    }
+
+    fn getStreet(): String? {
+        return this.street?->name;
+    }
+
+    fn getCity(): String? {
+        return this.street?->city->name;
     }
 }
 
@@ -435,5 +361,37 @@ type CaclrToken {
         } else {
             return currentToken;
         }
+    }
+}
+
+type CaclrSource extends DataSource {
+    static NAME: String = "CACLR";
+    static WEIGHT: float = 5.0;
+
+    static fn init() {
+        //Declare the source
+        var source = sources_by_name.get(CaclrSource::NAME);
+        if (source == null) {
+            var source = CaclrSource {
+                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() }
+            };
+            sources_by_name.set(source.name(), node<DataSource> { source });
+        }
+    }
+
+    fn name(): String {
+        return CaclrSource::NAME;
+    }
+
+    fn getWeight(): float {
+        return CaclrSource::WEIGHT;
+    }
+
+    fn getReconciliationReport(): ReconciliationReport? {
+        return *this.reconciliationReport;
+    }
+
+    fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
+        return caclr_buildings_by_id;
     }
 }

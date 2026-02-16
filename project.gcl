@@ -1,58 +1,35 @@
 @include("backend");
 
-@library("std", "7.4.234-stable");
-@library("explorer", "7.4.20-stable");
+@library("std", "7.6.212-stable");
+@library("explorer", "7.6.19-stable");
 //@library("strplus");
 
 @role("public", "files", "api");
+
+@format_line_width(180);
 
 fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
     Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, null);
+    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, null);
 }
 
 fn bootstrap() {
     createAdmin();
 
+    // loadCaclr();
+    // loadBda();
+    // loadOsm();
+
     GoldenSource::init();
-    CaclrSource::init();
-    OsmSource::init();
-    BDAddressSource::init();
 
-    try {
-        CACLRLoader::load();
-    } catch (err) {
-        error("CACLR Failed : ${err.message}");
-    }
-
-    try {
-        BDAddressLoader::load();
-    } catch (err) {
-        error("BDA Failed : ${err.message}");
-    }
-    try {
-        OSMLoader::load();
-    } catch (err) {
-        error("OSM Failed : ${err.message}");
-    }
-
-    GoldenServices::fillFromCaclr();
-
-    /*
     try {
         GoldenLoader::loadAll();
     } catch (err) {
         error("Load From Dumped Data Failed : ${err.message}");
-        try {
-            info("Using Caclr to fill Golden");
-            GoldenServices::fillFromCaclr();
-        } catch (err) {
-            error("Fil From Caclr Failed : ${err.message}");
-        }
     }
-    */
 }
 
 fn dump() {
@@ -82,6 +59,33 @@ private fn createAdmin() {
     }
 }
 
-fn osm() {
-    OSMLoader::load();
+@expose
+fn loadOsm() {
+    OsmSource::init();
+    try {
+        OSMLoader::load();
+    } catch (err) {
+        error("OSM Failed : ${err.message}");
+    }
 }
+
+@expose
+fn loadBda() {
+    BDAddressSource::init();
+    try {
+        BDAddressLoader::load();
+    } catch (err) {
+        error("BDA Failed : ${err.message}");
+    }
+}
+
+@expose
+fn loadCaclr() {
+    CaclrSource::init();
+    try {
+        CACLRLoader::load();
+    } catch (err) {
+        error("CACLR Failed : ${err.message}");
+    }
+}
+

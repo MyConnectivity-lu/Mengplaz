@@ -10,4 +10,5 @@ enum MengplazMissmatch {
     POSTCODE_MISMATCH("Postcode does not match");
     NUMBER_MISMATCH("Number does not match");
     COMPLEX_MISMATCH("Complex mismatch");
+    MULTIPLE_MATCHES("Multiple matches");
 }

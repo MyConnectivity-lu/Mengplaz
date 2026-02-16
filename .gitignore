@@ -1,4 +1,4 @@
-/webroot/
+webroot
 /lib/
 /gcdata/
 /files/
@@ -10,3 +10,4 @@ bin
 .env
 backup/
 /.vite/
+test
