@@ -54,3 +54,84 @@ export function applyTheme(theme: string) {
   document.documentElement.classList.remove(`sl-theme-${theme === 'dark' ? 'light' : 'dark'}`);
   window.localStorage.setItem(THEME_KEY, theme);
 }
+
+/**
+ * Match quality variant type
+ */
+export type MatchVariant = 'exact' | 'good' | 'partial' | 'poor';
+
+/**
+ * Shoelace badge variant type
+ */
+export type BadgeVariant = 'success' | 'primary' | 'warning' | 'danger';
+
+/**
+ * Map match variant to Shoelace badge variant
+ */
+export function toBadgeVariant(variant: MatchVariant): BadgeVariant {
+  const map: Record<MatchVariant, BadgeVariant> = {
+    exact: 'success',
+    good: 'primary',
+    partial: 'warning',
+    poor: 'danger',
+  };
+  return map[variant];
+}
+
+/**
+ * Get match quality label and variant based on score (0-100)
+ */
+export function getMatchQuality(score: number): {
+  label: string;
+  variant: MatchVariant;
+} {
+  if (score == 100) return { label: 'EXACT', variant: 'exact' };
+  if (score >= 85) return { label: 'GOOD', variant: 'good' };
+  if (score >= 65) return { label: 'PARTIAL', variant: 'partial' };
+  return { label: 'POOR', variant: 'poor' };
+}
+
+/**
+ * Calculate distance between two geo points using Haversine formula
+ * @returns distance in kilometers
+ */
+export function calculateDistance(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+
+  const x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  return R * c;
+}
+
+function toRad(deg: number): number {
+  return deg * (Math.PI / 180);
+}
+
+/**
+ * Format distance for display
+ */
+export function formatDistance(km: number): string {
+  if (km < 1) {
+    return `${Math.round(km * 1000)} m`;
+  }
+  return `${km.toFixed(1)} km`;
+}
+
+/**
+ * Get geo match quality based on distance in kilometers
+ * @param distanceKm distance in kilometers
+ * @returns label and variant for the geo match quality
+ */
+export function getGeoMatchQuality(distanceKm: number): {
+  label: string;
+  variant: MatchVariant;
+} {
+  if (distanceKm < 0.01) return { label: 'Exact', variant: 'exact' }; // < 10m
+  if (distanceKm < 0.05) return { label: 'High', variant: 'good' }; // < 50m
+  if (distanceKm < 0.1) return { label: 'Medium', variant: 'partial' }; // < 100m
+  return { label: 'Low', variant: 'poor' }; // >= 100m
+}

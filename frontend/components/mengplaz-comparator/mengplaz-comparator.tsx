@@ -25,15 +25,11 @@ export class MengplazComparator extends HTMLElement {
   private async update() {
     const ref = getQueryParam('guid');
     if (ref != null) {
-      const recRef = await gc.api.getGoldenRecordRefByUid(ref);
-      if (recRef != null) {
-        gc.api.getGoldenRecordDetails(recRef.ref as any).then((details) => {
-          this.details = details;
-          this.render();
-        });
-      }
+      gc.api.getGoldenRecordDetails(ref).then((details) => {
+        this.details = details;
+        this.render();
+      });
     }
-    // this.render();
   }
 
   render() {

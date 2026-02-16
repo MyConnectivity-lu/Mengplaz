@@ -3,14 +3,16 @@ import '../../pages/landing/landing';
 import '../../pages/map/map';
 import '../../pages/reconcile/reconcile';
 import '../../pages/index/index';
+import '../../pages/quality-history/quality-history';
 import '../../components/mengplaz-comparator/mengplaz-comparator';
 import { sl } from '@greycat/web';
 import './mengplaz-layout.css';
-import { applyTheme, getQueryParam, setupTheme } from '~/common/utils';
+import { applyTheme, getQueryParam, setupTheme } from '../../common/utils';
 
 export class MengplazLayout extends HTMLElement {
   private main: HTMLElement;
   private user?: gc.runtime.User;
+  private runtimeInfo?: gc.RuntimeInfo;
 
   constructor() {
     super();
@@ -76,13 +78,21 @@ export class MengplazLayout extends HTMLElement {
         ) : (
           ''
         )}
+        <li>
+          <sl-button id="quality-history" variant="text" className="sidebar-link">
+            <sl-icon slot="prefix" name="bar-chart-line"></sl-icon>
+            Quality History
+          </sl-button>
+        </li>
       </ul>
     ) as HTMLElement;
     menu.addEventListener('click', (e) => {
       if (e.target instanceof sl.SlButton) {
-        menu.querySelectorAll('sl-button').forEach((e) => e.classList.remove('active'));
-        this.changePage(e.target.id);
-        e.target.classList.add('active');
+        if (e.target.id.length > 0) {
+          menu.querySelectorAll('sl-button').forEach((e) => e.classList.remove('active'));
+          this.changePage(e.target.id);
+          e.target.classList.add('active');
+        }
       }
     });
     menu.querySelector(`#${active}`)?.classList.add('active');
@@ -95,6 +105,11 @@ export class MengplazLayout extends HTMLElement {
     if (id !== 'record') {
       url.searchParams.delete('guid');
     }
+    if (id !== 'reconcile') {
+      url.searchParams.delete('source');
+      url.searchParams.delete('tab');
+      url.searchParams.delete('sourceId');
+    }
     window.history.pushState(null, '', url);
   }
 
@@ -104,6 +119,8 @@ export class MengplazLayout extends HTMLElement {
     const currentPage = getQueryParam('page') ?? 'map';
     this.changePage(currentPage);
     this.user = await gc.User.me();
+    this.runtimeInfo = await gc.appInfo();
+
     let rootLayout = (
       <>
         <header className="mobile-header">
@@ -161,13 +178,23 @@ export class MengplazLayout extends HTMLElement {
                 <a href="https://greycat.io" target="_blank">
                   GreyCat
                 </a>
-              </p>
-              {/* <p>
-                <sl-icon name="linkedin" className="social-icon" style={{ paddingRight: 'var(--spacing)' }}></sl-icon>
-                <a href="https://www.linkedin.com/company/myconnectivity" target="_blank">
-                  LinkedIn
+                &nbsp;—
+                <span>
+                  Version:{' '}
+                  <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Change-Log" target="_blank">
+                    {this.runtimeInfo.program_version?.slice(0, this.runtimeInfo.program_version.indexOf('-'))}
+                  </a>
+                </span>
+                &nbsp;—{' '}
+                <a href="./api::openapi" target="_blank">
+                  openapi
+                </a>{' '}
+                &nbsp;—{' '}
+                <a href={`https://petstore.swagger.io/?url=${window.origin}/api::openapi`} target="_blank">
+                  Swagger
                 </a>
-              </p> */}
+                {/* https://petstore.swagger.io/?url=http://localhost:8080/api::openapi */}
+              </p>
             </footer>
           </div>
         </div>
@@ -193,6 +220,9 @@ export class MengplazLayout extends HTMLElement {
         break;
       case 'index':
         this.main.replaceChildren(<index-page />);
+        break;
+      case 'quality-history':
+        this.main.replaceChildren(<quality-history-page />);
         break;
       default:
         this.main.replaceChildren(<map-page />);

@@ -1,5 +1,5 @@
 import './mengplaz-address-card.css';
-import '../mengplaz-address-content/mengplaz-address-content';
+import '../address-field/address-content';
 import '../mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import { MengplazConfirmDialog } from '../mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import { handleGoToRecord } from '~/common/utils';
@@ -51,8 +51,9 @@ export class MengplazAddressCard extends HTMLElement {
 
   private unlinkClicked() {
     this.confirm.text = 'Are you sure you want to unlink this record ?';
-    this.confirm.show().then((confirmed) => {
-      if (confirmed) {
+    this.confirm.showLinkParams = false;
+    this.confirm.show().then((result) => {
+      if (result.confirmed) {
         gc.unlinkRecord(this._value!.ref).then(() => {
           this.dispatchEvent(new CustomEvent('update', { bubbles: true }));
         });
@@ -61,9 +62,10 @@ export class MengplazAddressCard extends HTMLElement {
   }
   private linkClicked() {
     this.confirm.text = 'Are you sure you want to link this item to the Golden record ?';
-    this.confirm.show().then((confirmed) => {
-      if (confirmed) {
-        gc.linkRecords(this.showLink!, this._value!.ref);
+    this.confirm.showLinkParams = true;
+    this.confirm.show().then((result) => {
+      if (result.confirmed) {
+        gc.linkRecords(this.showLink!, this._value!.ref, result.params);
       }
     });
   }
@@ -122,7 +124,7 @@ export class MengplazAddressCard extends HTMLElement {
             ''
           )}
         </div>
-        <mengplaz-address-content value={record} />
+        <address-content value={record} />
         {this.renderMap(record)}
         {this.confirm}
       </div>,

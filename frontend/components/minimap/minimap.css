@@ -1,0 +1,46 @@
+.minimap-container {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+
+.minimap-map-wrapper {
+  height: 100%;
+  width: 100%;
+}
+
+.minimap-distance-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.minimap-legend {
+  position: absolute;
+  bottom: var(--sl-spacing-small);
+  right: var(--sl-spacing-small);
+  display: flex;
+  gap: var(--sl-spacing-medium);
+  background: var(--color-card-bg, #ffffff);
+  padding: var(--sl-spacing-x-small) var(--sl-spacing-small);
+  border-radius: var(--sl-border-radius-medium);
+  font-size: var(--sl-font-size-small);
+  color: var(--color-text);
+  border: 1px solid var(--color-card-border);
+  z-index: 10;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-spacing-x-small);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}

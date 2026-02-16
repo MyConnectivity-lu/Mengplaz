@@ -1,12 +1,25 @@
 import { sl } from '@greycat/web';
 
+export interface LinkDialogResult {
+  confirmed: boolean;
+  params: gc.privateApi.LinkParameters;
+}
+
 export class MengplazConfirmDialog extends HTMLElement {
   _text?: string;
   dialog: sl.SlDialog;
-  private resolve?: (value: boolean | PromiseLike<boolean>) => void;
+  private resolve?: (value: LinkDialogResult) => void;
+  private addCityAliasCheckbox?: sl.SlCheckbox;
+  private addStreetAliasCheckbox?: sl.SlCheckbox;
+  _showLinkParams = false;
 
   set text(v: string) {
     this._text = v;
+    this.render();
+  }
+
+  set showLinkParams(v: boolean) {
+    this._showLinkParams = v;
     this.render();
   }
 
@@ -21,23 +34,41 @@ export class MengplazConfirmDialog extends HTMLElement {
 
   disconnectedCallback() {}
 
-  show(): Promise<boolean> {
-    return new Promise<boolean>((resolve, _reject) => {
+  show(): Promise<LinkDialogResult> {
+    return new Promise<LinkDialogResult>((resolve, _reject) => {
       this.resolve = resolve;
       this.dialog.show();
     });
   }
 
+  private getResult(confirmed: boolean): LinkDialogResult {
+    return {
+      confirmed,
+      params: new gc.privateApi.LinkParameters(this.addCityAliasCheckbox?.checked ?? false, this.addStreetAliasCheckbox?.checked ?? false),
+    };
+  }
+
   render() {
+    this.addCityAliasCheckbox = (<sl-checkbox>Add city alias</sl-checkbox>) as sl.SlCheckbox;
+    this.addStreetAliasCheckbox = (<sl-checkbox>Add street alias</sl-checkbox>) as sl.SlCheckbox;
+
     this.dialog.replaceChildren(
       <>
         <p>{this._text}</p>
+        {this._showLinkParams ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+            {this.addCityAliasCheckbox}
+            {this.addStreetAliasCheckbox}
+          </div>
+        ) : (
+          ''
+        )}
         <sl-button
           slot="footer"
           variant="warning"
           onclick={() => {
             this.dialog.hide();
-            this.resolve?.(true);
+            this.resolve?.(this.getResult(true));
           }}
         >
           Yes
@@ -47,7 +78,7 @@ export class MengplazConfirmDialog extends HTMLElement {
           variant="default"
           onclick={() => {
             this.dialog.hide();
-            this.resolve?.(false);
+            this.resolve?.(this.getResult(false));
           }}
         >
           Cancel

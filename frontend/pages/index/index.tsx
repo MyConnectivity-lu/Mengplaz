@@ -60,15 +60,17 @@ export class IndexPage extends HTMLElement {
           <sl-breadcrumb-item>Numbers</sl-breadcrumb-item>
         </sl-breadcrumb>
         <div className={'index-container'}>
-          {numbers.map((c) => (
-            <sl-tag
-              onclick={() => {
-                handleGoToRecord(c.id);
-              }}
-            >
-              {c.name}
-            </sl-tag>
-          ))}
+          {numbers
+            .sort((a, b) => Number(a.name) - Number(b.name))
+            .map((c) => (
+              <sl-tag
+                onclick={() => {
+                  handleGoToRecord(c.id);
+                }}
+              >
+                {c.name}
+              </sl-tag>
+            ))}
         </div>
       </div>,
     );

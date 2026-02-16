@@ -1,0 +1,41 @@
+/* frontend/components/comparison/comparison-dashboard/comparison-dashboard.css */
+.comparison-dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+  gap: var(--sl-spacing-medium);
+}
+
+.dashboard-panels {
+  display: flex;
+  gap: var(--sl-spacing-medium);
+  min-height: 0;
+}
+
+.comparison-view-container {
+  flex-shrink: 0;
+}
+
+.comparison-view-wrapper {
+  padding: var(--sl-spacing-large);
+  background-color: var(--color-card-bg);
+  border-radius: var(--sl-border-radius-medium);
+  box-shadow: var(--sl-shadow-medium);
+  border: 1px solid var(--color-card-border);
+}
+
+.comparison-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sl-spacing-medium);
+  padding-bottom: var(--sl-spacing-small);
+  border-bottom: 1px solid var(--color-card-border);
+}
+
+.comparison-view-header span {
+  font-weight: 600;
+  font-size: var(--sl-font-size-medium);
+  color: var(--secondary);
+}

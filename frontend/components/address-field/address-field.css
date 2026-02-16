@@ -9,14 +9,19 @@
 
 .field-key {
   flex: 0 0 140px;
-  font-weight: 600;
+  font-weight: 400;
+  font-size: var(--sl-font-size-x-small);
   color: var(--color-text);
+  opacity: 0.6;
   margin-right: var(--sl-spacing-small);
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .field-value {
   flex: 1;
+  font-weight: 600;
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -26,6 +31,7 @@
 .position-map-badge sl-icon {
   margin-right: var(--sl-spacing-2x-small);
 }
+
 .position-map-badge::part(base) {
   cursor: pointer;
 }

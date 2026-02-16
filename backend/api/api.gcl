@@ -68,14 +68,18 @@ type GoldenRecordDetails {
 }
 
 @expose
-fn getGoldenRecordDetails(ref: node<GoldenPointOfInterest>): GoldenRecordDetails {
+fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
     var ts = Traffic_Service::start(getGoldenRecordDetails);
-
+    var ref = golden_pois_by_id.get(uid);
+    if (ref == null) {
+        throw "Record not found";
+    }
     var linked: Array<POIFullRecordRef> = Array<POIFullRecordRef> {};
     for (_, l in ref->linkedRecords) {
         linked.add(POIFullRecordRef {
-                ref: l,
-                record: l->toFullRecord(),
+                ref: l.record,
+                id: l.record->getId(),
+                record: l.record->toFullRecord(),
             });
     }
 
@@ -90,33 +94,6 @@ fn getGoldenRecordDetails(ref: node<GoldenPointOfInterest>): GoldenRecordDetails
     };
 }
 
-@volatile
-type LinkedRecordsDetails {
-    golden: POIRecordRef;
-    associated: POIFullRecordRef;
-}
-
-@expose
-fn getLinkedRecordDetails(other: node<POIRecordProvider>): LinkedRecordsDetails? {
-    var ts = Traffic_Service::start(getLinkedRecordDetails);
-    var nGolden = other->getLinkedGolden();
-    ts.end();
-    if (nGolden == null) {
-        return null;
-    } else {
-        return LinkedRecordsDetails {
-            golden: POIRecordRef {
-                ref: nGolden,
-                record: nGolden->toMengplazRecord(),
-            },
-            associated: POIFullRecordRef {
-                ref: other,
-                record: other->toFullRecord(),
-            },
-        };
-    }
-}
-
 @expose
 fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
     var ts = Traffic_Service::start(getPoiRecordRef);
@@ -128,6 +105,19 @@ fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
 }
 
 @expose
+fn getPoiFullRecord(ref: node<POIRecordProvider>): POIFullRecordRef {
+    var ts = Traffic_Service::start(getPoiRecordRef);
+    ts.end();
+    return POIFullRecordRef {
+        record: ref->toFullRecord(),
+        id: ref->getId(),
+        ref: ref
+    };
+}
+
+/// Returns the Golden POI associated with the given uid
+@expose
+@tag("openapi")
 fn getGoldenRecordRefByUid(uid: String): POIRecordRef? {
     var ts = Traffic_Service::start(getGoldenRecordRefByUid);
     var nGolden = golden_pois_by_id.get(uid);
@@ -141,28 +131,10 @@ fn getGoldenRecordRefByUid(uid: String): POIRecordRef? {
     return null;
 }
 
-
-@expose
-fn searchByItem(item: SearchItem): mengplaz::SearchResult {
-    var ts = Traffic_Service::start(searchByItem);
-    var goldenSource = sources_by_name.get(GoldenSource::NAME)!!;
-    var searchResult = goldenSource->search(
-        SearchRequest {
-            params: SearchParameters {
-                citySimilarityThreshold: 0.7,
-                streetSimilarityThreshold: 0.7,
-                buildingSimilarityThreshold: 0.7,
-                maxCandidatesPerItem: 20,
-            },
-            items: Array<SearchItem> { item },
-        }
-    );
-    ts.end();
-    return searchResult[0];
-}
-
+/// Returns the Golden POI associated with the given geoportal_id
 @expose
 @permission("public")
+@tag("openapi")
 fn getRecordByGeoportailID(id: String): POIRecordRef? {
     var ts = Traffic_Service::start(getRecordByGeoportailID);
     var record = bda_address_by_geoportalid.get(id);
@@ -185,8 +157,10 @@ type GoldenIndex {
     name: String;
 }
 
+/// Returns all the cities in the Golden collection. Provides the cityId to be used with getGoldenStreetsByCityId
 @expose
 @permission("public")
+@tag("openapi")
 fn getGoldenCities(): Array<GoldenIndex> {
     var ts = Traffic_Service::start(getGoldenCities);
     var cities = Array<GoldenIndex> {};
@@ -204,8 +178,10 @@ fn getGoldenCities(): Array<GoldenIndex> {
     return cities;
 }
 
+/// Returns all the streets in the city referenced by this cityId. Provides the streetId to be used with getGoldenNumbersByStreetId
 @expose
 @permission("public")
+@tag("openapi")
 fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
     var ts = Traffic_Service::start(getGoldenStreetsByCityId);
     var nCity = golden_cities_by_id.get(cityId);
@@ -227,8 +203,10 @@ fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
     return streets;
 }
 
+/// Returns all the numbers in the street referenced by this streetId
 @expose
 @permission("public")
+@tag("openapi")
 fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
     var ts = Traffic_Service::start(getGoldenNumbersByStreetId);
     var nStreet = golden_streets_by_id.get(streetId);
@@ -247,8 +225,10 @@ fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
     return numbers;
 }
 
+/// Returns all Points Of Interest (POIs) in the Golden collection
 @expose
 @permission("public")
+@tag("openapi")
 fn getGoldenRecords(): Array<POIRecord> {
     var ts = Traffic_Service::start(getGoldenRecords);
     var records = Array<POIRecord> {};
@@ -259,51 +239,121 @@ fn getGoldenRecords(): Array<POIRecord> {
     return records;
 }
 
+@volatile
+type GeoJSON {
+    type: String;
+    features: Array<GeoJSONFeature>;
+}
+
+@volatile
+type GeoJSONFeature {
+    type: String;
+    geometry: GeoJSONGeometry;
+    properties: Map<String, any>;
+}
+
+@volatile
+type GeoJSONGeometry {
+    type: String;
+    coordinates: Array<float>;
+}
+
+/// Returns all Golden Points Of Interest (POIs) in a GeoJson Format
+@expose
+@permission("public")
+@tag("openapi")
+fn getGoldenRecordsGeoJson(): GeoJSON {
+    var ts = Traffic_Service::start(getGoldenRecords);
+    var features = Array<GeoJSONFeature> {};
+    for (coords, nPOI in golden_pois_by_geo) {
+        var externalIds = Map<String, any> {};
+        for (_, linkedRecord in nPOI->linkedRecords) {
+            externalIds.set(linkedRecord.record->getSource()->name(), linkedRecord.record->getId());
+        }
+
+        features.add(
+            GeoJSONFeature {
+                type: "Feature",
+                geometry: GeoJSONGeometry { type: "Point", coordinates: Array<float> { coords.lat(), coords.lng() } },
+                properties: Map<String, any> { "goldenRecordId": nPOI->uid, "externalIds": externalIds }
+            }
+        );
+    }
+    ts.end();
+    return GeoJSON {
+        type: "FeatureCollection",
+        features: features
+    };
+}
+
 @expose
 @permission("public")
 fn openapi() {
     var ts = Traffic_Service::start(openapi);
     var oa = OpenApi::v3();
     oa.info.title = "MengPlaz";
-    oa.info.version = "1.2.2";
-    var tmpPaths = Map<String, runtime::PathItemObject> {};
-
-    if (oa.paths?.contains("/api::getGoldenCities") == true) {
-        var path = oa.paths.get("/api::getGoldenCities")!!;
-        path.post.description = "Returns all the cities in the Golden collection.<br>Provides the *cityId* to be used with **getGoldenStreetsByCityId**";
-        tmpPaths.set("/api::getGoldenCities", path);
-    }
-    if (oa.paths?.contains("/api::getGoldenStreetsByCityId") == true) {
-        var path = oa.paths.get("/api::getGoldenStreetsByCityId")!!;
-        path.post.description = "Returns all the streets in the city referenced by this *cityId*.<br>Provides the *streetId* to be used with **getGoldenNumbersByStreetId**";
-        tmpPaths.set("/api::getGoldenStreetsByCityId", path);
-    }
-    if (oa.paths?.contains("/api::getGoldenNumbersByStreetId") == true) {
-        var path = oa.paths.get("/api::getGoldenNumbersByStreetId")!!;
-        path.post.description = "Returns all the numbers in the street referenced by this *streetId*.";
-        tmpPaths.set("/api::getGoldenNumbersByStreetId", path);
-    }
-
-    if (oa.paths?.contains("/api::getGoldenRecords") == true) {
-        var path = oa.paths.get("/api::getGoldenRecords")!!;
-        path.post.description = "Returns all Points Of Interest (POIs) in the Golden collection.";
-        tmpPaths.set("/api::getGoldenRecords", path);
-    }
-
-    if (oa.paths?.contains("/api::getRecordByGeoportailID") == true) {
-        var path = oa.paths.get("/api::getRecordByGeoportailID")!!;
-        path.post.description = "Returns the Golden POI associated with the given *geoportal_id*";
-        tmpPaths.set("/api::getRecordByGeoportailID", path);
-    }
-
-    if (oa.paths?.contains("/api::getGoldenRecordRefByUid") == true) {
-        var path = oa.paths.get("/api::getGoldenRecordRefByUid")!!;
-        path.post.description = "Returns the Golden POI associated with the given *uid*";
-        tmpPaths.set("/api::getGoldenRecordRefByUid", path);
-    }
-    
-
-    oa.paths = tmpPaths;
+    oa.info.version = Runtime::info().program_version ?? "";
     ts.end();
     return oa;
+}
+
+@expose
+@permission("public")
+fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
+    var ts = Traffic_Service::start(getGlobalQualityHistory);
+
+    var nSource = sources_by_name.get(GoldenSource::NAME);
+    if (nSource == null) {
+        throw "Golden source not found";
+    }
+
+    var source = *nSource;
+    if (!(source is GoldenSource)) {
+        throw "Invalid source type";
+    }
+
+    var history = Array<GlobalQualityEntry> {};
+
+    for (timestamp, avgQuality in source.qualityHistory[from..to]) {
+        history.add(GlobalQualityEntry {
+                timestamp: timestamp,
+                averageQuality: avgQuality * 100
+            });
+    }
+
+    var latest = source.qualityHistory.last();
+    var currentValue = 0.0;
+    if (latest != null) {
+        currentValue = latest;
+    }
+
+    // Collect all golden records with their scores
+    var goldenRecords = Array<GoldenRecordScore> {};
+    for (_, nGolden in golden_pois_by_id) {
+        var quality = nGolden->quality.last();
+        goldenRecords.add(
+            GoldenRecordScore {
+                uid: nGolden->uid,
+                number: "${nGolden->number}${nGolden->multipleCode}",
+                street: nGolden->street?->name,
+                city: nGolden->street?->city->name,
+                postcode: nGolden->postCode,
+                linkedCount: nGolden->linkedRecords.size(),
+                quality: (quality?.score ?? 0) * 100 as float
+            }
+        );
+    }
+
+    ts.end();
+    return GlobalQualityHistory {
+        current: currentValue,
+        history: history,
+        goldenRecords: goldenRecords
+    };
+}
+
+@expose
+@permission("public")
+fn appInfo(): RuntimeInfo {
+    return Runtime::info();
 }

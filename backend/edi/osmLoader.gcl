@@ -6,12 +6,21 @@ type OsmOverpassResponse {
 abstract type OSMLoader {
     static fn load() {
         var endpoint = "http://overpass-api.de/api/interpreter";
-        var request = "[out:json];area[\"ISO3166-1\"=\"LU\"][admin_level=2];(node[\"addr:housenumber\"](area);way[\"addr:housenumber\"](area);relation[\"addr:housenumber\"](area););out body;>;out skel qt;";
+        var request = "[out:\"json\"][timeout:300]; 
+                                area[\"ISO3166-1\"=\"LU\"][\"admin_level\"=\"2\"]->.a; 
+                                ( 
+                                nwr[\"addr:housenumber\"](area.a); 
+                                node[\"entrance\"][\"addr:housenumber\"](area.a); 
+                                nwr[\"addr:housename\"](area.a); 
+                                nwr[\"addr:place\"](area.a); 
+                                ) ; 
+                                out body center qt;";
 
         var headers = Map<String, String> {
             "Accept": "*/*",
             "Connection": "keep-alive",
             "Content-Type": "application/text",
+            "User-Agent": "MengPlaz/1.0"
         };
 
         var httpClient = Http<OsmOverpassResponse> {};
@@ -20,6 +29,7 @@ abstract type OSMLoader {
             url: endpoint,
             headers: headers,
             body: request,
+            timeout: 5_min
         };
         var response = httpClient.send(req);
         if (response.status_code == 200 && response.content != null) {
@@ -32,7 +42,7 @@ abstract type OSMLoader {
                 try {
                     var addr = OsmAddress::parse(elem);
                     var nAddr = node<OsmAddress> { addr };
-                    osm_by_id.set(addr.id, nAddr);
+                    osm_by_id.set("${addr.id}", nAddr);
                     osm_by_geo.set(addr.position, nAddr);
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
@@ -53,3 +63,4 @@ abstract type OSMLoader {
         }
     }
 }
+

@@ -1,0 +1,25 @@
+.completion-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sl-spacing-2x-large);
+  text-align: center;
+  gap: var(--sl-spacing-medium);
+}
+
+.completion-icon {
+  font-size: 4rem;
+  color: var(--sl-color-success-600);
+}
+
+.completion-container h3 {
+  margin: 0;
+  font-size: var(--sl-font-size-x-large);
+  color: var(--sl-color-neutral-900);
+}
+
+.completion-container p {
+  margin: 0;
+  color: var(--sl-color-neutral-600);
+}

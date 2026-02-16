@@ -1,5 +1,6 @@
 type GoldenLoader {
     static fn loadAll() {
+        GoldenSource::init();
         info("Loading All Golden Records from dump");
         GoldenLoader::loadGoldenConstituency();
         GoldenLoader::loadGoldenCantons();
@@ -7,6 +8,9 @@ type GoldenLoader {
         GoldenLoader::loadGoldenCities();
         GoldenLoader::loadGoldenStreets();
         GoldenLoader::loadGoldenPOIs();
+        try {
+            GoldenLoader::loadGoldenQualityHistory();
+        } catch (err) {}
         info("Loading finished");
     }
 
@@ -120,7 +124,7 @@ type GoldenLoader {
         var fr = JsonReader<GoldenPOIDTO> { path: GoldenExporter::poiPath };
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_streets_by_id.get(l.uid) != null) {
+            if (golden_pois_by_id.get(l.uid) != null) {
                 continue;
             }
             var nGoldenStreet: node<GoldenStreet>?;
@@ -135,31 +139,65 @@ type GoldenLoader {
                     postCode: l.postCode,
                     lastUpdate: l.lastUpdate,
                     street: nGoldenStreet,
-                    linkedRecords: Array<node<POIRecordProvider>> {},
+                    linkedRecords: Array<LinkedRecordEntry> {},
                     primaryLocation: l.primaryLocation,
                     secondaryLocations: l.secondaryLocations,
+                    quality: nodeTime<QualityEvent> {}
                 }
             };
 
-            for (key, value in l.linkedRef) {
+            for (_, linkedRecord in l.linkedRecords?) {
                 var ref: node<POIRecordProvider>?;
-                if (key == OsmSource::NAME) {
-                    var ref = osm_by_id.get(parseNumber(value) as int);
-                } else if (key == CaclrSource::NAME) {
-                    var ref = caclr_buildings_by_id.get(value);
-                } else if (key == BDAddressSource::NAME) {
-                    var ref = bda_address_by_cacrid.get(parseNumber(value) as int);
+                if (linkedRecord.sourceName == OsmSource::NAME) {
+                    ref = osm_by_id.get(linkedRecord.id);
+                } else if (linkedRecord.sourceName == CaclrSource::NAME) {
+                    ref = caclr_buildings_by_id.get(linkedRecord.id);
+                } else if (linkedRecord.sourceName == BDAddressSource::NAME) {
+                    ref = bda_address_by_geoportalid.get(linkedRecord.id);
                 }
                 if (ref != null) {
                     ref->linkToGolden(nGoldenPOI);
-                    nGoldenPOI->linkedRecords.add(ref);
+                    nGoldenPOI->linkedRecords.add(LinkedRecordEntry {
+                            record: ref,
+                            score: linkedRecord.score
+                        });
                 }
             }
+
+            for (_, value in l.quality?) {
+                var ref: node<POIRecordProvider>?;
+                if (value.sourceName == OsmSource::NAME) {
+                    ref = osm_by_id.get(value.id);
+                } else if (value.sourceName == CaclrSource::NAME) {
+                    ref = caclr_buildings_by_id.get(value.id);
+                } else if (value.sourceName == BDAddressSource::NAME) {
+                    ref = bda_address_by_geoportalid.get(value.id);
+                }
+                if (ref != null) {
+                    nGoldenPOI->quality.setAt(value.t, QualityEvent {
+                            eventType: value.eventType,
+                            score: value.score,
+                            sourceRecord: ref
+                        });
+                }
+            }
+
             nGoldenStreet?->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
             golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
 
             if (nGoldenPOI->primaryLocation != null) {
                 golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
+            }
+        }
+    }
+
+    static fn loadGoldenQualityHistory() {
+        var fr = CsvReader<GoldenQualityHistoryDTO> { path: GoldenExporter::qualityHistory };
+        var goldenSource = sources_by_name.get(GoldenSource::NAME);
+        if (goldenSource is node<GoldenSource>) {
+            while (fr.can_read()) {
+                var l = fr.read();
+                goldenSource->qualityHistory.setAt(l.t, l.score);
             }
         }
     }

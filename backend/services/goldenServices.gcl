@@ -9,33 +9,106 @@ type GoldenServices {
         return res;
     }
 
+    static fn computeGeoScore(sourceGeo: geo?, candidateGeo: geo?, geoParams: GeoParameters): float? {
+        if (sourceGeo == null || candidateGeo == null) {
+            return null;
+        }
+        var geoDistance = sourceGeo.distance(candidateGeo);
+        if (geoDistance > geoParams.maxDistance) {
+            return 0_f;
+        }
+        if (geoDistance <= geoParams.minDistance) {
+            return 1_f;
+        }
+        // Decay from 1.0 to 0.0 between minDistance and maxDistance
+        var effectiveDistance = geoDistance - geoParams.minDistance;
+        var effectiveRange = geoParams.maxDistance - geoParams.minDistance;
+        return pow(1 - (effectiveDistance / effectiveRange), 2.0);
+    }
+
+    static fn computeCityScore(sourceCityName: String, nCandidateCity: node<GoldenCity>): float {
+        var d = sourceCityName.jarowinkler(nCandidateCity->name.lowercase());
+        if (d == 1) {
+            return d;
+        }
+        for (_, alias in nCandidateCity->nameAliases) {
+            var d2 = sourceCityName.jarowinkler(alias.value.lowercase());
+            if (d2 > d) {
+                d = d2;
+            }
+        }
+        return d;
+    }
+
+    static fn computeOverallScore(cityScore: float, streetScore: float, numberScore: float, postcodeScore: float, geoScore: float?, weights: ScoringWeights): float {
+        var total = weights.total();
+        return (cityScore * weights.cityWeight
+            + streetScore * weights.streetWeight
+            + postcodeScore * weights.postcodeWeight
+            + numberScore * weights.numberWeight
+            + (geoScore ?? 1.0) * weights.geoWeight) / total;
+    }
+
+    static fn computeNumberScore(sourceNumber: String, sourceMultipleCode: String, candidateNumber: int, candidateMultipleCode: String): float {
+        if ("${sourceNumber}" != "${candidateNumber}") {
+            return 0.0;
+        }
+        if (sourceMultipleCode == candidateMultipleCode) {
+            return 1.0;
+        }
+        return 0.8;
+    }
+
+    static fn computePostcodeScore(sourcePostcode: String, candidatePostcode: String, maxDistance: int): float {
+        try {
+            var srcVal = parseNumber(sourcePostcode) as int;
+            var candVal = parseNumber(candidatePostcode) as int;
+            var diff = abs(srcVal - candVal);
+            if (diff >= maxDistance) {
+                return 0.0;
+            }
+            return 1.0 - (diff * 1.0 / maxDistance);
+        } catch (_) {
+            return sourcePostcode.jarowinkler(candidatePostcode);
+        }
+    }
+
+    static fn computeStreetScore(sourceStreet: String, candidateStreetName: String): float {
+        return sourceStreet.jarowinkler(candidateStreetName.lowercase());
+    }
+
+    static fn computeStreetScoreGlobal(sourceStreet: String, candidateStreetName: String): float {
+        var sizes = sourceStreet.size() + candidateStreetName.size();
+        return (sizes - sourceStreet.levenshtein(candidateStreetName.lowercase())) / (sizes * 1.0);
+    }
+
+    static fn computeCityNameScore(sourceCityName: String, candidateCityName: String): float {
+        return sourceCityName.jarowinkler(candidateCityName.lowercase());
+    }
+
     static fn searchCity(cityName: String, threshold: float): Array<Match<node<GoldenCity>>> {
         var citiesMatches = Array<Match<node<GoldenCity>>> {};
         for (_, nCity in golden_cities_by_id) {
-            var d = cityName.jarowinkler(nCity->name);
-            //var d = JaroWinkler::similarity(cityName, nCity->name);
+            var d = GoldenServices::computeCityNameScore(cityName, nCity->name);
             if (d >= threshold) {
                 citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
             } else {
                 for (_, alias in nCity->nameAliases) {
-                    var d = cityName.jarowinkler(alias.value);
-                    //var d = JaroWinkler::similarity(cityName, alias.name);
+                    var d = GoldenServices::computeCityNameScore(cityName, alias.value);
                     if (d >= threshold) {
                         citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
                     }
                 }
             }
         }
-        citiesMatches.sort_by(Match.field_by_name("score")!!, SortOrder::desc);
+        citiesMatches.sort_by(Match::score, SortOrder::desc);
         return citiesMatches;
     }
 
     /// Tries to find matches and computes similarity with street names.
     /// If nCity is provided, restricts the search to the streets of the given city.
     /// Otherwise, global search. 
-    static fn searchStreet(streetName: String, threshold: float, nCity: node<GoldenCity>?): Array<
-        Match<node<GoldenStreet>>
-    > {
+    static fn searchStreet(streetName: String, threshold: float, nCity: node<GoldenCity>?): Array<Match<node<GoldenStreet>>> {
         var streetsMatches = Array<Match<node<GoldenStreet>>> {};
         var collection = golden_streets_by_id;
         if (nCity != null) {
@@ -44,148 +117,204 @@ type GoldenServices {
         for (_, nStreet in collection) {
             var d: float;
             if (nCity == null) {
-                //d = (100-streetName.levenshtein(nStreet->name))/100.0;
-                var sizes = streetName.size() + nStreet->name.size();
-                d = (sizes - streetName.levenshtein(nStreet->name)) / (sizes * 1.0);
+                d = GoldenServices::computeStreetScoreGlobal(streetName, nStreet->name);
             } else {
-                d = streetName.jarowinkler(nStreet->name);
+                d = GoldenServices::computeStreetScore(streetName, nStreet->name);
             }
-            //var d = JaroWinkler::similarity(streetName, nStreet->name);
             if (d >= threshold) {
                 streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
             } else {
                 for (_, alias in nStreet->nameAliases) {
                     if (nCity == null) {
-                        //d = (100-streetName.levenshtein(nStreet->name))/100.0;
-                        var sizes = streetName.size() + alias.value.size();
-                        d = (sizes - streetName.levenshtein(alias.value)) / (sizes * 1.0);
+                        d = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
                     } else {
-                        d = streetName.jarowinkler(alias.value);
+                        d = GoldenServices::computeStreetScore(streetName, alias.value);
                     }
-                    //var d = streetName.jarowinkler(alias.name);
-                    //var d = JaroWinkler::similarity(streetName, alias.name);
                     if (d >= threshold) {
                         streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
                     }
                 }
             }
         }
-        streetsMatches.sort_by(Match.field_by_name("score")!!, SortOrder::desc);
+        streetsMatches.sort_by(Match::score, SortOrder::desc);
         return streetsMatches;
     }
+    //12274787917
 
-    /// Tries to find matches and computes similarity with street names.
-    /// If nStreet is provided, restricts the search to the streets of the given city.
-    /// Otherwise, global search. 
-    static fn searchPOI(
-        postcode: String,
-        number: String,
-        multipleCode: String,
-        threshold: float,
-        nStreet: node<GoldenStreet>?
-    ): Array<BuildingMatch<node<GoldenPointOfInterest>>> {
-        var buildingMatches = Array<BuildingMatch<node<GoldenPointOfInterest>>> {};
+    /// Adds a candidate to the bounded candidates list, keeping only the top maxCandidatesPerItem entries.
+    static fn addCandidate(candidates: Array<CandidateMatch<node<POIRecordProvider>>>, candidate: CandidateMatch<node<POIRecordProvider>>, maxCandidates: int) {
+        if (candidates.size() < maxCandidates) {
+            candidates.add(candidate);
+        } else if (candidate.overallScore > candidates[candidates.size() - 1].overallScore) {
+            candidates.set(candidates.size() - 1, candidate);
+        } else {
+            return;
+        }
+        candidates.sort_by(CandidateMatch::overallScore, SortOrder::desc);
+    }
+
+    /// Searches POIs for matches, populates candidates, and returns perfect matches.
+    /// If nStreet is provided, restricts the search to that street's POIs.
+    /// Otherwise, searches globally and computes city/street scores from each POI's own street.
+    static fn searchPOIForItem(
+        item: SearchItem,
+        nStreet: node<GoldenStreet>?,
+        params: SearchParameters,
+        candidates: Array<CandidateMatch<node<POIRecordProvider>>>,
+        cityScore: float?,
+        streetScore: float?
+    ): Array<CandidateMatch<node<POIRecordProvider>>> {
+        var perfectMatches = Array<CandidateMatch<node<POIRecordProvider>>> {};
         var collection = golden_pois_by_id;
         if (nStreet != null) {
             collection = nStreet->pois_by_id;
         }
         for (_, nBuilding in collection) {
-            var dPostcode = postcode.jarowinkler(nBuilding->postCode);
-            //var dPostcode = JaroWinkler::similarity(postcode, nBuilding->postCode);
-            var dNumber = "${number}${multipleCode}".jarowinkler("${nBuilding->number}${nBuilding->multipleCode}");
-            //var dNumber = JaroWinkler::similarity("${number} ${multipleCode}", "${nBuilding->number} ${nBuilding->multipleCode}");
-            //var score = (dNumber+ (dPostcode*3))/4;
-            if (dPostcode >= threshold) {
-                var score = (dNumber + (dPostcode * 2)) / 3;
-                buildingMatches.add(
-                    BuildingMatch<node<GoldenPointOfInterest>> {
-                        numberScore: dNumber,
-                        postcodeScore: dPostcode,
-                        overallScore: score,
-                        elem: nBuilding
-                    }
-                );
+            var dPostcode = GoldenServices::computePostcodeScore(item.postcode, nBuilding->postCode, params.postcodeMaxDistance);
+            if (dPostcode < params.postcodeSimilarityThreshold) {
+                continue;
+            }
+            var dNumber = GoldenServices::computeNumberScore(item.number, item.multipleCode, nBuilding->number, nBuilding->multipleCode);
+
+            if (dNumber == 0.0) {
+                continue;
+            }
+            var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, params.geoParams);
+
+            // Compute city/street scores: use provided values, or derive from the POI's street
+            var cScore = cityScore ?? 0.0;
+            var sScore = streetScore ?? 0.0;
+            if (cityScore == null && nBuilding->street != null) {
+                cScore = GoldenServices::computeCityScore(item.city, nBuilding->street->city);
+                sScore = GoldenServices::computeStreetScoreGlobal(item.street, nBuilding->street->name);
+            }
+
+            var overallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, params.weights);
+
+            var candidate = CandidateMatch<node<POIRecordProvider>> {
+                cityScore: cScore,
+                streetScore: sScore,
+                numberScore: dNumber,
+                postcodeScore: dPostcode,
+                geoScore: geoScore,
+                overallScore: overallScore,
+                elem: nBuilding,
+            };
+            GoldenServices::addCandidate(candidates, candidate, params.maxCandidatesPerItem);
+            if (overallScore == 1.0) {
+                perfectMatches.add(candidate);
             }
         }
-        buildingMatches.sort_by(BuildingMatch.field_by_name("overallScore")!!, SortOrder::desc);
-        return buildingMatches;
+        return perfectMatches;
     }
 
     static fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
         var results = Array<mengplaz::SearchResult> {};
-        for (_, searchItem in req.items) {
-            results.add(GoldenServices::searchItem(searchItem, req.params));
+        for (_, nRecord in req.items) {
+            results.add(GoldenServices::searchItem(nRecord, req.params));
         }
         return results;
     }
 
-    static fn searchItem(item: SearchItem, params: SearchParameters): mengplaz::SearchResult {
-        var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
-        var match: node?;
-        var citiesMatches = GoldenServices::searchCity(item.city, params.citySimilarityThreshold);
-        for (_, cityMatch in citiesMatches) {
-            var streetsMatches = GoldenServices::searchStreet(
-                item.street,
-                params.streetSimilarityThreshold,
-                cityMatch.elem
-            );
-            for (_, streetMatch in streetsMatches) {
-                var buildingMatches = GoldenServices::searchPOI(
-                    item.postcode,
-                    item.number,
-                    item.multipleCode,
-                    params.buildingSimilarityThreshold,
-                    streetMatch.elem
-                );
-                for (_, buildingMatch in buildingMatches) {
-                    var overallScore = (cityMatch.score * 4
-                        + streetMatch.score * 3
-                        + buildingMatch.postcodeScore * 3
-                        + buildingMatch.numberScore) / 11.0;
-                    if (candidates.size() < params.maxCandidatesPerItem) {
-                        candidates.add(
-                            CandidateMatch<node<POIRecordProvider>> {
-                                cityScore: cityMatch.score,
-                                streetScore: streetMatch.score,
-                                numberScore: buildingMatch.numberScore,
-                                postcodeScore: buildingMatch.postcodeScore,
-                                overallScore: overallScore,
-                                elem: buildingMatch.elem,
-                            }
-                        );
-                    } else if (overallScore > candidates[candidates.size() - 1].overallScore) {
-                        candidates.set(
-                            candidates.size() - 1,
-                            CandidateMatch<node<POIRecordProvider>> {
-                                cityScore: cityMatch.score,
-                                streetScore: streetMatch.score,
-                                numberScore: buildingMatch.numberScore,
-                                postcodeScore: buildingMatch.postcodeScore,
-                                overallScore: overallScore,
-                                elem: buildingMatch.elem,
-                            }
-                        );
-                        candidates.sort_by(CandidateMatch.field_by_name("overallScore")!!, SortOrder::desc);
-                    }
-                    if (overallScore == 1.0) {
-                        match = buildingMatch.elem;
-                        break;
-                    }
-                }
-                if (match != null) {
-                    break;
-                }
+    /// Searches streets and POIs within a city (or globally if nCity is null).
+    /// Returns a SearchResult if a perfect match is found, otherwise returns null and populates candidates.
+    static fn searchStreetsForItem(
+        nRecord: node<POIRecordProvider>,
+        item: SearchItem,
+        nCity: node<GoldenCity>?,
+        params: SearchParameters,
+        candidates: Array<CandidateMatch<node<POIRecordProvider>>>
+    ): mengplaz::SearchResult? {
+        var streetsMatches = GoldenServices::searchStreet(
+            item.street,
+            params.streetSimilarityThreshold,
+            nCity
+        );
+        var perfectMatchCandidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+        for (_, streetMatch in streetsMatches) {
+            var cityScore = GoldenServices::computeCityScore(item.city, streetMatch.elem->city);
+            var perfectMatches = GoldenServices::searchPOIForItem(item, streetMatch.elem, params, candidates, cityScore, streetMatch.score);
+            for (_, pm in perfectMatches) {
+                perfectMatchCandidates.add(pm);
             }
-            if (match != null) {
-                break;
+        }
+        if (perfectMatchCandidates.size() > 0) {
+            return mengplaz::SearchResult {
+                sourceRecord: nRecord,
+                candidates: perfectMatchCandidates
+            };
+        }
+        return null;
+    }
+    //086C00272002724_3768_13
+
+    static fn searchItem(nRecord: node<POIRecordProvider>, params: SearchParameters): mengplaz::SearchResult {
+        var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+        var item = nRecord->toSearchItem();
+
+        // Search city first to scope street search
+        var cityMatches = GoldenServices::searchCity(item.city, params.citySimilarityThreshold);
+        if (cityMatches.size() == 0) {
+            // No city matches - do global street search
+            var result = GoldenServices::searchStreetsForItem(nRecord, item, null, params, candidates);
+            if (result != null) {
+                return result;
+            }
+        } else {
+            for (_, cityMatch in cityMatches) {
+                var result = GoldenServices::searchStreetsForItem(nRecord, item, cityMatch.elem, params, candidates);
+                if (result != null) {
+                    return result;
+                }
             }
         }
 
-        var result = mengplaz::SearchResult {
-            item: item,
+        // Deep search: global POI search when no street-level candidates found (heavy)
+        if (params.deepSearch && candidates.size() == 0) {
+            var perfectMatches = GoldenServices::searchPOIForItem(item, null, params, candidates, null, null);
+            if (perfectMatches.size() > 0) {
+                return mengplaz::SearchResult {
+                    sourceRecord: nRecord,
+                    candidates: perfectMatches,
+                };
+            }
+        }
+
+        // Still no candidates - try geo-circle fallback
+        if (candidates.size() == 0 && item.coordinates != null) {
+            var shape = GeoCircle { center: item.coordinates, radius: params.geoParams.maxDistance as float };
+            for (candidateGeo, nCandidate in golden_pois_by_geo[shape.sw()..shape.ne()]) {
+                if (shape.contains(candidateGeo)) {
+                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, params.geoParams) ?? 0.0;
+                    if (geoScore > params.coordinatesSimilarityThreshold) {
+                        var cityScore = 0.0;
+                        var streetScore = 0.0;
+                        if (nCandidate->street != null) {
+                            cityScore = GoldenServices::computeCityScore(item.city, nCandidate->street->city);
+                            streetScore = GoldenServices::computeStreetScore(item.street, nCandidate->street->name);
+                        }
+                        var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
+                        var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
+                        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+                        var candidate = CandidateMatch<node<POIRecordProvider>> {
+                            cityScore: cityScore,
+                            streetScore: streetScore,
+                            numberScore: numberScore,
+                            postcodeScore: postcodeScore,
+                            geoScore: geoScore,
+                            overallScore: overallScore,
+                            elem: nCandidate,
+                        };
+                        GoldenServices::addCandidate(candidates, candidate, params.maxCandidatesPerItem);
+                    }
+                }
+            }
+        }
+
+        return mengplaz::SearchResult {
+            sourceRecord: nRecord,
             candidates: candidates,
         };
-        return result;
     }
 
     static fn fillFromCaclr() {
@@ -293,10 +422,10 @@ type GoldenServices {
                                         secondaryLocations: Map<String, geo> {},
                                         lastUpdate: nBuilding->lastUpdate,
                                         street: nGoldenStreet,
-                                        linkedRecords: Array<node<POIRecordProvider>> { nBuilding },
+                                        linkedRecords: Array<LinkedRecordEntry> {},
+                                        quality: nodeTime<QualityEvent> {}
                                     }
                                 };
-                                nBuilding->linkToGolden(nGoldenPOI);
                                 nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
                                 golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
                             }
@@ -323,22 +452,69 @@ type GoldenServices {
         }
     }
 
-    static fn computeQuality(linkedRecords: Array<node<POIRecordProvider>>): float? {
-        var score: float = 0.0;
-        for (_, nRecord in linkedRecords) {
-            var r = *nRecord;
-            if (r is CaclrBuilding) {
-                score = CaclrSource::CONFIDENCE;
-                break;
-            }
-            if (r is OsmAddress && score < OsmSource::CONFIDENCE) {
-                score = OsmSource::CONFIDENCE;
-            } else if (r is BDAddress && score < BDAddressSource::CONFIDENCE) {
-                score = BDAddressSource::CONFIDENCE;
-            }
+    static fn computeQuality(linkedRecords: Array<LinkedRecordEntry>): float {
+        if (linkedRecords.size() == 0) {
+            return 0.0;
         }
 
-        return score;
+        // Calculate total weight of all available sources
+        var totalAvailableWeight = 0.0;
+        for (_, nSource in sources_by_name) {
+            totalAvailableWeight = totalAvailableWeight + nSource->getWeight();
+        }
+
+        if (totalAvailableWeight == 0.0) {
+            return 0.0;
+        }
+        // Group records by source and average scores for same-source records
+        var scoresBySource = Map<node<DataSource>, Array<float>> {};
+        for (_, entry in linkedRecords) {
+            var nSource = entry.record->getSource();
+            var scores = scoresBySource.get(nSource);
+            if (scores == null) {
+                var arr = Array<float> {};
+                arr.add(entry.score);
+                scoresBySource.set(nSource, arr);
+            } else {
+                scores.add(entry.score);
+            }
+        }
+        var weightedSum = 0.0;
+        for (nSource, scores in scoresBySource) {
+            var avgScore = 0.0;
+            for (_, score in scores) {
+                avgScore = avgScore + score;
+            }
+            avgScore = avgScore / scores.size();
+            weightedSum = weightedSum + (nSource->getWeight() * avgScore);
+        }
+
+        return weightedSum / totalAvailableWeight;
+    }
+
+    /// Computes and records the global quality score by looping over all golden POIs.
+    /// This should be called periodically to update the global quality history.
+    static fn computeAndRecordGlobalQuality() {
+        var nSource = sources_by_name.get(GoldenSource::NAME);
+        if (nSource == null) {
+            return;
+        }
+
+        var total = 0.0;
+        for (_, nGolden in golden_pois_by_id) {
+            var quality = GoldenServices::computeQuality(nGolden->linkedRecords);
+            total = total + quality;
+        }
+
+        var avg = 0.0;
+        if (total > 0) {
+            avg = total / golden_pois_by_id.size();
+        }
+
+        var source = *nSource;
+        if (source is GoldenSource) {
+            source.qualityHistory.setAt(time::now(), avg);
+        }
     }
 }
 

@@ -2,8 +2,7 @@
 type BDAddressLine {
     /* CSV Headers
     rue;numero;localite;code_postal;id_caclr_rue;id_caclr_bat;lat_wgs84;lon_wgs84;coord_est_luref;coord_nord_luref;id_geoportail;commune;lau2
-    */
-    rue: String;
+    */rue: String;
     numero: String;
     localite: String;
     code_postal: String;
