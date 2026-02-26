@@ -1,6 +1,6 @@
 type GoldenLoader {
     static fn loadAll() {
-        GoldenSource::init();
+        //GoldenSource::init();
         info("Loading All Golden Records from dump");
         GoldenLoader::loadGoldenConstituency();
         GoldenLoader::loadGoldenCantons();
