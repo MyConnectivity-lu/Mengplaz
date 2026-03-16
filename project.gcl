@@ -1,6 +1,6 @@
 @include("backend");
 
-@library("std", "7.6.212-stable");
+@library("std", "7.6.243-stable");
 @library("explorer", "7.6.19-stable");
 //@library("strplus");
 
@@ -89,3 +89,99 @@ fn loadCaclr() {
     }
 }
 
+@expose
+@permission("admin")
+fn tmp_link() {
+    var source = sources_by_name.get(BDAddressSource::NAME);
+    if (source == null) {
+        throw "Source is null";
+    }
+    var list = Array<node<POIRecordProvider>> {};
+    for (key, candidates in source->reconciliationReport->unlinked) {
+        var rc = (key->toFullRecord() as BDAddressFullRecord);
+        var caclrR = caclr_buildings_by_id.get("${rc.id_caclr}");
+        if (caclrR != null) {
+            list.add(key);
+        }
+    }
+
+    var params = SearchParameters::default();
+
+    for (_, sourceRecord in list) {
+        var rc = (sourceRecord->toFullRecord() as BDAddressFullRecord);
+        var caclr = caclr_buildings_by_id.get("${rc.id_caclr}");
+        if (caclr != null && caclr->goldenRef != null) {
+            var nBuilding = golden_pois_by_id.get(caclr->goldenRef->uid);
+            if (nBuilding == null) {
+                continue;
+            }
+            var item = sourceRecord->toSearchItem();
+            var dPostcode = GoldenServices::computePostcodeScore(item.postcode, nBuilding->postCode, params.postcodeMaxDistance);
+
+            var dNumber = GoldenServices::computeNumberScore(item.number, item.multipleCode, nBuilding->number, nBuilding->multipleCode);
+
+            var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, params.geoParams);
+
+            var cScore = 0.0;
+            var sScore = 0.0;
+            if (nBuilding->street != null) {
+                cScore = GoldenServices::computeCityScore(item.city, nBuilding->street->city);
+                sScore = GoldenServices::computeStreetScoreGlobal(item.street, nBuilding->street->name);
+            }
+
+            var overallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, params.weights);
+
+            var candidate = CandidateMatch<node<POIRecordProvider>> {
+                cityScore: cScore,
+                streetScore: sScore,
+                numberScore: dNumber,
+                postcodeScore: dPostcode,
+                geoScore: geoScore,
+                overallScore: overallScore,
+                elem: nBuilding,
+            };
+
+            var reconCandidate = ReconciliationCandidate {
+                candidateRecord: candidate.elem,
+                mismatch: null,
+                score: ReconciliationCandidateScore {
+                    cityScore: candidate.cityScore,
+                    numberScore: candidate.numberScore,
+                    postcodeScore: candidate.postcodeScore,
+                    streetScore: candidate.streetScore,
+                    geoScore: candidate.geoScore,
+                    overallScore: candidate.overallScore
+                }
+            };
+
+            source->reconciliationReport->linked.set(sourceRecord, reconCandidate);
+            source->reconciliationReport->unlinked.remove(sourceRecord);
+
+            sourceRecord->linkToGolden(nBuilding);
+
+            var found = false;
+            for (_, entry in nBuilding->linkedRecords) {
+                if (entry.record == sourceRecord) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                // Add to linkedRecords with score
+                nBuilding->linkedRecords.add(LinkedRecordEntry {
+                        record: sourceRecord,
+                        score: candidate.overallScore
+                    });
+
+                // Record quality event
+                var newQuality = GoldenServices::computeQuality(nBuilding->linkedRecords);
+                nBuilding->quality.setAt(time::now(), QualityEvent {
+                        score: newQuality,
+                        sourceRecord: sourceRecord,
+                        eventType: QualityEventType::link
+                    });
+            }
+        }
+    }
+}
