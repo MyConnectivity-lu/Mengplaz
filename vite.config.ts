@@ -5,14 +5,14 @@ import greycat from '@greycat/web/vite-plugin';
 const root = resolve(__dirname, 'frontend');
 
 export default defineConfig((_) => ({
-  plugins: [greycat()],
+  plugins: [greycat({ noDefaultConfig: true })],
   base: './', // makes generated urls relative to each file
   appType: 'spa',
-  root: resolve(__dirname, 'frontend'),
+  root: root,
   resolve: {
     alias: {
       // matches the `paths` definitions in `tsconfig.json`
-      '~': resolve(__dirname),
+      '~': resolve(__dirname, 'frontend'),
     },
   },
   publicDir: resolve(__dirname, 'frontend', 'public'),
