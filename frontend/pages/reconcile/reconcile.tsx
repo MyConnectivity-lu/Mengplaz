@@ -558,16 +558,17 @@ export class ReconcilePage extends HTMLElement {
 
     this.searchParams = result;
     try {
-      if (detail.pois.length > 10) {
-        await gc.lockDatasource(this.sourceSelect.value.name);
-      }
-      await gc.$.default.spawnAwait('privateApi::reconcilePOIs', [this.sourceSelect.value.name, detail.pois, this.searchParams]);
-      toast.notify({ message: `Reconciled ${detail.pois.length} record(s)`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+      await gc.lockDatasource(this.sourceSelect.value.name);
 
       if (isBulk) {
+        await gc.$.default.spawn('privateApi::reconcilePOIs', [this.sourceSelect.value.name, detail.pois, this.searchParams]);
+
         // Full page reload for bulk reconcile
         this.reloadWithState(this.currentTab, detail.sourceRecordId);
       } else {
+        await gc.$.default.spawnAwait('privateApi::reconcilePOIs', [this.sourceSelect.value.name, detail.pois, this.searchParams]);
+        toast.notify({ message: `Reconciled ${detail.pois.length} record(s)`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+
         // Single record: find its new tab and navigate there
         const recordId = detail.pois[0];
         const tabResult = await gc.getRecordTab(this.sourceSelect.value.ref, recordId);
@@ -701,7 +702,7 @@ export class ReconcilePage extends HTMLElement {
     this.searchParams = result;
     try {
       await gc.lockDatasource(this.sourceSelect.value.name);
-      gc.$.default.spawnAwait('privateApi::reconcile', [this.sourceSelect.value.name, this.searchParams]);
+      gc.$.default.spawn('privateApi::reconcile', [this.sourceSelect.value.name, this.searchParams]);
       this.startReconcilePolling();
     } catch (_) {
       toast.notify({

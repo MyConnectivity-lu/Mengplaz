@@ -197,7 +197,10 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
 fn lockDatasource(source: String) {
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
-        throw " Source with name ${source} not Found";
+        throw "Source with name ${source} not Found";
+    }
+    if (nSource->isReconciling?.resolve() == true) {
+        throw "Source ${source} reconciling in progress";
     }
     nSource->setIsReconciling();
 }
@@ -209,7 +212,10 @@ fn reconcile(source: String, params: SearchParameters?): ReconciliationReport {
 
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
-        throw " Source with name ${source} not Found";
+        throw "Source with name ${source} not Found";
+    }
+    if (nSource->isReconciling?.resolve() == true) {
+        throw "Source ${source} reconciling in progress";
     }
     try {
         var report = DataSource::reconcile(nSource, params, null);
@@ -229,6 +235,7 @@ fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters
     if (nSource == null) {
         throw "Source with name ${source} not Found";
     }
+
     try {
         var ts = Traffic_Service::start(reconcilePOIs);
 
@@ -558,3 +565,12 @@ fn computeGlobalQuality() {
     ts.end();
 }
 
+@expose
+@permission("admin")
+fn unlockSource(source: String) {
+    var nSource = sources_by_name.get(source);
+    if (nSource == null) {
+        throw "Source with name ${source} not Found";
+    }
+    nSource->removeIsReconciling();
+}
