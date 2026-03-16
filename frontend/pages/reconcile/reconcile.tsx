@@ -164,6 +164,7 @@ function addRecordToReport(report: gc.privateApi.ReconciliationReportView, sourc
 
 export class ReconcilePage extends HTMLElement {
   private sourceSelect: GuiSelect;
+  private citySelect: GuiSelect;
   private reconcileButton: sl.SlButton;
   private confirm: MengplazConfirmDialog;
   private promote: MengplazPromotionDialog;
@@ -206,6 +207,13 @@ export class ReconcilePage extends HTMLElement {
       this.updateLocalReconciliationReport();
     });
 
+    this.citySelect = new GuiSelect();
+    this.citySelect.placeholder = 'Filter by golden cities';
+    this.citySelect.nullable = true;
+    this.citySelect.addEventListener('gui-change', () => {
+      this.updateLocalReconciliationReport();
+    });
+
     this.reconcileButton = (<sl-button onclick={() => this.reconcile()}>Reconcile</sl-button>) as sl.SlButton;
     this.confirm = (<mengplaz-confirm-dialog />) as MengplazConfirmDialog;
     this.promote = (<mengplaz-promotion-dialog />) as MengplazPromotionDialog;
@@ -227,9 +235,19 @@ export class ReconcilePage extends HTMLElement {
 
     this.showLoadingOverlay();
     try {
-      const sources = await gc.privateApi.getSources();
+      const [sources, cities] = await Promise.all([gc.privateApi.getSources(), gc.api.getGoldenCities()]);
       const filteredSources = sources.filter((v) => v.name !== 'Golden');
       this.sourceSelect.options = filteredSources.map((s) => ({ value: s, text: s.name }) as GuiOption);
+      this.citySelect.options = cities.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
+
+      // Restore city from URL param
+      const urlCity = getQueryParam('city');
+      if (urlCity) {
+        const matchingCity = cities.find((c) => c.name === urlCity);
+        if (matchingCity) {
+          this.citySelect.value = matchingCity;
+        }
+      }
 
       // Restore source from URL param
       const urlSource = getQueryParam('source');
@@ -672,7 +690,9 @@ export class ReconcilePage extends HTMLElement {
     this.reconcileButton.loading = true;
     if (this.sourceSelect.value) {
       try {
-        const report = await gc.privateApi.getReconciliationReport(this.sourceSelect.value.ref);
+        const cityName = this.citySelect.value ?? null;
+        const report = await gc.privateApi.getReconciliationReport(this.sourceSelect.value.ref, cityName);
+
         if (report != null) {
           this.reconciliationReport = report;
           this.render();
@@ -681,7 +701,9 @@ export class ReconcilePage extends HTMLElement {
           this.reconciliationReport = undefined;
           this.render();
         }
-      } catch (_) {
+      } catch (e) {
+        console.log(e);
+
         toast.notify({
           message: 'An error occurred while generating reconciliation report.',
           duration: 3000,
@@ -809,6 +831,7 @@ export class ReconcilePage extends HTMLElement {
         <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)' }}>
           {this.sourceSelect}
           {this.reconcileButton}
+          {this.citySelect}
         </div>
         {this.reportContainer}
         {this.confirm}

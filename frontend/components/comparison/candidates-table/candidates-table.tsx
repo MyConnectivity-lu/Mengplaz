@@ -41,7 +41,7 @@ export class CandidatesTable extends HTMLElement {
     if (this._candidates.length === 0) {
       this.replaceChildren(
         <div className="candidates-table">
-          <div className="no-candidates">No candidates found</div>
+          <div className="no-candidates">No Golden found</div>
         </div>,
       );
       return;

@@ -200,7 +200,7 @@ fn lockDatasource(source: String) {
         throw "Source with name ${source} not Found";
     }
     if (nSource->isReconciling?.resolve() == true) {
-        throw "Source ${source} reconciling in progress";
+        throw "Source ${source} has a reconciling in progress";
     }
     nSource->setIsReconciling();
 }
@@ -214,9 +214,7 @@ fn reconcile(source: String, params: SearchParameters?): ReconciliationReport {
     if (nSource == null) {
         throw "Source with name ${source} not Found";
     }
-    if (nSource->isReconciling?.resolve() == true) {
-        throw "Source ${source} reconciling in progress";
-    }
+
     try {
         var report = DataSource::reconcile(nSource, params, null);
         ts.end();
@@ -277,7 +275,7 @@ type ReconciliationReportView {
 
 @expose
 @permission("admin")
-fn getReconciliationReport(source: node<DataSource>): ReconciliationReportView? {
+fn getReconciliationReport(source: node<DataSource>, city: String?): ReconciliationReportView? {
     var ts = Traffic_Service::start(getReconciliationReport).end();
     var report = source->getReconciliationReport();
     if (report == null) {
@@ -288,6 +286,9 @@ fn getReconciliationReport(source: node<DataSource>): ReconciliationReportView? 
     var partialMatch = Array<ReconciliationReportMatchView> {};
     var noMatch = Array<String> {};
     for (record, candidates in report.unlinked) {
+        if (city != null && record->getCity() != city) {
+            continue;
+        }
         if (candidates.size() == 1 && candidates[0].mismatch == null) {
             fullMatch.add(record->getId());
         } else if (candidates.size() == 0) {
@@ -304,6 +305,9 @@ fn getReconciliationReport(source: node<DataSource>): ReconciliationReportView? 
     partialMatch.sort_by(ReconciliationReportMatchView::score, SortOrder::desc);
     var linked = Array<String> {};
     for (key, value in report.linked) {
+        if (city != null && key->getCity() != city) {
+            continue;
+        }
         linked.add(key->getId());
     }
 
