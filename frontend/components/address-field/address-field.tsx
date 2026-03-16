@@ -55,11 +55,13 @@ export class AddressField extends HTMLElement {
       );
       return;
     }
-
+    const val = this.renderValue(this._value);
     this.replaceChildren(
       <div className="field">
         <div className="field-key">{displayLabel}</div>
-        <div className="field-value">{this.renderValue(this._value)}</div>
+        <div className="field-value" title={val.toString()}>
+          {val}
+        </div>
       </div>,
     );
   }

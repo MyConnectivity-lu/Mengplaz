@@ -51,12 +51,10 @@ export class CandidatesTable extends HTMLElement {
       <table className="candidates-table">
         <thead>
           <tr>
-            <th style={{ width: '50px' }}>MATCH SCORE</th>
+            <th style={{ width: '40px' }}>MATCH SCORE</th>
             <th style={{ width: '90px' }}>NUMBER</th>
             <th style={{ width: '210px' }}>STREET</th>
-            <th style={{ width: '150px' }}>ALIASES</th>
             <th style={{ width: '170px' }}>CITY</th>
-            <th style={{ width: '120px' }}>ALIASES</th>
             <th style={{ width: '110px' }}>POSTCODE</th>
             <th style={{ width: '160px' }}>GEO</th>
             <th style={{ width: '100px' }}></th>

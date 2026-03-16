@@ -320,7 +320,7 @@ footer {
 }
 
 /* Desktop Layout */
-@media (min-width: 1024px) {
+@media (min-width: 1524px) {
   #app-container {
     min-height: 100vh;
   }

@@ -103,7 +103,7 @@ export class ComparisonDashboard extends HTMLElement {
     );
 
     // Auto-show detailed view when there's exactly one candidate
-    if (this._comparisonData.candidates.length === 1) {
+    if (this._comparisonData.candidates.length >= 1) {
       this.showComparisonView({
         candidate: this._comparisonData.candidates[0],
         sourceRecord: this._comparisonData.sourceRecord,
