@@ -207,7 +207,7 @@ fn lockDatasource(source: String) {
 
 @expose
 @permission("admin")
-fn reconcile(source: String, params: SearchParameters?): ReconciliationReport {
+fn reconcile(source: String, params: SearchParameters?): ReconciliationReport? {
     var ts = Traffic_Service::start(reconcile);
 
     var nSource = sources_by_name.get(source);
@@ -222,13 +222,13 @@ fn reconcile(source: String, params: SearchParameters?): ReconciliationReport {
         return report;
     } catch (err) {
         nSource->removeIsReconciling();
-        throw err;
+        error(err);
     }
 }
 
 @expose
 @permission("admin")
-fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport {
+fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport? {
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
         throw "Source with name ${source} not Found";
@@ -252,7 +252,7 @@ fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters
         return report;
     } catch (err) {
         nSource->removeIsReconciling();
-        throw err;
+        error(err);
     }
 }
 
