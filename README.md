@@ -1,4 +1,4 @@
-# MengPlaz
+# MengPlaz [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The Golden Standard of national addresses, by MyConnectivity.
 https://app.mengplaz.lu/
@@ -87,7 +87,10 @@ Folders and files that can be safely deleted:
 Show your appreciation to those who have contributed to the project.
 
 ## License
-For open source projects, say how it is licensed.
+## **📜 License**
+MengPlaz is licensed under the **[MIT License](https://opensource.org/licenses/MIT)**.
+
+> For the full license text, see the [`LICENSE`](LICENSE) file in the project root.
 
 ## Project status
 **🚀 Actively Maintained**
