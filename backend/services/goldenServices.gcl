@@ -211,7 +211,11 @@ type GoldenServices {
     static fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
         var results = Array<mengplaz::SearchResult> {};
         for (_, nRecord in req.items) {
-            results.add(GoldenServices::searchItem(nRecord, req.params));
+            try {
+                results.add(GoldenServices::searchItem(nRecord, req.params));
+            } catch (err){
+                error(err);
+            }
         }
         return results;
     }
