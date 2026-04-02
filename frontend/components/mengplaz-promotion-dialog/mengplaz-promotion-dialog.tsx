@@ -3,7 +3,7 @@ import '../address-field/address-content';
 import { AddressContent } from '../address-field/address-content';
 
 export class MengplazPromotionDialog extends HTMLElement {
-  private _value?: gc.mengplaz.POIRecordRef;
+  private _value?: gc.mengplaz.POIFullRecordRef;
   private _cities?: gc.GoldenIndex[];
 
   private citySelect: GuiSelect;
@@ -21,7 +21,7 @@ export class MengplazPromotionDialog extends HTMLElement {
     this.info = (<address-content />) as AddressContent;
   }
 
-  set value(v: gc.mengplaz.POIRecordRef) {
+  set value(v: gc.mengplaz.POIFullRecordRef) {
     this._value = v;
     this.render();
   }
@@ -101,7 +101,7 @@ export class MengplazPromotionDialog extends HTMLElement {
 
   private fillAddressInfo() {
     this.info.value = gc.mengplaz.POIRecord.createFrom({
-      number: this._value?.record.number ?? '--',
+      number: this._value?.record.number ?? '--' + (this._value?.record?.multipleCode ?? ''),
       postcode: this._value?.record.postcode ?? '--',
       city: this.citySelect.value?.name ?? this._value?.record.city,
       street: this.streetSelect.value?.name ?? this._value?.record.street,
