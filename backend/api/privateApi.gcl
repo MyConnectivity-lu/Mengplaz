@@ -49,14 +49,41 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
     var source = sourceRecord->getSource();
     var candidates = source->reconciliationReport->unlinked.get(sourceRecord);
     var score: float = 1.0;
-    for (_, candidate in candidates?) {
-        if (candidate.candidateRecord == candidateRecord) {
-            source->reconciliationReport->linked.set(sourceRecord, clone(candidate));
-            source->reconciliationReport->unlinked.remove(sourceRecord);
-            score = candidate.score?.overallScore ?? 1.0;
-            break;
+    // No candidates the source comes from a search, we need to calculate a score 
+    if(candidates == null){
+        var params = SearchParameters::default();
+        var item = sourceRecord->toSearchItem();
+        var nCandidate = candidateRecord as node<GoldenPointOfInterest>;
+        var cityScore = 0.0;
+        var streetScore = 0.0;
+        if (nCandidate->street != null) {
+            cityScore = GoldenServices::computeCityScore(item.city, nCandidate->street->city);
+            streetScore = GoldenServices::computeStreetScore(item.street, nCandidate->street->name);
+        }
+        var geoScore = GoldenServices::computeGeoScore(item.coordinates, nCandidate->primaryLocation, params.geoParams) ?? 0.0;
+        var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
+        var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
+        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+        var reconScore = ReconciliationCandidateScore {
+            cityScore: cityScore,
+            streetScore: streetScore,
+            numberScore: numberScore,
+            postcodeScore: postcodeScore,
+            geoScore: geoScore,
+            overallScore: overallScore,
+        };
+        score = overallScore;
+        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate {candidateRecord : candidateRecord, score : reconScore  });
+    } else {
+        for (_, candidate in candidates) {
+            if (candidate.candidateRecord == candidateRecord) {
+                source->reconciliationReport->linked.set(sourceRecord, clone(candidate));
+                score = candidate.score?.overallScore ?? 1.0;
+                break;
+            }
         }
     }
+    source->reconciliationReport->unlinked.remove(sourceRecord);
 
     sourceRecord->linkToGolden(candidateRecord as node<GoldenPointOfInterest>);
 
