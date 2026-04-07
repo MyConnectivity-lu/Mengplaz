@@ -47,20 +47,6 @@ fn getPois(): Array<POIFeatures> {
     return feats;
 }
 
-@expose
-@permission("public")
-fn getPoisByGeo(coords: geo): POIRecordRef? {
-    var ts = Traffic_Service::start(getPoisByGeo);
-    var poi = golden_pois_by_geo.get(coords);
-    ts.end();
-    if (poi != null) {
-        return POIRecordRef {
-            ref: poi,
-            record: poi->toMengplazRecord(),
-        };
-    }
-}
-
 @volatile
 type GoldenRecordDetails {
     golden: POIRecordRef;
@@ -91,27 +77,6 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
             record: ref->toMengplazRecord(),
         },
         associated: linked,
-    };
-}
-
-@expose
-fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
-    var ts = Traffic_Service::start(getPoiRecordRef);
-    ts.end();
-    return POIRecordRef {
-        ref: ref,
-        record: ref->toMengplazRecord(),
-    };
-}
-
-@expose
-fn getPoiFullRecord(ref: node<POIRecordProvider>): POIFullRecordRef {
-    var ts = Traffic_Service::start(getPoiRecordRef);
-    ts.end();
-    return POIFullRecordRef {
-        record: ref->toFullRecord(),
-        id: ref->getId(),
-        ref: ref
     };
 }
 

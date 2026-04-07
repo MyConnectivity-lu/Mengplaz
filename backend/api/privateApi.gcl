@@ -39,6 +39,7 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 type LinkParameters {
     addCityAlias: bool;
     addStreetAlias: bool;
+    linkSimilarStreetMismatch:bool;
 }
 
 @expose
@@ -131,6 +132,12 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
                 });
         }
     }
+
+
+    if(params.linkSimilarStreetMismatch){
+        
+    }
+  
     ts.end();
 }
 
@@ -191,7 +198,7 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
         var candidates = report->unlinked.get(sourceRecord);
         if (candidates?.size() == 1) {
             // TODO? We assume that since this function only gets called if 100% match no need to link aliases
-            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters { addCityAlias: false, addStreetAlias: false });
+            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters { addCityAlias: false, addStreetAlias: false, linkSimilarStreetMismatch: false });
         }
     }
     ts.end();
@@ -524,46 +531,6 @@ type QualityTrend {
     linkedSourcesCount: int;
 }
 
-@expose
-@permission("admin")
-fn getGoldenQualityTrend(nGolden: node<GoldenPointOfInterest>): QualityTrend {
-    var ts = Traffic_Service::start(getGoldenQualityTrend);
-
-    var current: float = 0.0;
-    var previous: float? = null;
-
-    var latest = nGolden->quality.last();
-    if (latest != null) {
-        current = latest.score;
-    }
-
-    // Get second-to-last event
-    var count = 0;
-    for (_, event in nGolden->quality) {
-        count = count + 1;
-    }
-
-    if (count >= 2) {
-        var i = 0;
-        for (_, event in nGolden->quality) {
-            if (i == count - 2) {
-                previous = event.score;
-                break;
-            }
-            i = i + 1;
-        }
-    }
-
-    var delta = current - (previous ?? current);
-
-    ts.end();
-    return QualityTrend {
-        currentScore: current,
-        previousScore: previous,
-        delta: delta,
-        linkedSourcesCount: nGolden->linkedRecords.size()
-    };
-}
 
 @volatile
 type GlobalQualityEntry {
