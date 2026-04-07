@@ -81,7 +81,7 @@ export class MengplazLayout extends HTMLElement {
         <li>
           <sl-button id="quality-history" variant="text" className="sidebar-link">
             <sl-icon slot="prefix" name="bar-chart-line"></sl-icon>
-            Quality History
+            Quality Dashboard
           </sl-button>
         </li>
       </ul>
