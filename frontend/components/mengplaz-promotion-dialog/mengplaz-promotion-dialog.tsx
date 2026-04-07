@@ -103,7 +103,7 @@ export class MengplazPromotionDialog extends HTMLElement {
     this.info.value = gc.mengplaz.POIRecord.createFrom({
       number: this._value?.record.number ?? '--' + (this._value?.record?.multipleCode ?? ''),
       postcode: this._value?.record.postcode ?? '--',
-      city: this.citySelect.value?.name ?? this._value?.record.city,
+      locality: this.citySelect.value?.name ?? this._value?.record.city,
       street: this.streetSelect.value?.name ?? this._value?.record.street,
       sourceName: 'Golden',
     });

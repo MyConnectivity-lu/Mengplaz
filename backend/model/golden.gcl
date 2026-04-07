@@ -175,7 +175,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
             number: "${this.number}${this.multipleCode}",
             street: this.street?->name,
             postcode: this.postCode,
-            city: this.street?->city->name,
+            locality: this.street?->city->name,
             primaryLocation: this.primaryLocation,
             secondaryLocations: this.secondaryLocations,
             sourceName: GoldenSource::NAME,

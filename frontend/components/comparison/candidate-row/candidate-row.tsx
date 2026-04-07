@@ -34,7 +34,7 @@ export function createCandidateRow(
   const record = candidate.record as gc.mengplaz.POIRecord;
   const houseNumber = record?.number ?? 'N/A';
   const street = record?.street ?? 'N/A';
-  const city = record?.city ?? 'N/A';
+  const city = record?.locality ?? 'N/A';
   const postcode = record?.postcode ?? 'N/A';
   const geo = record?.primaryLocation ? `${record?.primaryLocation.lat.toFixed(6)}, ${record?.primaryLocation.lng.toFixed(5)}` : 'N/A';
 

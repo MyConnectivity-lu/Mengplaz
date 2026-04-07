@@ -183,7 +183,7 @@ type POIRecord {
     postcode: String?;
     street: String?;
     streetAliases: Array<Alias>?;
-    city: String?;
+    locality: String?;
     cityAliases: Array<Alias>?;
     primaryLocation: geo?;
     secondaryLocations: Map<String, geo>?;

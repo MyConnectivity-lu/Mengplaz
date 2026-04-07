@@ -44,7 +44,7 @@ export class MengplazConfirmDialog extends HTMLElement {
   private getResult(confirmed: boolean): LinkDialogResult {
     return {
       confirmed,
-      params: new gc.privateApi.LinkParameters(this.addCityAliasCheckbox?.checked ?? false, this.addStreetAliasCheckbox?.checked ?? false),
+      params: new gc.privateApi.LinkParameters(this.addCityAliasCheckbox?.checked ?? false, this.addStreetAliasCheckbox?.checked ?? false, false),
     };
   }
 

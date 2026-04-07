@@ -54,7 +54,7 @@ export class CandidatesTable extends HTMLElement {
             <th style={{ width: '40px' }}>MATCH SCORE</th>
             <th style={{ width: '90px' }}>NUMBER</th>
             <th style={{ width: '210px' }}>STREET</th>
-            <th style={{ width: '170px' }}>CITY</th>
+            <th style={{ width: '170px' }}>LOCALITY</th>
             <th style={{ width: '110px' }}>POSTCODE</th>
             <th style={{ width: '160px' }}>GEO</th>
             <th style={{ width: '100px' }}></th>

@@ -213,7 +213,7 @@ export class MengplazSearchDialog extends HTMLElement {
           <div className="poi-info">
             <span className="poi-number">#{poi.record.number}</span>
             <span className="poi-details">
-              {poi.record.postcode} {poi.record.city}
+              L-{poi.record.postcode}, {poi.record.locality}
             </span>
           </div>
           <sl-button variant="primary" size="small" onclick={() => this.selectPoi(poi)}>
