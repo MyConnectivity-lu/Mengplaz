@@ -179,7 +179,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
             primaryLocation: this.primaryLocation,
             secondaryLocations: this.secondaryLocations,
             sourceName: GoldenSource::NAME,
-            quality: GoldenServices::computeQuality(this.linkedRecords)
+            quality: this.quality.last()?.score
         };
         if (this.street != null) {
             if (this.street->nameAliases.size() > 0) {

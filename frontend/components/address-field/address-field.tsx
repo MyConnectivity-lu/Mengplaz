@@ -47,9 +47,14 @@ export class AddressField extends HTMLElement {
     if (this._label === 'quality') {
       this.replaceChildren(
         <div className="field">
-          <div className="field-key">{displayLabel}</div>
+          <div className="field-key">
+            {displayLabel}
+            <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Golden-Record-Quality" target="_blank" title="Quality documentation">
+              <sl-icon name="info-circle"></sl-icon>
+            </a>
+          </div>
           <div className="field-value">
-            <sl-rating readonly label="Rating" value={Number(this._value) * 5}></sl-rating>
+            {(Number(this._value) * 100).toFixed(0)} %
           </div>
         </div>,
       );

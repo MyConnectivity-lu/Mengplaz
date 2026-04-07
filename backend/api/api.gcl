@@ -319,7 +319,7 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
                 city: nGolden->street?->city->name,
                 postcode: nGolden->postCode,
                 linkedCount: nGolden->linkedRecords.size(),
-                quality: (quality?.score ?? 0) * 100 as float
+                quality: (quality?.score ?? 0.0)
             }
         );
     }
