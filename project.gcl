@@ -89,34 +89,4 @@ fn loadCaclr() {
     }
 }
 
-@expose
-fn tmp_fix() {
-    var b = Array<node<POIRecordProvider>> {};
-    for (a, s in sources_by_name) {
-        for (key, value in s->reconciliationReport->unlinked) {
-            if (key->getLinkedGolden() != null) {
-                b.add(key);
-            }
-        }
-    }
 
-    for (_, r in b) {
-        var golden = r->getLinkedGolden()!!;
-        for (i, entry in golden->linkedRecords) {
-            if (entry.record == r) {
-                golden->linkedRecords.remove(i);
-                break;
-            }
-        }
-        var k:time? = null;
-        for (key, value in golden->quality) {
-            if (value.sourceRecord == r) {
-                k = key;
-            }
-        }
-        if(k != null){
-            golden->quality.removeAt(k);
-        }
-        linkRecords(r, golden, LinkParameters { addCityAlias: false, addStreetAlias: false });
-    }
-}
