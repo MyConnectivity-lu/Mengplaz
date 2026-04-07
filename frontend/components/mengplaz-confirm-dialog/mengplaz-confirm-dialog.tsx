@@ -11,6 +11,7 @@ export class MengplazConfirmDialog extends HTMLElement {
   private resolve?: (value: LinkDialogResult) => void;
   private addCityAliasCheckbox?: sl.SlCheckbox;
   private addStreetAliasCheckbox?: sl.SlCheckbox;
+  private updateSimilarStreetMismatch?: sl.SlCheckbox;
   _showLinkParams = false;
 
   set text(v: string) {
@@ -44,13 +45,21 @@ export class MengplazConfirmDialog extends HTMLElement {
   private getResult(confirmed: boolean): LinkDialogResult {
     return {
       confirmed,
-      params: new gc.privateApi.LinkParameters(this.addCityAliasCheckbox?.checked ?? false, this.addStreetAliasCheckbox?.checked ?? false, false),
+      params: new gc.privateApi.LinkParameters(this.addCityAliasCheckbox?.checked ?? false, this.addStreetAliasCheckbox?.checked ?? false, this.updateSimilarStreetMismatch?.checked ??false),
     };
   }
 
   render() {
     this.addCityAliasCheckbox = (<sl-checkbox>Add city alias</sl-checkbox>) as sl.SlCheckbox;
     this.addStreetAliasCheckbox = (<sl-checkbox>Add street alias</sl-checkbox>) as sl.SlCheckbox;
+    this.updateSimilarStreetMismatch = (
+      <sl-checkbox>
+        Update similar street mismatches
+        <span slot="help-text">
+          When checked, all other records with the same street name mismatch will automatically be moved to the linked tab, so you don't have to link them one by one.
+        </span>
+      </sl-checkbox>
+    ) as sl.SlCheckbox;
 
     this.dialog.replaceChildren(
       <>
@@ -59,6 +68,8 @@ export class MengplazConfirmDialog extends HTMLElement {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
             {this.addCityAliasCheckbox}
             {this.addStreetAliasCheckbox}
+            {/* Adds records with the same street name error to the linked tab */}
+            {this.updateSimilarStreetMismatch}
           </div>
         ) : (
           ''

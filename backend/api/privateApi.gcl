@@ -39,7 +39,7 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 type LinkParameters {
     addCityAlias: bool;
     addStreetAlias: bool;
-    linkSimilarStreetMismatch:bool;
+    updateSimilarStreetMismatch:bool?;
 }
 
 @expose
@@ -134,8 +134,24 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
     }
 
 
-    if(params.linkSimilarStreetMismatch){
-        
+    if(params.updateSimilarStreetMismatch == true){
+        var sStreet = sourceRecord->getStreet();
+        var gStreet = golden.getStreet();
+        for (s, candidates in source->reconciliationReport->unlinked) {
+          if(s->getStreet() == sStreet){
+            var found :ReconciliationCandidate?;
+            for (_, c in candidates) {
+                if(c.candidateRecord->getStreet() == gStreet){
+                    found = c;
+                    break;
+                }
+            }
+            if(found != null){
+                found.mismatch = null;
+                candidates = Array<ReconciliationCandidate> {found};
+            }
+          }
+        }
     }
   
     ts.end();
@@ -198,7 +214,7 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
         var candidates = report->unlinked.get(sourceRecord);
         if (candidates?.size() == 1) {
             // TODO? We assume that since this function only gets called if 100% match no need to link aliases
-            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters { addCityAlias: false, addStreetAlias: false, linkSimilarStreetMismatch: false });
+            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters { addCityAlias: false, addStreetAlias: false });
         }
     }
     ts.end();
