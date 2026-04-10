@@ -56,7 +56,7 @@ export class MengplazConfirmDialog extends HTMLElement {
       <sl-checkbox>
         Update similar street mismatches
         <span slot="help-text">
-          When checked, all other records with the same street name mismatch will automatically be moved to the linked tab, so you don't have to link them one by one.
+          When checked, all other records with the same street name mismatch will automatically be moved to the matched tab, and can be batch linked.
         </span>
       </sl-checkbox>
     ) as sl.SlCheckbox;

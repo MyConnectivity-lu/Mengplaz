@@ -488,6 +488,10 @@ export class ReconcilePage extends HTMLElement {
           .then(() => {
             toast.notify({ message: 'Records linked!', variant: 'primary', duration: 3000, icon: 'check2-circle' });
             if (!this.reconciliationReport) return;
+            if (result.params.updateSimilarStreetMismatch) {
+              this.reloadWithState(this.currentTab, this.sourceSelect.value.name);
+              return;
+            }
 
             const sourceTab = this.currentTab;
             const pane = this.panes[sourceTab];

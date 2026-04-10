@@ -39,7 +39,7 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 type LinkParameters {
     addCityAlias: bool;
     addStreetAlias: bool;
-    updateSimilarStreetMismatch:bool?;
+    updateSimilarStreetMismatch: bool?;
 }
 
 @expose
@@ -61,7 +61,7 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
     }
 
     // No candidate the source comes from a search, we need to calculate a score 
-    if(foundCandidate == false){
+    if (foundCandidate == false) {
         var params = SearchParameters::default();
         var item = sourceRecord->toSearchItem();
         var nCandidate = candidateRecord as node<GoldenPointOfInterest>;
@@ -84,7 +84,7 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
             overallScore: overallScore,
         };
         score = overallScore;
-        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate {candidateRecord : candidateRecord, score : reconScore  });
+        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate { candidateRecord: candidateRecord, score: reconScore });
     }
 
     source->reconciliationReport->unlinked.remove(sourceRecord);
@@ -133,27 +133,26 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
         }
     }
 
-
-    if(params.updateSimilarStreetMismatch == true){
+    if (params.updateSimilarStreetMismatch == true) {
+        var tmpMap = Map<node<POIRecordProvider>, ReconciliationCandidate> {};
         var sStreet = sourceRecord->getStreet();
         var gStreet = golden.getStreet();
         for (s, candidates in source->reconciliationReport->unlinked) {
-          if(s->getStreet() == sStreet){
-            var found :ReconciliationCandidate?;
-            for (_, c in candidates) {
-                if(c.candidateRecord->getStreet() == gStreet){
-                    found = c;
-                    break;
+            if (s->getStreet() == sStreet) {
+                for (_, c in candidates) {
+                    if (c.candidateRecord->getStreet() == gStreet) {
+                        tmpMap.set(s, clone(c));
+                        break;
+                    }
                 }
             }
-            if(found != null){
-                found.mismatch = null;
-                candidates = Array<ReconciliationCandidate> {found};
-            }
-          }
+        }
+        for (key, value in tmpMap) {
+            value.mismatch = null;
+            source->reconciliationReport->unlinked.set(key, Array<ReconciliationCandidate> { value });
         }
     }
-  
+
     ts.end();
 }
 
@@ -546,7 +545,6 @@ type QualityTrend {
     delta: float;
     linkedSourcesCount: int;
 }
-
 
 @volatile
 type GlobalQualityEntry {
