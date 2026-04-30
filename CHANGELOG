@@ -1,0 +1,42 @@
+Release 1.3
+Added
+
+App Versioning: Integrated the application version display in the frontend, including a direct link to the changelog.
+API Documentation Access: Added a direct link to the API documentation within the frontend interface.
+GeoJSON Support: Implemented GeoJSON export/format support for Golden Records.
+Match Quality Monitoring: New view to monitor and track the overall quality of record matching.
+Enhanced Reconcile View: Added the ability to see all details of individual records within the reconcile interface.
+Flexible Golden Records: Added the possibility to link to any existing golden record.
+Distance-Based Scoring: Integrated distance metrics into the reconciliation scoring logic.
+
+Fixed
+
+Golden Record Visibility: Resolved an issue where records promoted to "golden record" status were not being displayed.
+
+Documentation
+
+Matching Logic: Completed technical documentation for the system's matching logic.
+
+Release 1.2 Completed
+Added
+
+Search by Geoportal ID: Implemented the ability to search records using Geoportal identifiers.
+Golden Record API: New API endpoint to retrieve all golden records.
+Full Record Promotion: Capability to promote an entire record to "Golden" status.
+Quality Indicators: Added quality indicators for Golden Records.
+Traffic Tracking: Implemented recording and tracking for system traffic.
+Source Attribute Visibility: Display of all attributes on the Sources panels.
+Map Visuals: Markers on the main map now utilize Source and Layer data for better distinction.
+Infrastructure: Deployed automated backup mechanisms.
+
+Fixed
+
+OSM Reconciliation: Fixed broken reconciliation logic for OpenStreetMap data.
+Geoportail API: Corrected a typo in the Geoportail search API name.
+CACLR Validity: Fixed the "Start validity date" logic on CACLR records.
+
+Documentation
+
+OpenAPI: Cleaned up and finalized the OpenAPI/Swagger documentation.
+
+Release 1.1
