@@ -19,6 +19,18 @@
   letter-spacing: 0.05em;
 }
 
+.field-key a {
+  color: var(--sl-color-primary-600);
+  margin-left: var(--sl-spacing-2x-small);
+  vertical-align: middle;
+  font-size: var(--sl-font-size-small);
+  opacity: 1;
+}
+
+.field-key a:hover {
+  color: var(--sl-color-primary-800);
+}
+
 .field-value {
   flex: 1;
   font-weight: 600;

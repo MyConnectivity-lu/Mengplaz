@@ -1,8 +1,10 @@
+@volatile
 type SplitAlphaNumericalString {
     alpha: String;
     numerical: int;
 }
 
+/// Best Effort to transform 7-8, into 7 , -8 , as done by CACLR
 fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString {
     var alphaCars = Array<char> {
         'A',
@@ -33,18 +35,31 @@ fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString 
         'Z'
     };
 
-    var idx = int::max;
-    for (_, c in alphaCars) {
-        var i = number.indexOf(c);
-        if (i != -1 && i < idx) {
-            idx = i;
-        }
-    }
     try {
+        var idx = int::max;
+        for (_, c in alphaCars) {
+            var i = number.indexOf(c);
+            if (i != -1 && i < idx) {
+                idx = i;
+            }
+        }
         if (idx != -1 && idx != int::max) {
-            var alpha = number.slice(idx, number.size());
-            //TODO! We can encounter strange numbers like "42-42A" from osm
-            var num = parseNumber(number.slice(0, idx)) as int;
+            var numPart = number.slice(0, idx);
+            var hyphenIdx = numPart.indexOf('-');
+            if (hyphenIdx == -1) {
+                var alpha = number.slice(idx, number.size());
+                var num = parseNumber(numPart) as int;
+                return SplitAlphaNumericalString {
+                    alpha: alpha,
+                    numerical: num
+                };
+            }
+        }
+
+        var hyphenIdx = number.indexOf('-');
+        if (hyphenIdx != -1) {
+            var num = parseNumber(number.slice(0, hyphenIdx)) as int;
+            var alpha = number.slice(hyphenIdx, number.size());
             return SplitAlphaNumericalString {
                 alpha: alpha,
                 numerical: num
@@ -56,6 +71,6 @@ fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString 
             numerical: parseNumber(number) as int
         };
     } catch (err) {
-        throw "Unable to parse address number";
+        throw err;
     }
 }

@@ -28,7 +28,7 @@ type OSMFullRecord {
     number: String;
     postcode: String;
     street: String;
-    city: String;
+    locality: String;
     primaryLocation: geo?;
 
     sourceName: String;
@@ -142,7 +142,7 @@ type OsmAddress extends POIRecordProvider {
             number: "${this.number}",
             street: this.street,
             postcode: this.postcode,
-            city: this.city,
+            locality: this.city,
             primaryLocation: this.position,
             sourceName: OsmSource::NAME,
             goldenRef: this.goldenRef,
@@ -155,7 +155,7 @@ type OsmAddress extends POIRecordProvider {
             number: "${this.number}",
             street: this.street,
             postcode: this.postcode,
-            city: this.city,
+            locality: this.city,
             primaryLocation: this.position,
             sourceName: OsmSource::NAME,
             goldenRef: this.goldenRef,

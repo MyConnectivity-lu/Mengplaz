@@ -125,7 +125,9 @@ export class MengplazAddressCard extends HTMLElement {
           )}
         </div>
         <address-content value={record} />
+       
         {this.renderMap(record)}
+
         {this.confirm}
       </div>,
     );
@@ -133,7 +135,7 @@ export class MengplazAddressCard extends HTMLElement {
 
   private renderMap(record: unknown) {
     if (typeof record === 'object' && record != null && 'primaryLocation' in record && record['primaryLocation'] != null) {
-      return <mengplaz-minimap primary={record['primaryLocation'] as gc.geo} />;
+      return  <div className={'map-container'}> <mengplaz-minimap primary={record['primaryLocation'] as gc.geo}  /> </div> ;
     }
   }
 }

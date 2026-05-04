@@ -7,12 +7,13 @@ export interface ViewCandidateEvent {
   sourceRecord: gc.POIFullRecordRef;
 }
 
-function renderAliases(aliases: gc.mengplaz.Alias[] | null): HTMLElement {
+function renderAliases(aliases: gc.mengplaz.Alias[] | null): any {
   if (!aliases || aliases.length === 0) {
-    return (<span>-</span>) as HTMLElement;
+    return <></>;
   }
   return (
     <div className="alias-list">
+      <sl-divider style={{ margin: '0' }} />
       {aliases.map((a) => (
         <div className="alias-item" title={a.value}>
           {a.value}
@@ -22,14 +23,18 @@ function renderAliases(aliases: gc.mengplaz.Alias[] | null): HTMLElement {
   ) as HTMLElement;
 }
 
-export function createCandidateRow(candidate: gc.privateApi.MatchedCandidateDetail, sourceRecord: gc.POIFullRecordRef | null, showLinkButton = true): HTMLTableRowElement {
+export function createCandidateRow(
+  candidate: gc.privateApi.MatchedCandidateDetail,
+  sourceRecord: gc.POIFullRecordRef | null,
+  showLinkButton = true,
+): HTMLTableRowElement {
   const quality = getMatchQuality(candidate.overallScore);
 
   // Extract fields from the full record
   const record = candidate.record as gc.mengplaz.POIRecord;
   const houseNumber = record?.number ?? 'N/A';
   const street = record?.street ?? 'N/A';
-  const city = record?.city ?? 'N/A';
+  const city = record?.locality ?? 'N/A';
   const postcode = record?.postcode ?? 'N/A';
   const geo = record?.primaryLocation ? `${record?.primaryLocation.lat.toFixed(6)}, ${record?.primaryLocation.lng.toFixed(5)}` : 'N/A';
 
@@ -81,21 +86,19 @@ export function createCandidateRow(candidate: gc.privateApi.MatchedCandidateDeta
         <span className="field-score">({candidate.numberScore}%)</span>
       </td>
 
-      <td className={[`candidate-field`, `${!streetMatch ? 'field-mismatch' : 'field-match'}`]}>
+      <td className={[`candidate-field`, `${!streetMatch ? 'field-mismatch' : 'field-match'}`]} title={street}>
         {street}
         <span className="field-score">({candidate.streetScore}%)</span>
+        <span>{renderAliases(record?.streetAliases)}</span>
       </td>
 
-      <td className={['candidate-field', 'alias-field']}>{renderAliases(record?.streetAliases)}</td>
-
-      <td className={[`candidate-field`, `${!cityMatch ? 'field-mismatch' : 'field-match'}`]}>
+      <td className={[`candidate-field`, `${!cityMatch ? 'field-mismatch' : 'field-match'}`]} title={city}>
         {city}
         <span className="field-score">({candidate.cityScore}%)</span>
+        <span>{renderAliases(record?.cityAliases)}</span>
       </td>
 
-      <td className={['candidate-field', 'alias-field']}>{renderAliases(record?.cityAliases)}</td>
-
-      <td className={[`candidate-field`, `${!postcodeMatch ? 'field-mismatch' : 'field-match'}`]}>
+      <td className={[`candidate-field`, `${!postcodeMatch ? 'field-mismatch' : 'field-match'}`]} title={postcode}>
         {postcode}
         <span className="field-score">({candidate.postcodeScore}%)</span>
       </td>
