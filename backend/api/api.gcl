@@ -94,26 +94,6 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
     };
 }
 
-@expose
-fn getPoiRecordRef(ref: node<POIRecordProvider>): POIRecordRef {
-    var ts = Traffic_Service::start(getPoiRecordRef);
-    ts.end();
-    return POIRecordRef {
-        ref: ref,
-        record: ref->toMengplazRecord(),
-    };
-}
-
-@expose
-fn getPoiFullRecord(ref: node<POIRecordProvider>): POIFullRecordRef {
-    var ts = Traffic_Service::start(getPoiRecordRef);
-    ts.end();
-    return POIFullRecordRef {
-        record: ref->toFullRecord(),
-        id: ref->getId(),
-        ref: ref
-    };
-}
 
 /// Returns the Golden POI associated with the given uid
 @expose
@@ -339,7 +319,7 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
                 city: nGolden->street?->city->name,
                 postcode: nGolden->postCode,
                 linkedCount: nGolden->linkedRecords.size(),
-                quality: (quality?.score ?? 0) * 100 as float
+                quality: (quality?.score ?? 0.0)
             }
         );
     }

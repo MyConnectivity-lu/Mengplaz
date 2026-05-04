@@ -92,12 +92,11 @@ type GoldenServices {
             var d = GoldenServices::computeCityNameScore(cityName, nCity->name);
             if (d >= threshold) {
                 citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
-            } else {
-                for (_, alias in nCity->nameAliases) {
-                    var d = GoldenServices::computeCityNameScore(cityName, alias.value);
-                    if (d >= threshold) {
-                        citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
-                    }
+            } 
+            for (_, alias in nCity->nameAliases) {
+                var d = GoldenServices::computeCityNameScore(cityName, alias.value);
+                if (d >= threshold) {
+                    citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
                 }
             }
         }
@@ -123,23 +122,22 @@ type GoldenServices {
             }
             if (d >= threshold) {
                 streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
-            } else {
-                for (_, alias in nStreet->nameAliases) {
-                    if (nCity == null) {
-                        d = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
-                    } else {
-                        d = GoldenServices::computeStreetScore(streetName, alias.value);
-                    }
-                    if (d >= threshold) {
-                        streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
-                    }
+            } 
+            for (_, alias in nStreet->nameAliases) {
+                if (nCity == null) {
+                    d = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
+                } else {
+                    d = GoldenServices::computeStreetScore(streetName, alias.value);
+                }
+                if (d >= threshold) {
+                    streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
                 }
             }
+            
         }
         streetsMatches.sort_by(Match::score, SortOrder::desc);
         return streetsMatches;
     }
-    //12274787917
 
     /// Adds a candidate to the bounded candidates list, keeping only the top maxCandidatesPerItem entries.
     static fn addCandidate(candidates: Array<CandidateMatch<node<POIRecordProvider>>>, candidate: CandidateMatch<node<POIRecordProvider>>, maxCandidates: int) {
@@ -211,7 +209,11 @@ type GoldenServices {
     static fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
         var results = Array<mengplaz::SearchResult> {};
         for (_, nRecord in req.items) {
-            results.add(GoldenServices::searchItem(nRecord, req.params));
+            try {
+                results.add(GoldenServices::searchItem(nRecord, req.params));
+            } catch (err){
+                error(err);
+            }
         }
         return results;
     }

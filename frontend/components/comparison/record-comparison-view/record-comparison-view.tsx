@@ -121,7 +121,7 @@ export class RecordComparisonView extends HTMLElement {
         <div className="section">
           <div className="section-header">
             <sl-icon name="file-earmark-text"></sl-icon>
-            <span>Candidate Record</span>
+            <span>Golden Record</span>
             <sl-button variant="text" size="small" href={`?page=record&guid=${this._candidate.record.uid}`}>
               Go to Record
             </sl-button>

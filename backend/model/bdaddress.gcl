@@ -28,8 +28,8 @@ type BDAddressFullRecord {
     number: String;
     postcode: String;
     street: String;
-    city: String;
-    municipatlity: String;
+    locality: String;
+    commune: String;
     primaryLocation: geo?;
 
     sourceName: String;
@@ -104,8 +104,8 @@ type BDAddress extends POIRecordProvider {
             number: this.number,
             postcode: this.postcode,
             primaryLocation: this.position,
-            municipatlity: this.municipatlity->name,
-            city: this.city->name,
+            commune: this.municipatlity->name,
+            locality: this.city->name,
             street: this.street->name,
             sourceName: BDAddressSource::NAME,
             goldenRef: this.goldenRef,
@@ -118,7 +118,7 @@ type BDAddress extends POIRecordProvider {
             number: "${this.number}",
             street: this.street->name,
             postcode: this.postcode,
-            city: this.city->name,
+            locality: this.city->name,
             primaryLocation: this.position,
             sourceName: BDAddressSource::NAME,
             goldenRef: this.goldenRef,

@@ -107,11 +107,11 @@ type CaclrPOIFullRecord {
     number: int;
     multipleCode: String;
     postalCode: String;
-    street: String?;
+    locality: String?;
     streetAliases: Array<Alias>?;
     city: String?;
     cityAliases: Array<Alias>?;
-    municipality: String?;
+    commune: String?;
     canton: String?;
     constituency: String?;
 
@@ -202,10 +202,10 @@ type CaclrBuilding extends POIRecordProvider {
             id: this.id,
             number: this.number,
             multipleCode: this.multipleCode,
-            street: this.street?->name,
+            locality: this.street?->name,
             postalCode: this.postalCode,
             city: this.street?->city->name,
-            municipality: this.street?->city->municipality->name,
+            commune: this.street?->city->municipality->name,
             canton: this.street?->city->municipality->canton->name,
             constituency: this.street?->city->municipality->canton->constituency->name,
             administrativeStatus: this.administrativeStatus,
@@ -235,7 +235,7 @@ type CaclrBuilding extends POIRecordProvider {
             number: "${this.number}${this.multipleCode}",
             street: this.street?->name,
             postcode: this.postalCode,
-            city: this.street?->city->name,
+            locality: this.street?->city->name,
             primaryLocation: this.position,
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,

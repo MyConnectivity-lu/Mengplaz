@@ -153,6 +153,10 @@ export class SearchParametersDialog extends HTMLElement {
     this.dialog.replaceChildren(
       <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sl-spacing-large)' }}>
+          <p style={{ color: 'var(--sl-color-neutral-500)' }}>
+            Learn more about the reconcile logic{' '}
+            <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Reconcile-Logic" target="_blank" rel="noopener noreferrer">here</a>.
+          </p>
           <div>
             <h4 style={{ margin: '0 0 var(--sl-spacing-small) 0', color: 'var(--secondary)' }}>Similarity Thresholds</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sl-spacing-small)' }}>

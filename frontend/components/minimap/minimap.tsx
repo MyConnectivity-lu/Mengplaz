@@ -40,7 +40,7 @@ export class MiniMap extends HTMLElement {
           },
         ],
       },
-      zoom: 14,
+      zoom: 16,
     };
   }
 

@@ -39,6 +39,7 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 type LinkParameters {
     addCityAlias: bool;
     addStreetAlias: bool;
+    updateSimilarStreetMismatch: bool?;
 }
 
 @expose
@@ -49,14 +50,44 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
     var source = sourceRecord->getSource();
     var candidates = source->reconciliationReport->unlinked.get(sourceRecord);
     var score: float = 1.0;
+    var foundCandidate = false;
     for (_, candidate in candidates?) {
         if (candidate.candidateRecord == candidateRecord) {
             source->reconciliationReport->linked.set(sourceRecord, clone(candidate));
-            source->reconciliationReport->unlinked.remove(sourceRecord);
             score = candidate.score?.overallScore ?? 1.0;
+            foundCandidate = true;
             break;
         }
     }
+
+    // No candidate the source comes from a search, we need to calculate a score 
+    if (foundCandidate == false) {
+        var params = SearchParameters::default();
+        var item = sourceRecord->toSearchItem();
+        var nCandidate = candidateRecord as node<GoldenPointOfInterest>;
+        var cityScore = 0.0;
+        var streetScore = 0.0;
+        if (nCandidate->street != null) {
+            cityScore = GoldenServices::computeCityScore(item.city, nCandidate->street->city);
+            streetScore = GoldenServices::computeStreetScore(item.street, nCandidate->street->name);
+        }
+        var geoScore = GoldenServices::computeGeoScore(item.coordinates, nCandidate->primaryLocation, params.geoParams) ?? 0.0;
+        var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
+        var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
+        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+        var reconScore = ReconciliationCandidateScore {
+            cityScore: cityScore,
+            streetScore: streetScore,
+            numberScore: numberScore,
+            postcodeScore: postcodeScore,
+            geoScore: geoScore,
+            overallScore: overallScore,
+        };
+        score = overallScore;
+        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate { candidateRecord: candidateRecord, score: reconScore });
+    }
+
+    source->reconciliationReport->unlinked.remove(sourceRecord);
 
     sourceRecord->linkToGolden(candidateRecord as node<GoldenPointOfInterest>);
 
@@ -101,6 +132,27 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
                 });
         }
     }
+
+    if (params.updateSimilarStreetMismatch == true) {
+        var tmpMap = Map<node<POIRecordProvider>, ReconciliationCandidate> {};
+        var sStreet = sourceRecord->getStreet();
+        var gStreet = golden.getStreet();
+        for (s, candidates in source->reconciliationReport->unlinked) {
+            if (s->getStreet() == sStreet) {
+                for (_, c in candidates) {
+                    if (c.candidateRecord->getStreet() == gStreet) {
+                        tmpMap.set(s, clone(c));
+                        break;
+                    }
+                }
+            }
+        }
+        for (key, value in tmpMap) {
+            value.mismatch = null;
+            source->reconciliationReport->unlinked.set(key, Array<ReconciliationCandidate> { value });
+        }
+    }
+
     ts.end();
 }
 
@@ -197,20 +249,24 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
 fn lockDatasource(source: String) {
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
-        throw " Source with name ${source} not Found";
+        throw "Source with name ${source} not Found";
+    }
+    if (nSource->isReconciling?.resolve() == true) {
+        throw "Source ${source} has a reconciling in progress";
     }
     nSource->setIsReconciling();
 }
 
 @expose
 @permission("admin")
-fn reconcile(source: String, params: SearchParameters?): ReconciliationReport {
+fn reconcile(source: String, params: SearchParameters?): ReconciliationReport? {
     var ts = Traffic_Service::start(reconcile);
 
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
-        throw " Source with name ${source} not Found";
+        throw "Source with name ${source} not Found";
     }
+
     try {
         var report = DataSource::reconcile(nSource, params, null);
         ts.end();
@@ -218,17 +274,18 @@ fn reconcile(source: String, params: SearchParameters?): ReconciliationReport {
         return report;
     } catch (err) {
         nSource->removeIsReconciling();
-        throw err;
+        error(err);
     }
 }
 
 @expose
 @permission("admin")
-fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport {
+fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport? {
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
         throw "Source with name ${source} not Found";
     }
+
     try {
         var ts = Traffic_Service::start(reconcilePOIs);
 
@@ -247,7 +304,7 @@ fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters
         return report;
     } catch (err) {
         nSource->removeIsReconciling();
-        throw err;
+        error(err);
     }
 }
 
@@ -270,7 +327,7 @@ type ReconciliationReportView {
 
 @expose
 @permission("admin")
-fn getReconciliationReport(source: node<DataSource>): ReconciliationReportView? {
+fn getReconciliationReport(source: node<DataSource>, city: String?): ReconciliationReportView? {
     var ts = Traffic_Service::start(getReconciliationReport).end();
     var report = source->getReconciliationReport();
     if (report == null) {
@@ -281,6 +338,9 @@ fn getReconciliationReport(source: node<DataSource>): ReconciliationReportView? 
     var partialMatch = Array<ReconciliationReportMatchView> {};
     var noMatch = Array<String> {};
     for (record, candidates in report.unlinked) {
+        if (city != null && record->getCity() != city) {
+            continue;
+        }
         if (candidates.size() == 1 && candidates[0].mismatch == null) {
             fullMatch.add(record->getId());
         } else if (candidates.size() == 0) {
@@ -297,6 +357,9 @@ fn getReconciliationReport(source: node<DataSource>): ReconciliationReportView? 
     partialMatch.sort_by(ReconciliationReportMatchView::score, SortOrder::desc);
     var linked = Array<String> {};
     for (key, value in report.linked) {
+        if (city != null && key->getCity() != city) {
+            continue;
+        }
         linked.add(key->getId());
     }
 
@@ -483,47 +546,6 @@ type QualityTrend {
     linkedSourcesCount: int;
 }
 
-@expose
-@permission("admin")
-fn getGoldenQualityTrend(nGolden: node<GoldenPointOfInterest>): QualityTrend {
-    var ts = Traffic_Service::start(getGoldenQualityTrend);
-
-    var current: float = 0.0;
-    var previous: float? = null;
-
-    var latest = nGolden->quality.last();
-    if (latest != null) {
-        current = latest.score;
-    }
-
-    // Get second-to-last event
-    var count = 0;
-    for (_, event in nGolden->quality) {
-        count = count + 1;
-    }
-
-    if (count >= 2) {
-        var i = 0;
-        for (_, event in nGolden->quality) {
-            if (i == count - 2) {
-                previous = event.score;
-                break;
-            }
-            i = i + 1;
-        }
-    }
-
-    var delta = current - (previous ?? current);
-
-    ts.end();
-    return QualityTrend {
-        currentScore: current,
-        previousScore: previous,
-        delta: delta,
-        linkedSourcesCount: nGolden->linkedRecords.size()
-    };
-}
-
 @volatile
 type GlobalQualityEntry {
     timestamp: time;
@@ -558,3 +580,12 @@ fn computeGlobalQuality() {
     ts.end();
 }
 
+@expose
+@permission("admin")
+fn unlockSource(source: String) {
+    var nSource = sources_by_name.get(source);
+    if (nSource == null) {
+        throw "Source with name ${source} not Found";
+    }
+    nSource->removeIsReconciling();
+}

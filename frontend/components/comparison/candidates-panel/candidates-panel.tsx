@@ -114,7 +114,7 @@ export class CandidatesPanel extends HTMLElement {
         <div className="candidates-panel-header">
           <div className="header-title">
             <p className="header-subtitle">
-              {candidateCount} candidate{candidateCount !== 1 ? 's' : ''} found for comparison
+              {candidateCount} golden{candidateCount !== 1 ? 's' : ''} found for comparison
             </p>
           </div>
         </div>
