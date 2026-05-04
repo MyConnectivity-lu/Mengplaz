@@ -158,6 +158,7 @@ h4 {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  position: relative;
 }
 
 main {

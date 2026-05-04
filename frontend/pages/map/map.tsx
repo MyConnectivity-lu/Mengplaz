@@ -1,14 +1,32 @@
 import { AttributionControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import maplibregl from 'maplibre-gl';
+import { sl } from '@greycat/web';
+import './map.css';
+
+const SEARCH_MIN_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 250;
+const SEARCH_MAX_RESULTS = 10;
 
 export class MapPage extends HTMLElement {
   private map: maplibregl.Map;
   private mapContainer: HTMLDivElement;
+  private searchInput: sl.SlInput;
+  private searchSpinner: sl.SlSpinner;
+  private resultsContainer: HTMLDivElement;
+  private debounceTimer: number | null = null;
+  private searchSeq = 0;
 
   constructor() {
     super();
     this.mapContainer = (<div style={{ height: '100%' }}></div>) as HTMLDivElement;
+    this.searchSpinner = (<sl-spinner slot="suffix" style={{ display: 'none' }} />) as sl.SlSpinner;
+    this.searchInput = (
+      <sl-input placeholder="Search address..." size="medium" clearable>
+        {this.searchSpinner}
+      </sl-input>
+    ) as sl.SlInput;
+    this.resultsContainer = (<div className="map-search-results"></div>) as HTMLDivElement;
     this.map = new maplibregl.Map({
       container: this.mapContainer,
       style: {
@@ -126,6 +144,79 @@ export class MapPage extends HTMLElement {
   //6.276111602783203
   connectedCallback() {
     this.render();
+    this.searchInput.addEventListener('sl-input', () => this.onSearchInput());
+    this.searchInput.addEventListener('sl-clear', () => this.clearResults());
+  }
+
+  private onSearchInput() {
+    const value = this.searchInput.value?.trim() ?? '';
+    if (this.debounceTimer != null) {
+      window.clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    if (value.length < SEARCH_MIN_LENGTH) {
+      this.clearResults();
+      return;
+    }
+    this.setLoading(true);
+    this.debounceTimer = window.setTimeout(() => this.runSearch(value), SEARCH_DEBOUNCE_MS);
+  }
+
+  private async runSearch(query: string) {
+    const seq = ++this.searchSeq;
+    let results: gc.mengplaz.POIRecordRef[] = [];
+    try {
+      results = (await gc.api.searchAddress(query, SEARCH_MAX_RESULTS)) ?? [];
+    } catch (_e) {
+      results = [];
+    }
+    if (seq !== this.searchSeq) return;
+    this.setLoading(false);
+    this.renderResults(results);
+  }
+
+  private setLoading(loading: boolean) {
+    this.searchSpinner.style.display = loading ? '' : 'none';
+  }
+
+  private clearResults() {
+    this.searchSeq++;
+    this.setLoading(false);
+    this.resultsContainer.replaceChildren();
+  }
+
+  private renderResults(results: gc.mengplaz.POIRecordRef[]) {
+    if (results.length === 0) {
+      this.resultsContainer.replaceChildren(<div className="map-search-empty">No results</div>);
+      return;
+    }
+    const items = results.map((r) => (
+      <div className="map-search-item" onclick={() => this.onResultClick(r)}>
+        <sl-icon name="geo-alt"></sl-icon>
+        <div className="map-search-item-info">
+          <span className="map-search-item-title">
+            {r.record.number} {r.record.street}
+          </span>
+          <span className="map-search-item-sub">
+            L-{r.record.postcode} {r.record.locality}
+          </span>
+        </div>
+      </div>
+    ));
+    this.resultsContainer.replaceChildren(...items);
+  }
+
+  private onResultClick(r: gc.mengplaz.POIRecordRef) {
+    const loc = r.record.primaryLocation;
+    if (loc != null) {
+      this.map.flyTo({ center: [loc.lng, loc.lat], zoom: 18 });
+      new maplibregl.Popup()
+        .setLngLat([loc.lng, loc.lat])
+        .setDOMContent(<mengplaz-address-card value={r} showGoTo />)
+        .addTo(this.map);
+    }
+    this.searchInput.value = '';
+    this.clearResults();
   }
 
   disconnectedCallback() {
@@ -161,6 +252,10 @@ export class MapPage extends HTMLElement {
   render() {
     this.replaceChildren(
       <>
+        <div className="map-search-panel">
+          {this.searchInput}
+          {this.resultsContainer}
+        </div>
         <div style={{ maxWidth: '300px', position: 'fixed', top: 'var(--sl-spacing-large)', right: 'var(--sl-spacing-large)', zIndex: '999' }}>
           <sl-alert variant="primary" open closable id="map-loading-alert">
             <sl-icon slot="icon" name="info-circle"></sl-icon>
