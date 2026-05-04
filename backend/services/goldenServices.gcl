@@ -92,7 +92,7 @@ type GoldenServices {
             var d = GoldenServices::computeCityNameScore(cityName, nCity->name);
             if (d >= threshold) {
                 citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
-            } 
+            }
             for (_, alias in nCity->nameAliases) {
                 var d = GoldenServices::computeCityNameScore(cityName, alias.value);
                 if (d >= threshold) {
@@ -122,7 +122,7 @@ type GoldenServices {
             }
             if (d >= threshold) {
                 streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
-            } 
+            }
             for (_, alias in nStreet->nameAliases) {
                 if (nCity == null) {
                     d = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
@@ -133,7 +133,6 @@ type GoldenServices {
                     streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
                 }
             }
-            
         }
         streetsMatches.sort_by(Match::score, SortOrder::desc);
         return streetsMatches;
@@ -211,7 +210,7 @@ type GoldenServices {
         for (_, nRecord in req.items) {
             try {
                 results.add(GoldenServices::searchItem(nRecord, req.params));
-            } catch (err){
+            } catch (err) {
                 error(err);
             }
         }
@@ -386,7 +385,7 @@ type GoldenServices {
                             nGoldenCity->nameAliases.add(clone(alias));
                         }
                         nGoldenMunicipality->cities_by_id.set(newCityUID, nGoldenCity);
-                        golden_cities_by_id.set(newCityUID, nGoldenCity);
+                        nGoldenCity->indexing(nGoldenCity);
 
                         for (streetId, nStreet in nCity->streets_by_id) {
                             var newStreetUID: String;
@@ -406,8 +405,7 @@ type GoldenServices {
                             for (_, alias in nStreet->aliases) {
                                 nGoldenStreet->nameAliases.add(clone(alias));
                             }
-                            nGoldenCity->streets_by_id.set(newStreetUID, nGoldenStreet);
-                            golden_streets_by_id.set(newStreetUID, nGoldenStreet);
+                            nGoldenStreet->indexing(nGoldenStreet);
 
                             for (buildingId, nBuilding in nStreet->buildings_by_id) {
                                 var newUID: String;
@@ -428,8 +426,7 @@ type GoldenServices {
                                         quality: nodeTime<QualityEvent> {}
                                     }
                                 };
-                                nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-                                golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+                                nGoldenPOI->indexing(nGoldenPOI);
                             }
                         }
                     }

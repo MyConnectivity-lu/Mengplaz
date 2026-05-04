@@ -14,11 +14,12 @@ type Traffic_Service {
         };
     }
 
-    fn end() {
+    fn end(): duration {
         var traffic = Traffic {
             user: User::current(),
             executionTime: time::now() - this.start
         };
         this.endPoint->traffic.setAt(this.start, traffic);
+        return time::now() - this.start;
     }
 }

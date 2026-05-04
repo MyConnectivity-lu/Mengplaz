@@ -24,11 +24,15 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 
     var source = sourceRecord->getSource();
     source->reconciliationReport->unlinked.remove(sourceRecord);
+    var geoScore = 0.0;
+    if (sourceRecord->toSearchItem().coordinates != null) {
+        geoScore = 1.0;
+    }
     source->reconciliationReport->linked.set(
         sourceRecord,
         ReconciliationCandidate {
             candidateRecord: nGolden,
-            score: ReconciliationCandidateScore { cityScore: 1.0, geoScore: 1.0, numberScore: 1.0, overallScore: 1.0, postcodeScore: 1.0, streetScore: 1.0 }
+            score: ReconciliationCandidateScore { cityScore: 1.0, geoScore: geoScore, numberScore: 1.0, overallScore: 1.0, postcodeScore: 1.0, streetScore: 1.0 }
         }
     );
 

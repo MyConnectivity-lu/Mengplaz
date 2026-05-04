@@ -5,6 +5,9 @@ var golden_cities_by_id: nodeIndex<String, node<GoldenCity>>;
 var golden_streets_by_id: nodeIndex<String, node<GoldenStreet>>;
 var golden_pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
 
+var golden_cities_by_name: nodeIndex<String, Array<node<GoldenCity>>>;
+var golden_streets_by_name: nodeIndex<String, Array<node<GoldenStreet>>>;
+
 var golden_pois_by_geo: nodeGeo<node<GoldenPointOfInterest>>;
 
 type GoldenSource extends DataSource {
@@ -41,7 +44,7 @@ type GoldenSource extends DataSource {
         return GoldenServices::search(req);
     }
 
-    fn getIndex():nodeIndex<String, node<POIRecordProvider>> {
+    fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return golden_pois_by_id;
     }
 }
@@ -88,6 +91,24 @@ type GoldenCity {
 
     municipality: node<GoldenMunicipality>;
     streets_by_id: nodeIndex<String, node<GoldenStreet>>;
+    streets_by_name: nodeIndex<String, node<GoldenStreet>>?;
+
+    fn indexing(self: node<GoldenCity>) {
+        var cityKey = this.name.lowercase();
+        var cities = golden_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<GoldenCity>> {};
+        }
+        cities.add(self);
+
+        if (this.streets_by_name == null) {
+            this.streets_by_name = nodeIndex<String, node<GoldenStreet>> {};
+        }
+
+        this.municipality->cities_by_id.set(this.id, self);
+        golden_cities_by_id.set(this.id, self);
+        golden_cities_by_name.set(this.id, cities);
+    }
 }
 
 type GoldenStreet extends StreetRecordProvider {
@@ -100,6 +121,7 @@ type GoldenStreet extends StreetRecordProvider {
 
     city: node<GoldenCity>;
     pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
+    pois_by_number: nodeIndex<String, node<GoldenPointOfInterest>>?;
 
     fn toRecord(): StreetRecord {
         var record = StreetRecord {
@@ -124,6 +146,24 @@ type GoldenStreet extends StreetRecordProvider {
                 });
         }
         return arr;
+    }
+
+    fn indexing(self: node<GoldenStreet>) {
+        var streetKey = this.name.lowercase();
+        var streets = golden_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<GoldenStreet>> {};
+        }
+        streets.add(self);
+
+        if (this.pois_by_number == null) {
+            this.pois_by_number = nodeIndex<String, node<GoldenPointOfInterest>> {};
+        }
+
+        golden_streets_by_name.set(streetKey, streets);
+        golden_streets_by_id.set(this.id, self);
+        this.city->streets_by_name?.set(streetKey, self);
+        this.city->streets_by_id.set(this.id, self);
     }
 }
 
@@ -200,13 +240,13 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return this.uid;
     }
 
-    fn toSearchItem(){};
+    fn toSearchItem() {};
 
     fn getSourceName(): String {
         return GoldenSource::NAME;
     }
 
-    fn addStreetAlias(name:String){
+    fn addStreetAlias(name: String) {
         if (this.street != null && name != this.street->name) {
             var found = false;
             for (_, alias in this.street->nameAliases) {
@@ -215,13 +255,13 @@ type GoldenPointOfInterest extends POIRecordProvider {
                     break;
                 }
             }
-            if (found == false ) {
-                this.street->nameAliases.add(Alias { value: name, id: ""});
+            if (found == false) {
+                this.street->nameAliases.add(Alias { value: name, id: "" });
             }
         }
-    }    
-    
-    fn addCityAlias(name:String){
+    }
+
+    fn addCityAlias(name: String) {
         var city = this.street?->city;
         if (city != null && name != city->name) {
             var found = false;
@@ -231,8 +271,8 @@ type GoldenPointOfInterest extends POIRecordProvider {
                     break;
                 }
             }
-            if (found == false ) {
-                city->nameAliases.add(Alias { value: name, id: ""});
+            if (found == false) {
+                city->nameAliases.add(Alias { value: name, id: "" });
             }
         }
     }
@@ -266,5 +306,20 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     fn getCity(): String? {
         return this.street?->city->name;
+    }
+
+    fn indexing(self: node<GoldenPointOfInterest>) {
+        var nStreet = this.street;
+        if (nStreet != null) {
+            var numKey = "${this.number}${this.multipleCode}";
+            nStreet->pois_by_number?.set(numKey, self);
+            nStreet->pois_by_id.set(this.uid, self);
+        }
+
+        golden_pois_by_id.set(this.uid, self);
+
+        if (this.primaryLocation != null) {
+            golden_pois_by_geo.set(this.primaryLocation, self);
+        }
     }
 }

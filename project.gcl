@@ -1,8 +1,8 @@
 @include("backend");
 
-@library("std", "7.6.243-stable");
-@library("explorer", "7.6.19-stable");
-//@library("strplus");
+@library("std", "7.8.173-stable");
+@library("explorer", "7.8.19-stable");
+@library("postal");
 
 @role("public", "files", "api");
 
@@ -12,8 +12,8 @@ fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
-    Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, null);
-    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, null);
+    Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
+    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, PeriodicOptions { immediate: false });
 }
 
 fn bootstrap() {
@@ -89,4 +89,46 @@ fn loadCaclr() {
     }
 }
 
+@permission("admin")
+@expose
+fn populateGoldenIndexes() {
+    for (_, nCity in golden_cities_by_id) {
+        var cityKey = nCity->name.lowercase();
+        var cities = golden_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<GoldenCity>> {};
+        }
+        cities.add(nCity);
+        golden_cities_by_name.set(cityKey, cities);
+
+        if (nCity->streets_by_name == null) {
+            nCity->streets_by_name = nodeIndex<String, node<GoldenStreet>> {};
+        }
+    }
+
+    for (_, nStreet in golden_streets_by_id) {
+        var streetKey = nStreet->name.lowercase();
+        var streets = golden_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<GoldenStreet>> {};
+        }
+        streets.add(nStreet);
+        golden_streets_by_name.set(streetKey, streets);
+
+        nStreet->city->streets_by_name!!.set(streetKey, nStreet);
+        if (nStreet->pois_by_number == null) {
+            nStreet->pois_by_number = nodeIndex<String, node<GoldenPointOfInterest>> {};
+        }
+    }
+
+    for (_, nPoi in golden_pois_by_id) {
+        var nStreet = nPoi->street;
+        if (nStreet != null) {
+            var numKey = "${nPoi->number}${nPoi->multipleCode}".lowercase();
+            nStreet->pois_by_number?.set(numKey, nPoi);
+        }
+    }
+
+    info("Golden indexes populated");
+}
 

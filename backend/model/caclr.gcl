@@ -189,11 +189,8 @@ type CaclrBuilding extends POIRecordProvider {
                 quality: nodeTime<QualityEvent> {}
             }
         };
-        nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-        golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-        if (nGoldenPOI->primaryLocation != null) {
-            golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
-        }
+        nGoldenPOI->indexing(nGoldenPOI);
+
         return nGoldenPOI;
     }
 

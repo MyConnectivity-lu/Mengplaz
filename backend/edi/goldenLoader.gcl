@@ -92,8 +92,7 @@ type GoldenLoader {
                         streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
                     }
                 };
-                nGoldenMunicipality->cities_by_id.set(nGoldenCity->id, nGoldenCity);
-                golden_cities_by_id.set(nGoldenCity->id, nGoldenCity);
+                nGoldenCity->indexing(nGoldenCity);
             }
         }
     }
@@ -112,10 +111,10 @@ type GoldenLoader {
                         lastUpdate: l.lastUpdate,
                         city: nGoldenCity,
                         pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+                        pois_by_number: nodeIndex<String, node<GoldenPointOfInterest>> {}
                     }
                 };
-                nGoldenCity->streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
-                golden_streets_by_id.set(nGoldenStreet->id, nGoldenStreet);
+                nGoldenStreet->indexing(nGoldenStreet);
             }
         }
     }
@@ -182,12 +181,7 @@ type GoldenLoader {
                 }
             }
 
-            nGoldenStreet?->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-            golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-
-            if (nGoldenPOI->primaryLocation != null) {
-                golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
-            }
+            nGoldenPOI->indexing(nGoldenPOI);
         }
     }
 

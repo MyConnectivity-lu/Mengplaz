@@ -1,0 +1,105 @@
+type ScoredCity {
+    city: node<GoldenCity>;
+    distance: float;
+}
+
+type ScoredStreet {
+    street: node<GoldenStreet>;
+    distance: float;
+}
+
+type ScoredPoi {
+    poi: node<GoldenPointOfInterest>;
+    distance: float;
+}
+
+fn findCities(city: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+    var cities = Array<ScoredCity> {};
+    var exact = golden_cities_by_name.get(city);
+    if (exact != null) {
+        for (_, nCity in exact) {
+            cities.add(ScoredCity { city: nCity, distance: 0.0 });
+        }
+        return cities;
+    }
+    var cityResults = golden_cities_by_name.search(city, max);
+    for (_, cr in cityResults) {
+        if (cr.distance > distanceThreshold) {
+            continue;
+        }
+        for (_, nCity in cr.value) {
+            cities.add(ScoredCity { city: nCity, distance: cr.distance });
+        }
+    }
+    return cities;
+}
+
+fn findStreetsInCity(nCity: node<GoldenCity>, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+    var streets = Array<ScoredStreet> {};
+    if (nCity->streets_by_name == null) {
+        return streets;
+    }
+    var idx = nCity->streets_by_name;
+    var exact = idx.get(road);
+    if (exact != null) {
+        streets.add(ScoredStreet { street: exact, distance: 0.0 });
+        return streets;
+    }
+    var streetResults = idx.search(road, max);
+    for (_, sr in streetResults) {
+        if (sr.distance > distanceThreshold) {
+            continue;
+        }
+        streets.add(ScoredStreet { street: sr.value, distance: sr.distance });
+    }
+    return streets;
+}
+
+fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+    var streets = Array<ScoredStreet> {};
+    var exact = golden_streets_by_name.get(road);
+    if (exact != null) {
+        for (_, nStreet in exact) {
+            streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
+        }
+        return streets;
+    }
+    var globalResults = golden_streets_by_name.search(road, max);
+    for (_, gr in globalResults) {
+        if (gr.distance > distanceThreshold) {
+            continue;
+        }
+        for (_, nStreet in gr.value) {
+            //info("Found ${nStreet->name} score! ${gr.distance}");
+            streets.add(ScoredStreet { street: nStreet, distance: gr.distance });
+        }
+    }
+    return streets;
+}
+
+fn findPoisInStreet(nStreet: node<GoldenStreet>, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
+    var results = Array<ScoredPoi> {};
+    if (houseNumber == null) {
+        for (_, nPoi in nStreet->pois_by_id) {
+            if (postcode == null || nPoi->postCode == postcode) {
+                results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
+            }
+        }
+        return results;
+    }
+    var exact = nStreet->pois_by_number?.get(houseNumber);
+    if (exact != null) {
+        if (postcode == null || exact->postCode == postcode) {
+            results.add(ScoredPoi { poi: exact, distance: 0.0 });
+            return results;
+        }
+    }
+    var poiResults = nStreet->pois_by_number?.search(houseNumber, max);
+    for (_, pr in poiResults?) {
+        if (pr.distance > distanceThreshold) {
+            continue;
+        }
+        results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
+    }
+    return results;
+}

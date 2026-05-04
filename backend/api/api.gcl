@@ -94,7 +94,6 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
     };
 }
 
-
 /// Returns the Golden POI associated with the given uid
 @expose
 @tag("openapi")
@@ -337,3 +336,106 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
 fn appInfo(): RuntimeInfo {
     return Runtime::info();
 }
+
+@expose
+fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
+    // Can be adjusted to speed up search; lower -> stricter -> less iterations -> faster
+    if (max == null) {
+        max = 5;
+    }
+    var distanceThreshold = 10;
+
+    var ts = Traffic_Service::start(searchAddress);
+    var parsed = PostalAddress::parseStructured(addr, PostalOptions { country: "lu" });
+    var results = Array<POIRecordRef> {};
+
+    var road = parsed.road?.trim().lowercase();
+    if (road == null) {
+        ts.end();
+        return results;
+    }
+    // Edge case where Luxembourg city and country get switched
+    if (parsed.country != null && parsed.city == null) {
+        parsed.city = parsed.country;
+    }
+    var city = parsed.city?.trim().lowercase();
+    var houseNumber = parsed.house_number?.trim().lowercase();
+    var postcode = parsed.postcode?.trim().lowercase();
+
+    if (postcode != null && postcode.startsWith("l")) {
+        postcode = postcode.slice(2, postcode.size());
+    }
+
+    info("parsed: road='${road}' city='${city}' houseNumber='${houseNumber}' postcode='${postcode}'");
+
+    var scoredStreets = Array<ScoredStreet> {};
+    if (city != null) {
+        var cities = findCities(city, max, distanceThreshold);
+        // info("matched ${cities.size()} cities for '${city}'");
+        for (_, scoredCity in cities) {
+            for (_, scoredStreet in findStreetsInCity(scoredCity.city, road, max, distanceThreshold)) {
+                scoredStreets.add(ScoredStreet {
+                        street: scoredStreet.street,
+                        distance: scoredCity.distance + scoredStreet.distance,
+                    });
+            }
+        }
+        // info("matched ${scoredStreets.size()} streets for '${road}' in city scope");
+    }
+    // City is either null OR we found no matching streets in the given city
+    if (scoredStreets.size() == 0) {
+        scoredStreets = findStreetsByName(road, max, distanceThreshold);
+        // info("matched ${scoredStreets.size()} streets for '${road}' globally");
+    }
+
+    var scoredPois = Array<ScoredPoi> {};
+    for (_, scoredStreet in scoredStreets) {
+        // info("Searching in ${scoredStreet.street->name}");
+        for (_, scoredPoi in findPoisInStreet(scoredStreet.street, houseNumber, postcode, max, distanceThreshold)) {
+            scoredPois.add(ScoredPoi {
+                    poi: scoredPoi.poi,
+                    distance: scoredStreet.distance + scoredPoi.distance,
+                });
+        }
+    }
+    scoredPois.sort_by(ScoredPoi::distance, SortOrder::asc);
+    for (_, sp in scoredPois limit max) {
+        results.add(POIRecordRef {
+                ref: sp.poi,
+                record: sp.poi->toMengplazRecord(),
+            });
+    }
+    var t = ts.end();
+    //info("returned ${results.size()} POIs in ${t}");
+    return results;
+}
+
+// fn benchmarkSearchAddress() {
+//     var addresses = Array<String> {
+//         "2 rue de la gare, Luxembourg",
+//         "10 avenue John F. Kennedy, 1855 Luxembourg",
+//         "1 place Guillaume II, Luxembourg",
+//         "5 rue de Strasbourg, 2560 Luxembourg",
+//         "20 boulevard Royal, 2449 Luxembourg",
+//     };
+//     var iterations = 5;
+//     info("=== searchAddress benchmark: ${addresses.size()} addresses x ${iterations} runs ===");
+//     for (_, addr in addresses) {
+//         info("Searching '${addr}'");
+//         var total = 0_us;
+//         for (var i = 0; i < iterations; i++) {
+//             var start = time::now();
+//             var res = searchAddress(addr, null);
+//             total = total + (time::now() - start);
+//             if (i == iterations - 1) {
+//                 info("Found ${res.size()} results");
+//                 if (res.size() > 0) {
+//                     info("${res[0].record.number} ${res[0].record.street}, ${res[0].record.postcode} ${res[0].record.locality}");
+//                 }
+//             }
+//         }
+//         var avg = total / iterations;
+//         info("avg ${avg}");
+//     }
+//     info("=== benchmark end ===");
+// }
