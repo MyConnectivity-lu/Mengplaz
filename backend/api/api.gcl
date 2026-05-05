@@ -407,6 +407,7 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
         for (_, road in roads) {
             for (_, ss in findStreetsByName(road, max, distanceThreshold)) {
                 var k = ss.street as int;
+                // info("${ss.distance}  ${ss.street->name}");
                 streetMap.set(k, ss);
             }
         }

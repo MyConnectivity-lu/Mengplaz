@@ -71,14 +71,14 @@ fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<Scor
         }
         return streets;
     }
-    var globalResults = golden_streets_by_name.search(road, max);
+    var globalResults = golden_streets_by_name.search(road, 100);
     for (_, gr in globalResults) {
         if (gr.distance > distanceThreshold) {
             continue;
         }
+        var jaroDist = 1.0 - gr.key.jaro(road);
         for (_, nStreet in gr.value) {
-            // info("Found ${nStreet->name} score! ${gr.distance}");
-            streets.add(ScoredStreet { street: nStreet, distance: gr.distance });
+            streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
         }
     }
     return streets;
