@@ -231,6 +231,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
             street: this.street?->name,
             postcode: this.postCode,
             locality: this.street?->city->name,
+            commune: this.street?->city->municipality->name,
             primaryLocation: this.primaryLocation,
             secondaryLocations: this.secondaryLocations,
             sourceName: GoldenSource::NAME,
@@ -241,7 +242,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
                 record.streetAliases = this.street->nameAliases;
             }
             if (this.street->city->nameAliases.size() > 0) {
-                record.cityAliases = this.street->city->nameAliases;
+                record.localityAliases = this.street->city->nameAliases;
             }
         }
         return record;

@@ -18,11 +18,9 @@ type LinkedRecordEntry {
     score: float;
 }
 
-
-
 abstract type DataSource {
     private reconciliationReport: node<ReconciliationReport>;
-    private isReconciling : node<bool>?;
+    private isReconciling: node<bool>?;
 
     abstract fn name(): String;
     abstract fn getWeight(): float;
@@ -31,7 +29,7 @@ abstract type DataSource {
     // abstract fn search(req: SearchRequest): Array<SearchResult>;
     abstract fn getIndex(): nodeIndex<String, node<POIRecordProvider>>;
 
-    static fn reconcile(nSource: node<DataSource> , searchParams: SearchParameters?, pois : Array<node<POIRecordProvider>>?): ReconciliationReport {
+    static fn reconcile(nSource: node<DataSource>, searchParams: SearchParameters?, pois: Array<node<POIRecordProvider>>?): ReconciliationReport {
         if (searchParams == null) {
             searchParams = SearchParameters::default();
         }
@@ -63,22 +61,22 @@ abstract type DataSource {
         for (_, job in jobs) {
             for (_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
                 var candidates = searchResult.candidates;
-                var results = Array<ReconciliationCandidate> {  };
+                var results = Array<ReconciliationCandidate> {};
                 var perfectMatch = 0;
                 for (_, candidate in candidates) {
                     var reconCandidate = ReconciliationCandidate {
-                        candidateRecord :candidate.elem,
+                        candidateRecord: candidate.elem,
                         mismatch: null,
-                        score :ReconciliationCandidateScore {
-                            cityScore : candidate.cityScore,
-                            numberScore : candidate.numberScore,
-                            postcodeScore : candidate.postcodeScore,
-                            streetScore : candidate.streetScore,
+                        score: ReconciliationCandidateScore {
+                            cityScore: candidate.cityScore,
+                            numberScore: candidate.numberScore,
+                            postcodeScore: candidate.postcodeScore,
+                            streetScore: candidate.streetScore,
                             geoScore: candidate.geoScore,
                             overallScore: candidate.overallScore
                         }
                     };
-                    if(candidate.overallScore != 1){
+                    if (candidate.overallScore != 1) {
                         var reason = MengplazMissmatch::COMPLEX_MISMATCH;
                         if (candidate.cityScore == 1) {
                             if (candidate.postcodeScore == 1) {
@@ -92,12 +90,12 @@ abstract type DataSource {
                             }
                         }
                         reconCandidate.mismatch = reason;
-                    } else{
+                    } else {
                         perfectMatch++;
                     }
                     results.add(reconCandidate);
                 }
-                if(perfectMatch > 1){
+                if (perfectMatch > 1) {
                     for (_, res in results) {
                         res.mismatch = MengplazMissmatch::MULTIPLE_MATCHES;
                     }
@@ -108,15 +106,15 @@ abstract type DataSource {
         return report;
     }
 
-    fn setIsReconciling(){
-        if(this.isReconciling == null){
-            this.isReconciling = node<bool> {true};
-        }else{
+    fn setIsReconciling() {
+        if (this.isReconciling == null) {
+            this.isReconciling = node<bool> { true };
+        } else {
             this.isReconciling.set(true);
         }
     }
 
-    fn removeIsReconciling(){
+    fn removeIsReconciling() {
         this.isReconciling?.set(false);
     }
 }
@@ -137,6 +135,7 @@ type ReconciliationCandidateScore {
 }
 
 // if score is null, we assume a score of 1, to save space
+
 type ReconciliationCandidate {
     candidateRecord: node<POIRecordProvider>;
     score: ReconciliationCandidateScore?;
@@ -145,14 +144,14 @@ type ReconciliationCandidate {
 
 type ReconciliationReport {
     date: time;
-    linked: nodeIndex<node<POIRecordProvider> , ReconciliationCandidate>;
-    unlinked: nodeIndex<node<POIRecordProvider> , Array<ReconciliationCandidate>>;
+    linked: nodeIndex<node<POIRecordProvider>, ReconciliationCandidate>;
+    unlinked: nodeIndex<node<POIRecordProvider>, Array<ReconciliationCandidate>>;
 
-    static fn init(): ReconciliationReport{
-        return  ReconciliationReport {
+    static fn init(): ReconciliationReport {
+        return ReconciliationReport {
             date: time::now(),
-            linked: nodeIndex<node<POIRecordProvider> , ReconciliationCandidate> {},
-            unlinked : nodeIndex<node<POIRecordProvider> , Array<ReconciliationCandidate>> {}
+            linked: nodeIndex<node<POIRecordProvider>, ReconciliationCandidate> {},
+            unlinked: nodeIndex<node<POIRecordProvider>, Array<ReconciliationCandidate>> {}
         };
     };
 }
@@ -184,7 +183,8 @@ type POIRecord {
     street: String?;
     streetAliases: Array<Alias>?;
     locality: String?;
-    cityAliases: Array<Alias>?;
+    localityAliases: Array<Alias>?;
+    commune: String?;
     primaryLocation: geo?;
     secondaryLocations: Map<String, geo>?;
     sourceName: String;
@@ -203,7 +203,7 @@ abstract type POIRecordProvider {
     abstract fn getSourceName(): String;
     abstract fn getId(): String;
     abstract fn toSearchItem(): SearchItem;
-    abstract fn getStreet():String?;
+    abstract fn getStreet(): String?;
     abstract fn getCity(): String?;
 }
 
@@ -294,7 +294,7 @@ type SearchParameters {
             citySimilarityThreshold: 0.7,
             streetSimilarityThreshold: 0.7,
             postcodeSimilarityThreshold: 0.4,
-            coordinatesSimilarityThreshold : 0.7,
+            coordinatesSimilarityThreshold: 0.7,
             maxCandidatesPerItem: 10,
             postcodeMaxDistance: 200,
             weights: ScoringWeights::default(),

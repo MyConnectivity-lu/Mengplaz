@@ -209,7 +209,7 @@ export class MapPage extends HTMLElement {
             {r.record.number} {r.record.street}
           </span>
           <span className="map-search-item-sub">
-            L-{r.record.postcode} {r.record.locality}
+            L-{r.record.postcode} {r.record.locality} {r.record.commune}
           </span>
         </div>
       </div>

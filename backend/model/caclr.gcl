@@ -233,6 +233,7 @@ type CaclrBuilding extends POIRecordProvider {
             street: this.street?->name,
             postcode: this.postalCode,
             locality: this.street?->city->name,
+            commune: this.street?->city->municipality->name,
             primaryLocation: this.position,
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,
@@ -243,7 +244,7 @@ type CaclrBuilding extends POIRecordProvider {
                 record.streetAliases = this.street->aliases;
             }
             if (this.street->city->aliases.size() > 0) {
-                record.cityAliases = this.street->city->aliases;
+                record.localityAliases = this.street->city->aliases;
             }
         }
         return record;
