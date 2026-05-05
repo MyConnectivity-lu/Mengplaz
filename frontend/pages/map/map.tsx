@@ -20,7 +20,7 @@ export class MapPage extends HTMLElement {
   constructor() {
     super();
     this.mapContainer = (<div style={{ height: '100%' }}></div>) as HTMLDivElement;
-    this.searchSpinner = (<sl-spinner slot="suffix" style={{ display: 'none' }} />) as sl.SlSpinner;
+    this.searchSpinner = (<sl-spinner slot="prefix" style={{ visibility: 'hidden' }} />) as sl.SlSpinner;
     this.searchInput = (
       <sl-input placeholder="Search address..." size="medium" clearable>
         {this.searchSpinner}
@@ -174,10 +174,13 @@ export class MapPage extends HTMLElement {
     }
     if (controller.signal.aborted) return;
     this.renderResults(results);
+    this.setLoading(false);
   }
 
   private setLoading(loading: boolean) {
-    this.searchSpinner.style.display = loading ? '' : 'none';
+    console.log(loading);
+
+    this.searchSpinner.style.visibility = loading ? 'visible' : 'hidden';
   }
 
   private clearResults() {
@@ -188,7 +191,16 @@ export class MapPage extends HTMLElement {
 
   private renderResults(results: gc.mengplaz.POIRecordRef[]) {
     if (results.length === 0) {
-      this.resultsContainer.replaceChildren(<div className="map-search-empty">No results</div>);
+      this.resultsContainer.replaceChildren(
+        <div className="map-search-empty">
+          <div>No results</div>
+          <div className="map-search-empty-hint">
+            Try format: <em>number street, postcode locality</em>
+            <br />
+            e.g. <em>5 Rue de l'Industrie, 1811 Luxembourg</em>
+          </div>
+        </div>,
+      );
       return;
     }
     const items = results.map((r) => (

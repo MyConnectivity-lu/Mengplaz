@@ -79,3 +79,9 @@
   color: var(--color-text);
   text-align: center;
 }
+
+.map-search-empty-hint {
+  margin-top: var(--sl-spacing-x-small);
+  font-size: var(--sl-font-size-small);
+  color: var(--sl-color-neutral-600);
+}
