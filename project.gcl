@@ -14,6 +14,8 @@ fn main() {
 
     Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
     Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, PeriodicOptions { immediate: false });
+
+    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 10_s }, PeriodicOptions { immediate: false, start: time::now() + 10s });
 }
 
 fn bootstrap() {
