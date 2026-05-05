@@ -1572,10 +1572,10 @@ declare namespace gc {
       number: number | bigint;
       multipleCode: string;
       postalCode: string;
-      locality: string | null;
+      street: string | null;
       streetAliases: globalThis.Array<gc.mengplaz.Alias> | null;
-      city: string | null;
-      cityAliases: globalThis.Array<gc.mengplaz.Alias> | null;
+      locality: string | null;
+      localityAliases: globalThis.Array<gc.mengplaz.Alias> | null;
       commune: string | null;
       canton: string | null;
       constituency: string | null;
@@ -1586,8 +1586,8 @@ declare namespace gc {
       lastUpdate: gc.core.time;
       sourceName: string;
       goldenRef: gc.core.node<gc.golden.GoldenPointOfInterest> | null;
-      constructor(id: string, number: number | bigint, multipleCode: string, postalCode: string, locality: string | null, streetAliases: globalThis.Array<gc.mengplaz.Alias> | null, city: string | null, cityAliases: globalThis.Array<gc.mengplaz.Alias> | null, commune: string | null, canton: string | null, constituency: string | null, primaryLocation: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenPointOfInterest> | null);
-      static createFrom(fields: {id: string, number: number | bigint, multipleCode: string, postalCode: string, locality?: string | null, streetAliases?: globalThis.Array<gc.mengplaz.Alias> | null, city?: string | null, cityAliases?: globalThis.Array<gc.mengplaz.Alias> | null, commune?: string | null, canton?: string | null, constituency?: string | null, primaryLocation?: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate?: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenPointOfInterest> | null}): CaclrPOIFullRecord;
+      constructor(id: string, number: number | bigint, multipleCode: string, postalCode: string, street: string | null, streetAliases: globalThis.Array<gc.mengplaz.Alias> | null, locality: string | null, localityAliases: globalThis.Array<gc.mengplaz.Alias> | null, commune: string | null, canton: string | null, constituency: string | null, primaryLocation: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenPointOfInterest> | null);
+      static createFrom(fields: {id: string, number: number | bigint, multipleCode: string, postalCode: string, street?: string | null, streetAliases?: globalThis.Array<gc.mengplaz.Alias> | null, locality?: string | null, localityAliases?: globalThis.Array<gc.mengplaz.Alias> | null, commune?: string | null, canton?: string | null, constituency?: string | null, primaryLocation?: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate?: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenPointOfInterest> | null}): CaclrPOIFullRecord;
     }
     namespace CaclrPOIFullRecord {
       interface $Fields {
@@ -1595,10 +1595,10 @@ declare namespace gc {
         number: 1;
         multipleCode: 2;
         postalCode: 3;
-        locality: 4;
+        street: 4;
         streetAliases: 5;
-        city: 6;
-        cityAliases: 7;
+        locality: 6;
+        localityAliases: 7;
         commune: 8;
         canton: 9;
         constituency: 10;
@@ -4338,10 +4338,10 @@ declare namespace gc {
     'caclr::CaclrPOIFullRecord::number': 0,
     'caclr::CaclrPOIFullRecord::multipleCode': 0,
     'caclr::CaclrPOIFullRecord::postalCode': 0,
-    'caclr::CaclrPOIFullRecord::locality': 0,
+    'caclr::CaclrPOIFullRecord::street': 0,
     'caclr::CaclrPOIFullRecord::streetAliases': 0,
-    'caclr::CaclrPOIFullRecord::city': 0,
-    'caclr::CaclrPOIFullRecord::cityAliases': 0,
+    'caclr::CaclrPOIFullRecord::locality': 0,
+    'caclr::CaclrPOIFullRecord::localityAliases': 0,
     'caclr::CaclrPOIFullRecord::commune': 0,
     'caclr::CaclrPOIFullRecord::canton': 0,
     'caclr::CaclrPOIFullRecord::constituency': 0,
