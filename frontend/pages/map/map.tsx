@@ -15,7 +15,7 @@ export class MapPage extends HTMLElement {
   private searchSpinner: sl.SlSpinner;
   private resultsContainer: HTMLDivElement;
   private debounceTimer: number | null = null;
-  private searchSeq = 0;
+  private searchAbort: AbortController | null = null;
 
   constructor() {
     super();
@@ -163,15 +163,16 @@ export class MapPage extends HTMLElement {
   }
 
   private async runSearch(query: string) {
-    const seq = ++this.searchSeq;
+    this.searchAbort?.abort();
+    const controller = new AbortController();
+    this.searchAbort = controller;
     let results: gc.mengplaz.POIRecordRef[] = [];
     try {
-      results = (await gc.api.searchAddress(query, SEARCH_MAX_RESULTS)) ?? [];
+      results = (await gc.api.searchAddress(query, SEARCH_MAX_RESULTS, undefined, controller.signal)) ?? [];
     } catch (_e) {
-      results = [];
+      return;
     }
-    if (seq !== this.searchSeq) return;
-    this.setLoading(false);
+    if (controller.signal.aborted) return;
     this.renderResults(results);
   }
 
@@ -180,8 +181,8 @@ export class MapPage extends HTMLElement {
   }
 
   private clearResults() {
-    this.searchSeq++;
-    this.setLoading(false);
+    this.searchAbort?.abort();
+    this.searchAbort = null;
     this.resultsContainer.replaceChildren();
   }
 
