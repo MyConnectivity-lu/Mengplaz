@@ -70,8 +70,7 @@ type GoldenLoader {
                         cities_by_id: nodeIndex<String, node<GoldenCity>> {},
                     }
                 };
-                nGoldenCanton->municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
-                golden_municipalities_by_id.set(nGoldenMunicipality->id, nGoldenMunicipality);
+                nGoldenMunicipality->indexing(nGoldenMunicipality);
             }
         }
     }

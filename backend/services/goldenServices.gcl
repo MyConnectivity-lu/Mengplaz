@@ -363,8 +363,7 @@ type GoldenServices {
                             cities_by_id: nodeIndex<String, node<GoldenCity>> {},
                         }
                     };
-                    nGoldenCanton->municipalities_by_id.set(newMunicipalityUID, nGoldenMunicipality);
-                    golden_municipalities_by_id.set(newMunicipalityUID, nGoldenMunicipality);
+                    nGoldenMunicipality->indexing(nGoldenMunicipality);
 
                     for (cityId, nCity in nMunicipality->cities_by_id) {
                         var newCityUID: String;

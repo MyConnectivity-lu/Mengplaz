@@ -5,6 +5,7 @@ var golden_cities_by_id: nodeIndex<String, node<GoldenCity>>;
 var golden_streets_by_id: nodeIndex<String, node<GoldenStreet>>;
 var golden_pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
 
+var golden_municipalities_by_name: nodeIndex<String, node<GoldenMunicipality>>;
 var golden_cities_by_name: nodeIndex<String, Array<node<GoldenCity>>>;
 var golden_streets_by_name: nodeIndex<String, Array<node<GoldenStreet>>>;
 
@@ -79,6 +80,19 @@ type GoldenMunicipality {
 
     canton: node<GoldenCanton>;
     cities_by_id: nodeIndex<String, node<GoldenCity>>;
+    cities_by_name: nodeIndex<String, node<GoldenCity>>?;
+
+    fn indexing(self: node<GoldenMunicipality>) {
+        var munKey = this.name.lowercase();
+
+        if (this.cities_by_name == null) {
+            this.cities_by_name = nodeIndex<String, node<GoldenCity>> {};
+        }
+
+        this.canton->municipalities_by_id.set(this.id, self);
+        golden_municipalities_by_id.set(this.name, self);
+        golden_municipalities_by_name.set(this.id, self);
+    }
 }
 
 type GoldenCity {
@@ -106,6 +120,7 @@ type GoldenCity {
         }
 
         this.municipality->cities_by_id.set(this.id, self);
+        this.municipality->cities_by_name?.set(this.id, self);
         golden_cities_by_id.set(this.id, self);
         golden_cities_by_name.set(this.id, cities);
     }
