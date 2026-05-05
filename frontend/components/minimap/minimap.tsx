@@ -58,6 +58,8 @@ export class MiniMap extends HTMLElement {
         this.secondaryMarker = new maplibregl.Marker({ color: CANDIDATE_COLOR }).setLngLat([this.secondary.lng, this.secondary.lat]).addTo(m as any);
       }
 
+      console.log(this.primary);
+
       // Center map between both points or on primary
       if (this.primary && this.secondary) {
         const centerLat = (this.primary.lat + this.secondary.lat) / 2;
@@ -72,6 +74,8 @@ export class MiniMap extends HTMLElement {
         else m.setZoom(15);
       } else if (this.primary) {
         m.setCenter([this.primary.lng, this.primary.lat]);
+      } else if (this.secondary) {
+        m.setCenter([this.secondary.lng, this.secondary.lat]);
       }
     });
   }
