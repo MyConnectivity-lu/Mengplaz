@@ -1,3 +1,10 @@
+type AddressSearchInput {
+    input: String;
+    results: Array<node<POIRecordProvider>>;
+}
+
+var address_searches: nodeTime<AddressSearchInput>;
+
 type ScoredCity {
     city: node<GoldenCity>;
     distance: float;

@@ -366,7 +366,7 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
         postcode = postcode.slice(2, postcode.size());
     }
 
-    info("parsed: road='${road}' city='${city}' houseNumber='${houseNumber}' postcode='${postcode}'");
+    //info("parsed: road='${road}' city='${city}' houseNumber='${houseNumber}' postcode='${postcode}'");
 
     var scoredStreets = Array<ScoredStreet> {};
     if (city != null) {
@@ -398,6 +398,7 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
                 });
         }
     }
+    var pois = Array<node<POIRecordProvider>> {};
     scoredPois.sort_by(ScoredPoi::distance, SortOrder::asc);
     for (_, sp in scoredPois limit max) {
         results.add(POIRecordRef {
@@ -407,6 +408,7 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
     }
     var t = ts.end();
     //info("returned ${results.size()} POIs in ${t}");
+    address_searches.setAt(time::now(), AddressSearchInput { input: addr, results: pois });
     return results;
 }
 
