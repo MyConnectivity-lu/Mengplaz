@@ -77,7 +77,7 @@ fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<Scor
             continue;
         }
         for (_, nStreet in gr.value) {
-            //info("Found ${nStreet->name} score! ${gr.distance}");
+            // info("Found ${nStreet->name} score! ${gr.distance}");
             streets.add(ScoredStreet { street: nStreet, distance: gr.distance });
         }
     }
@@ -109,4 +109,56 @@ fn findPoisInStreet(nStreet: node<GoldenStreet>, houseNumber: String?, postcode:
         results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
     }
     return results;
+}
+
+fn iter(arr: Array<String>?): Array<String> {
+    var out = Array<String> {};
+    if (arr == null) {
+        return out;
+    }
+    for (_, v in arr) {
+        var s = v.trim().lowercase();
+        if (s.size() > 0) {
+            out.add(s);
+        }
+    }
+    return out;
+}
+
+fn findMunicipalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+    var cities = Array<ScoredCity> {};
+    var exact = golden_municipalities_by_name.get(name);
+    if (exact != null) {
+        for (_, nCity in exact->cities_by_id) {
+            cities.add(ScoredCity { city: nCity, distance: 0.0 });
+        }
+        return cities;
+    }
+    var muniResults = golden_municipalities_by_name.search(name, max);
+    for (_, mr in muniResults) {
+        if (mr.distance > distanceThreshold) {
+            continue;
+        }
+        for (_, nCity in mr.value->cities_by_id) {
+            cities.add(ScoredCity { city: nCity, distance: mr.distance });
+        }
+    }
+    return cities;
+}
+
+fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+    var byKey = Map<int, ScoredCity> {};
+    for (_, sc in findMunicipalityScopes(name, max, distanceThreshold)) {
+        var key = sc.city as int;
+        byKey.set(key, sc);
+    }
+    for (_, sc in findCities(name, max, distanceThreshold)) {
+        var key = sc.city as int;
+        byKey.set(key, sc);
+    }
+    var out = Array<ScoredCity> {};
+    for (_, sc in byKey) {
+        out.add(sc);
+    }
+    return out;
 }

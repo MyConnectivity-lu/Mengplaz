@@ -90,8 +90,8 @@ type GoldenMunicipality {
         }
 
         this.canton->municipalities_by_id.set(this.id, self);
-        golden_municipalities_by_id.set(this.name, self);
-        golden_municipalities_by_name.set(this.id, self);
+        golden_municipalities_by_id.set(this.id, self);
+        golden_municipalities_by_name.set(munKey, self);
     }
 }
 
@@ -120,9 +120,9 @@ type GoldenCity {
         }
 
         this.municipality->cities_by_id.set(this.id, self);
-        this.municipality->cities_by_name?.set(this.id, self);
+        this.municipality->cities_by_name?.set(cityKey, self);
         golden_cities_by_id.set(this.id, self);
-        golden_cities_by_name.set(this.id, cities);
+        golden_cities_by_name.set(cityKey, cities);
     }
 }
 

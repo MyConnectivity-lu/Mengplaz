@@ -178,8 +178,6 @@ export class MapPage extends HTMLElement {
   }
 
   private setLoading(loading: boolean) {
-    console.log(loading);
-
     this.searchSpinner.style.visibility = loading ? 'visible' : 'hidden';
   }
 

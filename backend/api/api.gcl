@@ -339,7 +339,6 @@ fn appInfo(): RuntimeInfo {
 
 @expose
 fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
-    // Can be adjusted to speed up search; lower -> stricter -> less iterations -> faster
     if (max == null) {
         max = 5;
     }
@@ -349,65 +348,115 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
     var parsed = PostalAddress::parseStructured(addr, PostalOptions { country: "lu" });
     var results = Array<POIRecordRef> {};
 
-    var road = parsed.road?.trim().lowercase();
-    if (road == null) {
+    var roads = iter(parsed.road);
+    if (roads.size() == 0) {
         ts.end();
         return results;
     }
-    // Edge case where Luxembourg city and country get switched
-    if (parsed.country != null && parsed.city == null) {
-        parsed.city = parsed.country;
+
+    var localities = Array<String> {};
+    for (_, v in iter(parsed.suburb)) {
+        localities.add(v);
     }
-    var city = parsed.city?.trim().lowercase();
-    var houseNumber = parsed.house_number?.trim().lowercase();
-    var postcode = parsed.postcode?.trim().lowercase();
-
-    if (postcode != null && postcode.startsWith("l")) {
-        postcode = postcode.slice(2, postcode.size());
+    for (_, v in iter(parsed.city_district)) {
+        localities.add(v);
+    }
+    for (_, v in iter(parsed.city)) {
+        localities.add(v);
+    }
+    if (localities.size() == 0) {
+        for (_, v in iter(parsed.country)) {
+            localities.add(v);
+        }
     }
 
-    //info("parsed: road='${road}' city='${city}' houseNumber='${houseNumber}' postcode='${postcode}'");
+    var houseNumbers = iter(parsed.house_number);
 
-    var scoredStreets = Array<ScoredStreet> {};
-    if (city != null) {
-        var cities = findCities(city, max, distanceThreshold);
-        // info("matched ${cities.size()} cities for '${city}'");
-        for (_, scoredCity in cities) {
-            for (_, scoredStreet in findStreetsInCity(scoredCity.city, road, max, distanceThreshold)) {
-                scoredStreets.add(ScoredStreet {
-                        street: scoredStreet.street,
-                        distance: scoredCity.distance + scoredStreet.distance,
-                    });
+    var postcodeArr = iter(parsed.postcode);
+    var postcode: String? = null;
+    if (postcodeArr.size() > 0) {
+        postcode = postcodeArr[0];
+        if (postcode.startsWith("l")) {
+            postcode = postcode.slice(2, postcode.size());
+        }
+    }
+
+    // info("parsed: roads=${roads} localities=${localities} houseNumbers=${houseNumbers} postcode='${postcode}'");
+
+    var scopeByCity = Map<int, ScoredCity> {};
+    for (_, locality in localities) {
+        for (_, sc in findLocalityScopes(locality, max, distanceThreshold)) {
+            var k = sc.city as int;
+            scopeByCity.set(k, sc);
+        }
+    }
+    // info("matched ${scopeByCity.size()} city scopes for ${localities.size()} locality value(s)");
+
+    var streetMap = Map<int, ScoredStreet> {};
+    for (_, road in roads) {
+        for (_, scopedCity in scopeByCity) {
+            for (_, ss in findStreetsInCity(scopedCity.city, road, max, distanceThreshold)) {
+                var totalDist = scopedCity.distance + ss.distance;
+                var k = ss.street as int;
+                streetMap.set(k, ScoredStreet { street: ss.street, distance: totalDist });
             }
         }
-        // info("matched ${scoredStreets.size()} streets for '${road}' in city scope");
     }
-    // City is either null OR we found no matching streets in the given city
-    if (scoredStreets.size() == 0) {
-        scoredStreets = findStreetsByName(road, max, distanceThreshold);
-        // info("matched ${scoredStreets.size()} streets for '${road}' globally");
+
+    if (streetMap.size() == 0) {
+        for (_, road in roads) {
+            for (_, ss in findStreetsByName(road, max, distanceThreshold)) {
+                var k = ss.street as int;
+                streetMap.set(k, ss);
+            }
+        }
+        // info("global street fallback returned ${streetMap.size()} street(s)");
+    } else {
+        // info("matched ${streetMap.size()} street(s) within locality scopes");
+    }
+
+    var poiMap = Map<int, ScoredPoi> {};
+    for (_, ss in streetMap) {
+        if (houseNumbers.size() == 0) {
+            for (_, sp in findPoisInStreet(ss.street, null, postcode, max, distanceThreshold)) {
+                var totalDist = ss.distance + sp.distance;
+                var k = sp.poi as int;
+                var existing = poiMap.get(k);
+                if (existing == null || totalDist < existing.distance) {
+                    poiMap.set(k, ScoredPoi { poi: sp.poi, distance: totalDist });
+                }
+            }
+        } else {
+            for (_, hn in houseNumbers) {
+                for (_, sp in findPoisInStreet(ss.street, hn, postcode, max, distanceThreshold)) {
+                    var totalDist = ss.distance + sp.distance;
+                    var k = sp.poi as int;
+                    var existing = poiMap.get(k);
+                    if (existing == null || totalDist < existing.distance) {
+                        poiMap.set(k, ScoredPoi { poi: sp.poi, distance: totalDist });
+                    }
+                }
+            }
+        }
     }
 
     var scoredPois = Array<ScoredPoi> {};
-    for (_, scoredStreet in scoredStreets) {
-        // info("Searching in ${scoredStreet.street->name}");
-        for (_, scoredPoi in findPoisInStreet(scoredStreet.street, houseNumber, postcode, max, distanceThreshold)) {
-            scoredPois.add(ScoredPoi {
-                    poi: scoredPoi.poi,
-                    distance: scoredStreet.distance + scoredPoi.distance,
-                });
-        }
+    for (_, sp in poiMap) {
+        scoredPois.add(sp);
     }
-    var pois = Array<node<POIRecordProvider>> {};
     scoredPois.sort_by(ScoredPoi::distance, SortOrder::asc);
+
+    var pois = Array<node<POIRecordProvider>> {};
     for (_, sp in scoredPois limit max) {
+        pois.add(sp.poi);
         results.add(POIRecordRef {
                 ref: sp.poi,
                 record: sp.poi->toMengplazRecord(),
             });
     }
+
     var t = ts.end();
-    //info("returned ${results.size()} POIs in ${t}");
+    // info("returned ${results.size()} POIs in ${t}");
     address_searches.setAt(time::now(), AddressSearchInput { input: addr, results: pois });
     return results;
 }

@@ -1,6 +1,6 @@
 .map-search-panel {
   position: fixed;
-  width: 320px;
+  width: 500px;
   max-width: calc(100vw - 2 * var(--sl-spacing-large));
   z-index: 999;
   display: flex;

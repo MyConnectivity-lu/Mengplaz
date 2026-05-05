@@ -3,8 +3,16 @@
 /* oxlint-disable */
 declare namespace gc {
   namespace project {
-    class loadOsm$args extends gc.sdk.GCObject {
-      static readonly _type = 'project::loadOsm$args';
+    class populateGoldenIndexes$args extends gc.sdk.GCObject {
+      static readonly _type = 'project::populateGoldenIndexes$args';
+    }
+
+    class loadBda$args extends gc.sdk.GCObject {
+      static readonly _type = 'project::loadBda$args';
+    }
+
+    class loadCaclr$args extends gc.sdk.GCObject {
+      static readonly _type = 'project::loadCaclr$args';
     }
 
     class Root extends gc.sdk.GCObject {
@@ -36,9 +44,11 @@ declare namespace gc {
       "golden::golden_cities_by_id": gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>>;
       "golden::golden_streets_by_id": gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenStreet>>;
       "golden::golden_pois_by_id": gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenPointOfInterest>>;
+      "golden::golden_municipalities_by_name": gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenMunicipality>>;
       "golden::golden_cities_by_name": gc.core.nodeIndex<string, globalThis.Array<gc.core.node<gc.golden.GoldenCity>>>;
       "golden::golden_streets_by_name": gc.core.nodeIndex<string, globalThis.Array<gc.core.node<gc.golden.GoldenStreet>>>;
       "golden::golden_pois_by_geo": gc.core.nodeGeo<gc.core.node<gc.golden.GoldenPointOfInterest>>;
+      "searchService::address_searches": gc.core.nodeTime<gc.searchService.AddressSearchInput>;
     }
     namespace Root {
       interface $Fields {
@@ -68,22 +78,16 @@ declare namespace gc {
         "golden::golden_cities_by_id": 23;
         "golden::golden_streets_by_id": 24;
         "golden::golden_pois_by_id": 25;
-        "golden::golden_cities_by_name": 26;
-        "golden::golden_streets_by_name": 27;
-        "golden::golden_pois_by_geo": 28;
+        "golden::golden_municipalities_by_name": 26;
+        "golden::golden_cities_by_name": 27;
+        "golden::golden_streets_by_name": 28;
+        "golden::golden_pois_by_geo": 29;
+        "searchService::address_searches": 30;
       }
     }
 
-    class loadBda$args extends gc.sdk.GCObject {
-      static readonly _type = 'project::loadBda$args';
-    }
-
-    class loadCaclr$args extends gc.sdk.GCObject {
-      static readonly _type = 'project::loadCaclr$args';
-    }
-
-    class populateGoldenIndexes$args extends gc.sdk.GCObject {
-      static readonly _type = 'project::populateGoldenIndexes$args';
+    class loadOsm$args extends gc.sdk.GCObject {
+      static readonly _type = 'project::loadOsm$args';
     }
 
     const loadOsm: gc.sdk.ExposedFn<[], unknown>;
@@ -93,67 +97,31 @@ declare namespace gc {
   }
 
   namespace privateApi {
-    class unlockSource$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::unlockSource$args';
-      static readonly $fields: unlockSource$args.$Fields;
-      source: string;
-      constructor(source: string);
-      static createFrom(fields: {source: string}): unlockSource$args;
-    }
-    namespace unlockSource$args {
-      interface $Fields {
-        source: 0;
-      }
-    }
-
-    class promoteRecord$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::promoteRecord$args';
-      static readonly $fields: promoteRecord$args.$Fields;
+    class unlinkRecord$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::unlinkRecord$args';
+      static readonly $fields: unlinkRecord$args.$Fields;
       sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
-      streetIdx: string;
-      constructor(sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, streetIdx: string);
-      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, streetIdx: string}): promoteRecord$args;
+      constructor(sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>);
+      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>}): unlinkRecord$args;
     }
-    namespace promoteRecord$args {
+    namespace unlinkRecord$args {
       interface $Fields {
         sourceRecord: 0;
-        streetIdx: 1;
       }
     }
 
-    class getRecordTab$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getRecordTab$args';
-      static readonly $fields: getRecordTab$args.$Fields;
+    class linkAllFullMatched$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::linkAllFullMatched$args';
+      static readonly $fields: linkAllFullMatched$args.$Fields;
       source: gc.core.node<gc.mengplaz.DataSource>;
-      recordId: string;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getRecordTab$args;
+      recordIds: globalThis.Array<string>;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>}): linkAllFullMatched$args;
     }
-    namespace getRecordTab$args {
+    namespace linkAllFullMatched$args {
       interface $Fields {
         source: 0;
-        recordId: 1;
-      }
-    }
-
-    class getSources$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getSources$args';
-    }
-
-    class reconcilePOIs$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::reconcilePOIs$args';
-      static readonly $fields: reconcilePOIs$args.$Fields;
-      source: string;
-      poiIds: globalThis.Array<string>;
-      params: gc.mengplaz.SearchParameters | null;
-      constructor(source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null);
-      static createFrom(fields: {source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null}): reconcilePOIs$args;
-    }
-    namespace reconcilePOIs$args {
-      interface $Fields {
-        source: 0;
-        poiIds: 1;
-        params: 2;
+        recordIds: 1;
       }
     }
 
@@ -212,18 +180,33 @@ declare namespace gc {
       }
     }
 
-    class reconcile$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::reconcile$args';
-      static readonly $fields: reconcile$args.$Fields;
-      source: string;
-      params: gc.mengplaz.SearchParameters | null;
-      constructor(source: string, params?: gc.mengplaz.SearchParameters | null);
-      static createFrom(fields: {source: string, params?: gc.mengplaz.SearchParameters | null}): reconcile$args;
+    class getReconciliationReport$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getReconciliationReport$args';
+      static readonly $fields: getReconciliationReport$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      city: string | null;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null}): getReconciliationReport$args;
     }
-    namespace reconcile$args {
+    namespace getReconciliationReport$args {
       interface $Fields {
         source: 0;
-        params: 1;
+        city: 1;
+      }
+    }
+
+    class promoteRecord$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::promoteRecord$args';
+      static readonly $fields: promoteRecord$args.$Fields;
+      sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
+      streetIdx: string;
+      constructor(sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, streetIdx: string);
+      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, streetIdx: string}): promoteRecord$args;
+    }
+    namespace promoteRecord$args {
+      interface $Fields {
+        sourceRecord: 0;
+        streetIdx: 1;
       }
     }
 
@@ -267,6 +250,25 @@ declare namespace gc {
       }
     }
 
+    class getSources$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getSources$args';
+    }
+
+    class reconcile$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::reconcile$args';
+      static readonly $fields: reconcile$args.$Fields;
+      source: string;
+      params: gc.mengplaz.SearchParameters | null;
+      constructor(source: string, params?: gc.mengplaz.SearchParameters | null);
+      static createFrom(fields: {source: string, params?: gc.mengplaz.SearchParameters | null}): reconcile$args;
+    }
+    namespace reconcile$args {
+      interface $Fields {
+        source: 0;
+        params: 1;
+      }
+    }
+
     class QualityTrend extends gc.sdk.GCObject {
       static readonly _type = 'privateApi::QualityTrend';
       static readonly $fields: QualityTrend.$Fields;
@@ -286,55 +288,6 @@ declare namespace gc {
       }
     }
 
-    class computeGlobalQuality$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::computeGlobalQuality$args';
-    }
-
-    class getComparisonViewData$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getComparisonViewData$args';
-      static readonly $fields: getComparisonViewData$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordId: string;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getComparisonViewData$args;
-    }
-    namespace getComparisonViewData$args {
-      interface $Fields {
-        source: 0;
-        recordId: 1;
-      }
-    }
-
-    class linkRecords$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::linkRecords$args';
-      static readonly $fields: linkRecords$args.$Fields;
-      sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
-      candidateRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
-      params: gc.privateApi.LinkParameters;
-      constructor(sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, params: gc.privateApi.LinkParameters);
-      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, params: gc.privateApi.LinkParameters}): linkRecords$args;
-    }
-    namespace linkRecords$args {
-      interface $Fields {
-        sourceRecord: 0;
-        candidateRecord: 1;
-        params: 2;
-      }
-    }
-
-    class lockDatasource$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::lockDatasource$args';
-      static readonly $fields: lockDatasource$args.$Fields;
-      source: string;
-      constructor(source: string);
-      static createFrom(fields: {source: string}): lockDatasource$args;
-    }
-    namespace lockDatasource$args {
-      interface $Fields {
-        source: 0;
-      }
-    }
-
     class RecordTabResult extends gc.sdk.GCObject {
       static readonly _type = 'privateApi::RecordTabResult';
       static readonly $fields: RecordTabResult.$Fields;
@@ -347,6 +300,38 @@ declare namespace gc {
       interface $Fields {
         tab: 0;
         score: 1;
+      }
+    }
+
+    class reconcilePOIs$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::reconcilePOIs$args';
+      static readonly $fields: reconcilePOIs$args.$Fields;
+      source: string;
+      poiIds: globalThis.Array<string>;
+      params: gc.mengplaz.SearchParameters | null;
+      constructor(source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null);
+      static createFrom(fields: {source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null}): reconcilePOIs$args;
+    }
+    namespace reconcilePOIs$args {
+      interface $Fields {
+        source: 0;
+        poiIds: 1;
+        params: 2;
+      }
+    }
+
+    class getRecordTab$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getRecordTab$args';
+      static readonly $fields: getRecordTab$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordId: string;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getRecordTab$args;
+    }
+    namespace getRecordTab$args {
+      interface $Fields {
+        source: 0;
+        recordId: 1;
       }
     }
 
@@ -377,6 +362,21 @@ declare namespace gc {
       }
     }
 
+    class getComparisonViewData$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getComparisonViewData$args';
+      static readonly $fields: getComparisonViewData$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordId: string;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getComparisonViewData$args;
+    }
+    namespace getComparisonViewData$args {
+      interface $Fields {
+        source: 0;
+        recordId: 1;
+      }
+    }
+
     class GlobalQualityHistory extends gc.sdk.GCObject {
       static readonly _type = 'privateApi::GlobalQualityHistory';
       static readonly $fields: GlobalQualityHistory.$Fields;
@@ -392,6 +392,25 @@ declare namespace gc {
         history: 1;
         goldenRecords: 2;
       }
+    }
+
+    class getLinkedComparisonViewData$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getLinkedComparisonViewData$args';
+      static readonly $fields: getLinkedComparisonViewData$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordId: string;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getLinkedComparisonViewData$args;
+    }
+    namespace getLinkedComparisonViewData$args {
+      interface $Fields {
+        source: 0;
+        recordId: 1;
+      }
+    }
+
+    class computeGlobalQuality$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::computeGlobalQuality$args';
     }
 
     class LinkParameters extends gc.sdk.GCObject {
@@ -426,34 +445,6 @@ declare namespace gc {
       }
     }
 
-    class unlinkRecord$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::unlinkRecord$args';
-      static readonly $fields: unlinkRecord$args.$Fields;
-      sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
-      constructor(sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>);
-      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>}): unlinkRecord$args;
-    }
-    namespace unlinkRecord$args {
-      interface $Fields {
-        sourceRecord: 0;
-      }
-    }
-
-    class getLinkedComparisonViewData$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getLinkedComparisonViewData$args';
-      static readonly $fields: getLinkedComparisonViewData$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordId: string;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getLinkedComparisonViewData$args;
-    }
-    namespace getLinkedComparisonViewData$args {
-      interface $Fields {
-        source: 0;
-        recordId: 1;
-      }
-    }
-
     class mergePositionsToGolden$args extends gc.sdk.GCObject {
       static readonly _type = 'privateApi::mergePositionsToGolden$args';
       static readonly $fields: mergePositionsToGolden$args.$Fields;
@@ -466,6 +457,19 @@ declare namespace gc {
       interface $Fields {
         source: 0;
         recordIds: 1;
+      }
+    }
+
+    class unlockSource$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::unlockSource$args';
+      static readonly $fields: unlockSource$args.$Fields;
+      source: string;
+      constructor(source: string);
+      static createFrom(fields: {source: string}): unlockSource$args;
+    }
+    namespace unlockSource$args {
+      interface $Fields {
+        source: 0;
       }
     }
 
@@ -484,33 +488,33 @@ declare namespace gc {
       }
     }
 
-    class getReconciliationReport$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getReconciliationReport$args';
-      static readonly $fields: getReconciliationReport$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      city: string | null;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null}): getReconciliationReport$args;
+    class linkRecords$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::linkRecords$args';
+      static readonly $fields: linkRecords$args.$Fields;
+      sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
+      candidateRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
+      params: gc.privateApi.LinkParameters;
+      constructor(sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, params: gc.privateApi.LinkParameters);
+      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.POIRecordProvider>, params: gc.privateApi.LinkParameters}): linkRecords$args;
     }
-    namespace getReconciliationReport$args {
+    namespace linkRecords$args {
       interface $Fields {
-        source: 0;
-        city: 1;
+        sourceRecord: 0;
+        candidateRecord: 1;
+        params: 2;
       }
     }
 
-    class linkAllFullMatched$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::linkAllFullMatched$args';
-      static readonly $fields: linkAllFullMatched$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordIds: globalThis.Array<string>;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>}): linkAllFullMatched$args;
+    class lockDatasource$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::lockDatasource$args';
+      static readonly $fields: lockDatasource$args.$Fields;
+      source: string;
+      constructor(source: string);
+      static createFrom(fields: {source: string}): lockDatasource$args;
     }
-    namespace linkAllFullMatched$args {
+    namespace lockDatasource$args {
       interface $Fields {
         source: 0;
-        recordIds: 1;
       }
     }
 
@@ -536,18 +540,33 @@ declare namespace gc {
   }
 
   namespace api {
-    class getGlobalQualityHistory$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGlobalQualityHistory$args';
-      static readonly $fields: getGlobalQualityHistory$args.$Fields;
-      from: gc.core.time | null;
-      to: gc.core.time | null;
-      constructor(from?: gc.core.time | null, to?: gc.core.time | null);
-      static createFrom(fields: {from?: gc.core.time | null, to?: gc.core.time | null}): getGlobalQualityHistory$args;
+    class getGoldenNumbersByStreetId$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenNumbersByStreetId$args';
+      static readonly $fields: getGoldenNumbersByStreetId$args.$Fields;
+      streetId: string;
+      constructor(streetId: string);
+      static createFrom(fields: {streetId: string}): getGoldenNumbersByStreetId$args;
     }
-    namespace getGlobalQualityHistory$args {
+    namespace getGoldenNumbersByStreetId$args {
       interface $Fields {
-        from: 0;
-        to: 1;
+        streetId: 0;
+      }
+    }
+
+    class getGoldenRecords$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenRecords$args';
+    }
+
+    class getRecordByGeoportailID$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getRecordByGeoportailID$args';
+      static readonly $fields: getRecordByGeoportailID$args.$Fields;
+      id: string;
+      constructor(id: string);
+      static createFrom(fields: {id: string}): getRecordByGeoportailID$args;
+    }
+    namespace getRecordByGeoportailID$args {
+      interface $Fields {
+        id: 0;
       }
     }
 
@@ -579,37 +598,37 @@ declare namespace gc {
       }
     }
 
-    class getGoldenStreetsByCityId$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenStreetsByCityId$args';
-      static readonly $fields: getGoldenStreetsByCityId$args.$Fields;
-      cityId: string;
-      constructor(cityId: string);
-      static createFrom(fields: {cityId: string}): getGoldenStreetsByCityId$args;
+    class getGlobalQualityHistory$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGlobalQualityHistory$args';
+      static readonly $fields: getGlobalQualityHistory$args.$Fields;
+      from: gc.core.time | null;
+      to: gc.core.time | null;
+      constructor(from?: gc.core.time | null, to?: gc.core.time | null);
+      static createFrom(fields: {from?: gc.core.time | null, to?: gc.core.time | null}): getGlobalQualityHistory$args;
     }
-    namespace getGoldenStreetsByCityId$args {
+    namespace getGlobalQualityHistory$args {
       interface $Fields {
-        cityId: 0;
+        from: 0;
+        to: 1;
       }
     }
 
-    class getGoldenCities$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenCities$args';
+    class getPois$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getPois$args';
     }
 
-    class appInfo$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::appInfo$args';
+    class searchAddress$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::searchAddress$args';
+      static readonly $fields: searchAddress$args.$Fields;
+      addr: string;
+      max: number | bigint | null;
+      constructor(addr: string, max?: number | bigint | null);
+      static createFrom(fields: {addr: string, max?: number | bigint | null}): searchAddress$args;
     }
-
-    class getPoisInStreet$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getPoisInStreet$args';
-      static readonly $fields: getPoisInStreet$args.$Fields;
-      e: gc.core.node<gc.mengplaz.StreetRecordProvider>;
-      constructor(e: gc.core.node<gc.mengplaz.StreetRecordProvider>);
-      static createFrom(fields: {e: gc.core.node<gc.mengplaz.StreetRecordProvider>}): getPoisInStreet$args;
-    }
-    namespace getPoisInStreet$args {
+    namespace searchAddress$args {
       interface $Fields {
-        e: 0;
+        addr: 0;
+        max: 1;
       }
     }
 
@@ -628,6 +647,10 @@ declare namespace gc {
       }
     }
 
+    class getGoldenCities$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenCities$args';
+    }
+
     class GoldenIndex extends gc.sdk.GCObject {
       static readonly _type = 'api::GoldenIndex';
       static readonly $fields: GoldenIndex.$Fields;
@@ -643,14 +666,44 @@ declare namespace gc {
       }
     }
 
-    class searchStreet$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::searchStreet$args';
-      static readonly $fields: searchStreet$args.$Fields;
-      e: string;
-      constructor(e: string);
-      static createFrom(fields: {e: string}): searchStreet$args;
+    class getGoldenStreetsByCityId$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenStreetsByCityId$args';
+      static readonly $fields: getGoldenStreetsByCityId$args.$Fields;
+      cityId: string;
+      constructor(cityId: string);
+      static createFrom(fields: {cityId: string}): getGoldenStreetsByCityId$args;
     }
-    namespace searchStreet$args {
+    namespace getGoldenStreetsByCityId$args {
+      interface $Fields {
+        cityId: 0;
+      }
+    }
+
+    class getPoisByGeo$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getPoisByGeo$args';
+      static readonly $fields: getPoisByGeo$args.$Fields;
+      coords: gc.core.geo;
+      constructor(coords: gc.core.geo);
+      static createFrom(fields: {coords: gc.core.geo}): getPoisByGeo$args;
+    }
+    namespace getPoisByGeo$args {
+      interface $Fields {
+        coords: 0;
+      }
+    }
+
+    class openapi$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::openapi$args';
+    }
+
+    class getPoisInStreet$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getPoisInStreet$args';
+      static readonly $fields: getPoisInStreet$args.$Fields;
+      e: gc.core.node<gc.mengplaz.StreetRecordProvider>;
+      constructor(e: gc.core.node<gc.mengplaz.StreetRecordProvider>);
+      static createFrom(fields: {e: gc.core.node<gc.mengplaz.StreetRecordProvider>}): getPoisInStreet$args;
+    }
+    namespace getPoisInStreet$args {
       interface $Fields {
         e: 0;
       }
@@ -673,6 +726,23 @@ declare namespace gc {
       }
     }
 
+    class searchStreet$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::searchStreet$args';
+      static readonly $fields: searchStreet$args.$Fields;
+      e: string;
+      constructor(e: string);
+      static createFrom(fields: {e: string}): searchStreet$args;
+    }
+    namespace searchStreet$args {
+      interface $Fields {
+        e: 0;
+      }
+    }
+
+    class getGoldenRecordsGeoJson$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenRecordsGeoJson$args';
+    }
+
     class getGoldenRecordRefByUid$args extends gc.sdk.GCObject {
       static readonly _type = 'api::getGoldenRecordRefByUid$args';
       static readonly $fields: getGoldenRecordRefByUid$args.$Fields;
@@ -683,44 +753,6 @@ declare namespace gc {
     namespace getGoldenRecordRefByUid$args {
       interface $Fields {
         uid: 0;
-      }
-    }
-
-    class getPois$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getPois$args';
-    }
-
-    class getGoldenNumbersByStreetId$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenNumbersByStreetId$args';
-      static readonly $fields: getGoldenNumbersByStreetId$args.$Fields;
-      streetId: string;
-      constructor(streetId: string);
-      static createFrom(fields: {streetId: string}): getGoldenNumbersByStreetId$args;
-    }
-    namespace getGoldenNumbersByStreetId$args {
-      interface $Fields {
-        streetId: 0;
-      }
-    }
-
-    class getGoldenRecordsGeoJson$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenRecordsGeoJson$args';
-    }
-
-    class openapi$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::openapi$args';
-    }
-
-    class getPoisByGeo$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getPoisByGeo$args';
-      static readonly $fields: getPoisByGeo$args.$Fields;
-      coords: gc.core.geo;
-      constructor(coords: gc.core.geo);
-      static createFrom(fields: {coords: gc.core.geo}): getPoisByGeo$args;
-    }
-    namespace getPoisByGeo$args {
-      interface $Fields {
-        coords: 0;
       }
     }
 
@@ -739,17 +771,8 @@ declare namespace gc {
       }
     }
 
-    class getRecordByGeoportailID$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getRecordByGeoportailID$args';
-      static readonly $fields: getRecordByGeoportailID$args.$Fields;
-      id: string;
-      constructor(id: string);
-      static createFrom(fields: {id: string}): getRecordByGeoportailID$args;
-    }
-    namespace getRecordByGeoportailID$args {
-      interface $Fields {
-        id: 0;
-      }
+    class appInfo$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::appInfo$args';
     }
 
     class GoldenRecordDetails extends gc.sdk.GCObject {
@@ -765,25 +788,6 @@ declare namespace gc {
         golden: 0;
         associated: 1;
       }
-    }
-
-    class searchAddress$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::searchAddress$args';
-      static readonly $fields: searchAddress$args.$Fields;
-      addr: string;
-      max: number | bigint | null;
-      constructor(addr: string, max?: number | bigint | null);
-      static createFrom(fields: {addr: string, max?: number | bigint | null}): searchAddress$args;
-    }
-    namespace searchAddress$args {
-      interface $Fields {
-        addr: 0;
-        max: 1;
-      }
-    }
-
-    class getGoldenRecords$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenRecords$args';
     }
 
     const getPoisInStreet: gc.sdk.ExposedFn<[gc.core.node<gc.mengplaz.StreetRecordProvider>], globalThis.Array<gc.mengplaz.POIRecordRef>>;
@@ -2468,8 +2472,9 @@ declare namespace gc {
       lastUpdate: gc.core.time;
       canton: gc.core.node<gc.golden.GoldenCanton>;
       cities_by_id: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>>;
-      constructor(id: string, name: string, nameAliases: globalThis.Array<gc.mengplaz.Alias>, lastUpdate: gc.core.time, canton: gc.core.node<gc.golden.GoldenCanton>, cities_by_id: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>>);
-      static createFrom(fields: {id: string, name: string, nameAliases: globalThis.Array<gc.mengplaz.Alias>, lastUpdate: gc.core.time, canton: gc.core.node<gc.golden.GoldenCanton>, cities_by_id: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>>}): GoldenMunicipality;
+      cities_by_name: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>> | null;
+      constructor(id: string, name: string, nameAliases: globalThis.Array<gc.mengplaz.Alias>, lastUpdate: gc.core.time, canton: gc.core.node<gc.golden.GoldenCanton>, cities_by_id: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>>, cities_by_name?: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>> | null);
+      static createFrom(fields: {id: string, name: string, nameAliases: globalThis.Array<gc.mengplaz.Alias>, lastUpdate: gc.core.time, canton: gc.core.node<gc.golden.GoldenCanton>, cities_by_id: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>>, cities_by_name?: gc.core.nodeIndex<string, gc.core.node<gc.golden.GoldenCity>> | null}): GoldenMunicipality;
     }
     namespace GoldenMunicipality {
       interface $Fields {
@@ -2479,23 +2484,7 @@ declare namespace gc {
         lastUpdate: 3;
         canton: 4;
         cities_by_id: 5;
-      }
-    }
-
-    class GoldenSource extends gc.sdk.GCObject {
-      static readonly _type = 'golden::GoldenSource';
-      static readonly $fields: GoldenSource.$Fields;
-      reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>;
-      isReconciling: gc.core.node<boolean> | null;
-      qualityHistory: gc.core.nodeTime<number>;
-      constructor(reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling: gc.core.node<boolean> | null, qualityHistory: gc.core.nodeTime<number>);
-      static createFrom(fields: {reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling?: gc.core.node<boolean> | null, qualityHistory: gc.core.nodeTime<number>}): GoldenSource;
-    }
-    namespace GoldenSource {
-      interface $Fields {
-        reconciliationReport: 0;
-        isReconciling: 1;
-        qualityHistory: 2;
+        cities_by_name: 6;
       }
     }
 
@@ -2549,6 +2538,23 @@ declare namespace gc {
       }
     }
 
+    class GoldenSource extends gc.sdk.GCObject {
+      static readonly _type = 'golden::GoldenSource';
+      static readonly $fields: GoldenSource.$Fields;
+      reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>;
+      isReconciling: gc.core.node<boolean> | null;
+      qualityHistory: gc.core.nodeTime<number>;
+      constructor(reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling: gc.core.node<boolean> | null, qualityHistory: gc.core.nodeTime<number>);
+      static createFrom(fields: {reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling?: gc.core.node<boolean> | null, qualityHistory: gc.core.nodeTime<number>}): GoldenSource;
+    }
+    namespace GoldenSource {
+      interface $Fields {
+        reconciliationReport: 0;
+        isReconciling: 1;
+        qualityHistory: 2;
+      }
+    }
+
   }
 
   namespace goldenServices {
@@ -2592,18 +2598,18 @@ declare namespace gc {
       }
     }
 
-    class ScoredCity extends gc.sdk.GCObject {
-      static readonly _type = 'searchService::ScoredCity';
-      static readonly $fields: ScoredCity.$Fields;
-      city: gc.core.node<gc.golden.GoldenCity>;
-      distance: number;
-      constructor(city: gc.core.node<gc.golden.GoldenCity>, distance: number);
-      static createFrom(fields: {city: gc.core.node<gc.golden.GoldenCity>, distance: number}): ScoredCity;
+    class AddressSearchInput extends gc.sdk.GCObject {
+      static readonly _type = 'searchService::AddressSearchInput';
+      static readonly $fields: AddressSearchInput.$Fields;
+      input: string;
+      results: globalThis.Array<gc.core.node<gc.mengplaz.POIRecordProvider>>;
+      constructor(input: string, results: globalThis.Array<gc.core.node<gc.mengplaz.POIRecordProvider>>);
+      static createFrom(fields: {input: string, results: globalThis.Array<gc.core.node<gc.mengplaz.POIRecordProvider>>}): AddressSearchInput;
     }
-    namespace ScoredCity {
+    namespace AddressSearchInput {
       interface $Fields {
-        city: 0;
-        distance: 1;
+        input: 0;
+        results: 1;
       }
     }
 
@@ -2618,6 +2624,21 @@ declare namespace gc {
     namespace ScoredPoi {
       interface $Fields {
         poi: 0;
+        distance: 1;
+      }
+    }
+
+    class ScoredCity extends gc.sdk.GCObject {
+      static readonly _type = 'searchService::ScoredCity';
+      static readonly $fields: ScoredCity.$Fields;
+      city: gc.core.node<gc.golden.GoldenCity>;
+      distance: number;
+      constructor(city: gc.core.node<gc.golden.GoldenCity>, distance: number);
+      static createFrom(fields: {city: gc.core.node<gc.golden.GoldenCity>, distance: number}): ScoredCity;
+    }
+    namespace ScoredCity {
+      interface $Fields {
+        city: 0;
         distance: 1;
       }
     }
@@ -2643,64 +2664,30 @@ declare namespace gc {
   }
 
   namespace postal {
-    class PostalAddress extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalAddress';
-    }
-
-    class PostalComponent extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalComponent';
-      static readonly $fields: PostalComponent.$Fields;
-      label: string;
-      value: string;
-      constructor(label: string, value: string);
-      static createFrom(fields: {label: string, value: string}): PostalComponent;
-    }
-    namespace PostalComponent {
-      interface $Fields {
-        label: 0;
-        value: 1;
-      }
-    }
-
-    class PostalOptions extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalOptions';
-      static readonly $fields: PostalOptions.$Fields;
-      language: string | null;
-      country: string | null;
-      constructor(language?: string | null, country?: string | null);
-      static createFrom(fields: {language?: string | null, country?: string | null}): PostalOptions;
-    }
-    namespace PostalOptions {
-      interface $Fields {
-        language: 0;
-        country: 1;
-      }
-    }
-
     class PostalParsedAddress extends gc.sdk.GCObject {
       static readonly _type = 'postal::PostalParsedAddress';
       static readonly $fields: PostalParsedAddress.$Fields;
-      house: string | null;
-      house_number: string | null;
-      road: string | null;
-      suburb: string | null;
-      city_district: string | null;
-      city: string | null;
-      state_district: string | null;
-      state: string | null;
-      postcode: string | null;
-      country: string | null;
-      unit: string | null;
-      level: string | null;
-      staircase: string | null;
-      entrance: string | null;
-      po_box: string | null;
-      near: string | null;
-      world_region: string | null;
-      island: string | null;
-      category: string | null;
-      constructor(house?: string | null, house_number?: string | null, road?: string | null, suburb?: string | null, city_district?: string | null, city?: string | null, state_district?: string | null, state?: string | null, postcode?: string | null, country?: string | null, unit?: string | null, level?: string | null, staircase?: string | null, entrance?: string | null, po_box?: string | null, near?: string | null, world_region?: string | null, island?: string | null, category?: string | null);
-      static createFrom(fields: {house?: string | null, house_number?: string | null, road?: string | null, suburb?: string | null, city_district?: string | null, city?: string | null, state_district?: string | null, state?: string | null, postcode?: string | null, country?: string | null, unit?: string | null, level?: string | null, staircase?: string | null, entrance?: string | null, po_box?: string | null, near?: string | null, world_region?: string | null, island?: string | null, category?: string | null}): PostalParsedAddress;
+      house: globalThis.Array<string> | null;
+      house_number: globalThis.Array<string> | null;
+      road: globalThis.Array<string> | null;
+      suburb: globalThis.Array<string> | null;
+      city_district: globalThis.Array<string> | null;
+      city: globalThis.Array<string> | null;
+      state_district: globalThis.Array<string> | null;
+      state: globalThis.Array<string> | null;
+      postcode: globalThis.Array<string> | null;
+      country: globalThis.Array<string> | null;
+      unit: globalThis.Array<string> | null;
+      level: globalThis.Array<string> | null;
+      staircase: globalThis.Array<string> | null;
+      entrance: globalThis.Array<string> | null;
+      po_box: globalThis.Array<string> | null;
+      near: globalThis.Array<string> | null;
+      world_region: globalThis.Array<string> | null;
+      island: globalThis.Array<string> | null;
+      category: globalThis.Array<string> | null;
+      constructor(house?: globalThis.Array<string> | null, house_number?: globalThis.Array<string> | null, road?: globalThis.Array<string> | null, suburb?: globalThis.Array<string> | null, city_district?: globalThis.Array<string> | null, city?: globalThis.Array<string> | null, state_district?: globalThis.Array<string> | null, state?: globalThis.Array<string> | null, postcode?: globalThis.Array<string> | null, country?: globalThis.Array<string> | null, unit?: globalThis.Array<string> | null, level?: globalThis.Array<string> | null, staircase?: globalThis.Array<string> | null, entrance?: globalThis.Array<string> | null, po_box?: globalThis.Array<string> | null, near?: globalThis.Array<string> | null, world_region?: globalThis.Array<string> | null, island?: globalThis.Array<string> | null, category?: globalThis.Array<string> | null);
+      static createFrom(fields: {house?: globalThis.Array<string> | null, house_number?: globalThis.Array<string> | null, road?: globalThis.Array<string> | null, suburb?: globalThis.Array<string> | null, city_district?: globalThis.Array<string> | null, city?: globalThis.Array<string> | null, state_district?: globalThis.Array<string> | null, state?: globalThis.Array<string> | null, postcode?: globalThis.Array<string> | null, country?: globalThis.Array<string> | null, unit?: globalThis.Array<string> | null, level?: globalThis.Array<string> | null, staircase?: globalThis.Array<string> | null, entrance?: globalThis.Array<string> | null, po_box?: globalThis.Array<string> | null, near?: globalThis.Array<string> | null, world_region?: globalThis.Array<string> | null, island?: globalThis.Array<string> | null, category?: globalThis.Array<string> | null}): PostalParsedAddress;
     }
     namespace PostalParsedAddress {
       interface $Fields {
@@ -2726,474 +2713,514 @@ declare namespace gc {
       }
     }
 
+    class PostalOptions extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalOptions';
+      static readonly $fields: PostalOptions.$Fields;
+      language: string | null;
+      country: string | null;
+      constructor(language?: string | null, country?: string | null);
+      static createFrom(fields: {language?: string | null, country?: string | null}): PostalOptions;
+    }
+    namespace PostalOptions {
+      interface $Fields {
+        language: 0;
+        country: 1;
+      }
+    }
+
+    class PostalComponent extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalComponent';
+      static readonly $fields: PostalComponent.$Fields;
+      label: string;
+      value: string;
+      constructor(label: string, value: string);
+      static createFrom(fields: {label: string, value: string}): PostalComponent;
+    }
+    namespace PostalComponent {
+      interface $Fields {
+        label: 0;
+        value: 1;
+      }
+    }
+
+    class PostalAddress extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalAddress';
+    }
+
   }
 
   interface $TypesMap {
-    'core::nodeIndexBucket<core::String,core::node<golden::GoldenConstituency>>': 0,
-    'core::node<trafic::Endpoint>': 0,
-    'core::Array<core::SearchResult<core::node<core::Tensor>,core::any?>>': 0,
-    'core::Array<runtime::MediaTypeObject>': 0,
-    'core::Array<core::SearchResult<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>>': 0,
-    'core::node<mengplaz::StreetRecordProvider>': 0,
-    'core::Array<bdAddressLoader::BDAddressLine>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<mengplaz::POIRecordProvider>>>': 0,
-    'core::node<mengplaz::DataSource>': 0,
-    'core::nodeIndex<core::String,core::node<osm::OsmAddress>>': 0,
-    'core::Array<postal::PostalComponent>': 0,
-    'core::Array<api::POIFeatures>': 0,
-    'core::Array<goldenExporter::QualityDTO>': 0,
-    'core::node<caclr::CaclrConstituency>': 0,
-    'core::SearchResult<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
-    'core::Tuple<core::time,core::float>': 0,
-    'core::t3f': 0,
-    'core::node<mengplaz::ReconciliationReport>': 0,
-    'core::nodeGeo<core::node<osm::OsmPartialAddress>>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDAStreet>>>': 0,
-    'core::node<bdaddress::BDAStreet>': 0,
-    'core::SearchResult<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
-    'core::Array<mengplaz::CandidateMatch<core::node<mengplaz::POIRecordProvider>>>': 0,
-    'core::Array<privateApi::MatchedCandidateDetail>': 0,
-    'core::Tensor': 0,
+    'core::SearchResult<core::String,core::node<mengplaz::POIRecordProvider>>': 0,
+    'core::Array<io::S3Object>': 0,
+    'core::SearchResult<core::String,core::node<bdaddress::BDAStreet>>': 0,
+    'core::Table<util::GaussianProfileSlot?>': 0,
+    'core::Array<mengplaz::QualityEvent>': 0,
     'core::nodeIndexBucket<core::String,core::node<caclr::CaclrMunicipality>>': 0,
+    'core::Array<mengplaz::Match<core::node<golden::GoldenCity>>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenCanton>>>': 0,
-    'core::Array<core::SearchResult<core::String,core::Array<core::node<golden::GoldenCity>>>>': 0,
-    'core::ErrorCode': 0,
-    'core::Array<util::Quantizer>': 0,
-    'core::Array<api::GoldenIndex>': 0,
-    'core::Array<runtime::ResponseObject>': 0,
-    'core::nodeIndex<core::String,core::node<bdaddress::BDAddress>>': 0,
-    'core::NodeInfo<core::geo>': 0,
-    'core::Array<runtime::UserGroupPolicy>': 0,
+    'core::Map<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
+    'core::nodeIndex<core::String,core::node<bdaddress::BDAMunicipality>>': 0,
+    'core::Array<privateApi::GoldenRecordScore>': 0,
+    'core::nodeIndexBucket<core::String,core::node<osm::OsmAddress>>': 0,
+    'core::Array<core::node<caclr::CaclrBuilding>>': 0,
+    'core::node<trafic::Endpoint>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<mengplaz::POIRecordProvider>>>': 0,
+    'core::Array<bdAddressLoader::BDAddressLine>': 0,
+    'core::SearchResult<core::String,core::node<mengplaz::DataSource>>': 0,
+    'core::t3f': 0,
+    'core::nodeTime<trafic::Traffic>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenPointOfInterest>>>': 0,
+    'core::nodeList$sample$args': 0,
+    'core::nodeIndex<core::String,core::node<caclr::CaclrCanton>>': 0,
     'core::node<caclr::CaclrCity>': 0,
-    'core::Tuple<core::geo,core::node<bdaddress::BDAddress>>': 0,
+    'core::SearchResult<core::String,core::node<trafic::Endpoint>>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<osm::OsmAddress>>>': 0,
+    'core::Tensor': 0,
+    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrBuilding>>': 0,
+    'core::nodeIndexBucket<core::String,core::node<mengplaz::POIRecordProvider>>': 0,
+    'core::ErrorCode': 0,
+    'core::Array<searchService::ScoredStreet>': 0,
+    'core::Array<core::node<mengplaz::POIRecordProvider>>': 0,
+    'core::Array<core::Array<core::String>>': 0,
+    'core::nodeIndex<core::String,core::node<golden::GoldenPointOfInterest>>': 0,
+    'core::nodeIndex<core::String,core::node<golden::GoldenMunicipality>>': 0,
+    'core::Array<core::node<core::VectorVertex>?>': 0,
+    'core::Array<runtime::ZoneUsage>': 0,
+    'core::Array<mengplaz::SearchResult>': 0,
+    'core::nodeIndex<core::String,core::node<caclr::CaclrConstituency>>': 0,
     'core::null': 0,
     'core::node': 0,
-    'core::SearchResult<core::String,core::node<caclr::CaclrConstituency>>': 0,
+    'core::node<core::VectorVertex>': 0,
+    'core::Array<core::Array<core::float>>': 0,
+    'core::Map<core::String,runtime::HeaderObject>': 0,
+    'core::Array<api::POIFeatures>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrCity>>>': 0,
+    'core::nodeGeo<core::node<osm::OsmAddress>>': 0,
+    'core::Array<runtime::McpContentBlock>': 0,
     'core::Array<core::String>': 0,
-    'core::nodeIndex<core::String,core::node<golden::GoldenCity>>': 0,
-    'core::nodeIndex<core::String,core::node<caclr::CaclrMunicipality>>': 0,
-    'core::Array<io::File>': 0,
-    'core::Array<runtime::Job>': 0,
-    'core::nodeTime<trafic::Traffic>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrStreet>>>': 0,
-    'core::nodeIndex<core::String,core::node<caclr::CaclrStreet>>': 0,
-    'core::Array<core::int>': 0,
+    'core::Map<core::String,runtime::MediaTypeObject>': 0,
+    'core::nodeGeo<core::node<bdaddress::BDAddress>>': 0,
+    'core::node<bdaddress::BDACity>': 0,
+    'core::Tuple<core::int,core::node<osm::OsmPartialAddress>>': 0,
+    'core::nodeIndexBucket<core::node<core::Tensor>,core::any?>': 0,
+    'core::Array<searchService::ScoredPoi>': 0,
+    'core::node<caclr::CaclrCanton>': 0,
+    'core::Array<core::nodeList>': 0,
     'core::nodeTime': 0,
     'core::t2': 0,
-    'core::Array<runtime::SchemaObject>': 0,
-    'core::nodeList<core::node<bdaddress::BDAStreet>>': 0,
-    'core::SearchResult<core::String,core::node<golden::GoldenCanton>>': 0,
-    'core::Array<goldenExporter::LinkedRecordDTO>': 0,
+    'core::Array<runtime::Variable>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrBuilding>>>': 0,
     'core::SortOrder': 0,
-    'core::node<golden::GoldenPointOfInterest>': 0,
-    'core::Array<core::any?>': 0,
-    'core::Array<core::NodeInfo<core::int>>': 0,
-    'core::node<golden::GoldenMunicipality>': 0,
-    'core::Array<io::S3Object>': 0,
-    'core::SearchResult<core::String,core::node<mengplaz::DataSource>>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrStreet>>>': 0,
+    'core::NodeInfo<core::time>': 0,
+    'core::Array<runtime::McpRole>': 0,
+    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrStreet>>': 0,
+    'core::nodeList<core::node<bdaddress::BDAddress>>': 0,
+    'core::Array<core::node<golden::GoldenCity>>': 0,
     'core::Chars': 0,
     'core::TensorDistance': 0,
-    'core::Array<core::node<golden::GoldenCity>>': 0,
-    'core::Array<searchService::ScoredCity>': 0,
-    'core::SearchResult<core::node<core::Tensor>,core::any?>': 0,
+    'core::Array<privateApi::ReconciliationReportMatchView>': 0,
     'core::VectorIndex': 0,
-    'core::Array<core::node<golden::GoldenStreet>>': 0,
-    'core::Map<core::String,core::int>': 0,
+    'core::Map<core::String,core::any>': 0,
     'core::geo': 0,
     'core::FloatPrecision': 0,
     'core::any': 0,
-    'core::node<golden::GoldenStreet>': 0,
-    'core::node<golden::GoldenCanton>': 0,
-    'core::Tuple<core::time,core::any?>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenPointOfInterest>>>': 0,
-    'core::nodeIndex<core::String,core::Array<core::node<golden::GoldenStreet>>>': 0,
-    'core::Array<core::nodeTime>': 0,
-    'core::SearchResult<core::String,core::node<caclr::CaclrCanton>>': 0,
+    'core::nodeIndexBucket<core::String,core::node<golden::GoldenCity>>': 0,
+    'core::Array<core::Map<core::String,core::any?>>': 0,
+    'core::nodeGeo$sample$args': 0,
+    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDAStreet>>>': 0,
+    'core::nodeIndex<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
     'core::SearchResult': 0,
-    'core::nodeIndex<core::String,core::node<golden::GoldenMunicipality>>': 0,
     'core::GeoPoly': 0,
-    'core::node<caclr::CaclrCanton>': 0,
-    'core::Map<core::String,runtime::SchemaObject>': 0,
-    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrBuilding>>': 0,
-    'core::SearchResult<core::String,core::node<golden::GoldenPointOfInterest>>': 0,
+    'core::Array<runtime::UserGroupPolicy>': 0,
+    'core::Array<runtime::PathItemObject>': 0,
     'core::TimeZone': 0,
+    'core::node<golden::GoldenStreet>': 0,
     'core::TableColumnMapping': 0,
     'core::Buffer': 0,
     'core::DurationUnit': 0,
-    'core::VectorVertex': 0,
-    'core::nodeIndex<core::String,core::node<caclr::CaclrCanton>>': 0,
-    'core::Array<core::TableColumnMapping>': 0,
-    'core::node<golden::GoldenCity>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<mengplaz::DataSource>>>': 0,
-    'core::Array<core::node<mengplaz::POIRecordProvider>>': 0,
-    'core::Array<core::geo>': 0,
-    'core::node<osm::OsmAddress>': 0,
-    'core::nodeIndex<core::String,core::node<mengplaz::DataSource>>': 0,
-    'core::SearchResult<core::String,core::node<golden::GoldenCity>>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDAddress>>>': 0,
+    'core::Array<mengplaz::SearchRequest>': 0,
+    'core::SearchResult<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
+    'core::node<golden::GoldenPointOfInterest>': 0,
+    'core::nodeIndex<core::String,core::node<trafic::Endpoint>>': 0,
     'core::SearchResult<core::String,core::Array<core::node<golden::GoldenStreet>>>': 0,
+    'core::VectorVertex': 0,
+    'core::node<core::Tensor>': 0,
+    'core::nodeGeo<core::node<golden::GoldenPointOfInterest>>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDAddress>>>': 0,
+    'core::nodeGeo<core::node<caclr::CaclrBuilding>>': 0,
+    'core::Array<core::SearchResult<core::Tensor,core::any?>>': 0,
+    'core::Array<caclrLoader::CaclrResponseStreetItem>': 0,
+    'core::node<caclr::CaclrConstituency>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrCanton>>>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrConstituency>>>': 0,
     'core::float': 0,
-    'core::Array<runtime::Frame>': 0,
-    'core::Tuple<core::int,core::int>': 0,
-    'core::Array<runtime::DateTuple>': 0,
-    'core::Array<runtime::PeriodicTask>': 0,
-    'core::Array<runtime::DayOfWeek>': 0,
+    'core::Array<core::Tuple<core::int,core::int>>': 0,
+    'core::Array<core::nodeGeo>': 0,
+    'core::Array<runtime::Task>': 0,
+    'core::nodeIndexBucket<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
+    'core::Tuple<core::String,core::String?>': 0,
+    'core::Array<core::Tuple<core::String,core::String?>>': 0,
+    'core::Array<core::SearchResult<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>>': 0,
+    'core::Array<privateApi::GlobalQualityEntry>': 0,
     'core::String': 0,
     'core::field': 0,
-    'core::Array<core::node<core::VectorVertex>?>': 0,
-    'core::nodeList<core::node<osm::OsmPartialAddress>>': 0,
-    'core::TensorType': 0,
-    'core::Tuple<core::geo,core::node<golden::GoldenPointOfInterest>>': 0,
-    'core::Array<core::NodeInfo>': 0,
-    'core::Tuple<core::int,core::any?>': 0,
-    'core::Array<runtime::WorkerUsage>': 0,
+    'core::NodeInfo<core::int>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrBuilding>>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDACity>>>': 0,
-    'core::Array<caclrLoader::CaclrResponseBuildingItem>': 0,
-    'core::nodeIndex$sample$args': 0,
-    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenConstituency>>>': 0,
-    'core::SearchResult<core::String,core::node<trafic::Endpoint>>': 0,
-    'core::Map<core::String,runtime::UserCredential>': 0,
-    'core::nodeIndex$info$args': 0,
-    'core::Table<core::Tuple<core::time,core::any?>>': 0,
-    'core::type': 0,
-    'core::nodeIndexBucket<core::String,core::node<mengplaz::DataSource>>': 0,
-    'core::SearchResult<core::String,core::node<golden::GoldenConstituency>>': 0,
-    'core::node<caclr::CaclrToken?>': 0,
-    'core::nodeIndexBucket<core::String,core::node<golden::GoldenCanton>>': 0,
-    'core::Map<core::String,runtime::HeaderObject>': 0,
-    'core::Array<core::int?>': 0,
-    'core::Array<core::nodeIndex>': 0,
-    'core::SearchResult<core::String,core::node<caclr::CaclrBuilding>>': 0,
-    'core::node<core::VectorVertex>': 0,
-    'core::GeoCircle': 0,
-    'core::Array<runtime::Permission>': 0,
-    'core::Array<caclrLoader::CaclrResponseMunicipalityItem>': 0,
-    'core::ErrorFrame': 0,
-    'core::Array<core::type>': 0,
-    'core::node<core::bool>': 0,
-    'core::nodeIndexBucket<core::String,core::node<golden::GoldenPointOfInterest>>': 0,
-    'core::Tuple<core::geo,core::node<osm::OsmAddress>>': 0,
-    'core::nodeGeo$sample$args': 0,
-    'core::Array<core::Map<core::String,core::any>>': 0,
-    'core::Array<core::nodeGeo>': 0,
-    'core::node<bdaddress::BDAddress>': 0,
-    'core::Array<core::ErrorFrame>': 0,
-    'core::Array<mengplaz::POIFullRecordRef>': 0,
-    'core::nodeIndex<core::String,core::node<bdaddress::BDACity>>': 0,
-    'core::t4f': 0,
-    'core::nodeIndexBucket<core::String,core::node<golden::GoldenMunicipality>>': 0,
-    'core::char': 0,
-    'core::nodeIndex<core::String,core::node<caclr::CaclrConstituency>>': 0,
+    'core::TensorType': 0,
+    'core::Array<core::field>': 0,
+    'core::Array<core::geo>': 0,
     'core::Array<caclrLoader::CaclrResponseCityItem>': 0,
-    'core::Array<util::HistogramBin>': 0,
-    'core::Array<mengplaz::SearchResult>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrCanton>>>': 0,
-    'core::Array<core::char>': 0,
-    'core::node<mengplaz::POIRecordProvider>': 0,
-    'core::nodeGeo<core::node<bdaddress::BDAddress>>': 0,
-    'core::Array': 0,
-    'core::SearchResult<core::Tensor,core::any?>': 0,
-    'core::node<golden::GoldenConstituency>': 0,
-    'core::Tuple<core::int,core::node<osm::OsmPartialAddress>>': 0,
-    'core::nodeTime$sample$args': 0,
-    'core::Table<util::GaussianProfileSlot?>': 0,
-    'core::Array<mengplaz::StreetRecordRef>': 0,
-    'core::nodeGeo<core::node<caclr::CaclrBuilding>>': 0,
-    'core::Map<core::String,runtime::PathItemObject>': 0,
-    'core::nodeIndex<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
-    'core::nodeIndex<core::String,core::node<golden::GoldenPointOfInterest>>': 0,
-    'core::node<osm::OsmPartialAddress>': 0,
-    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrCity>>': 0,
-    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDAMunicipality>>': 0,
-    'core::Array<core::Tuple<core::int,core::int>>': 0,
-    'core::Array<core::Map<core::String,core::any?>>': 0,
-    'core::Array<mengplaz::Alias>': 0,
-    'core::Tuple<core::int,core::node<bdaddress::BDAStreet>>': 0,
-    'core::Array<core::SearchResult>': 0,
-    'core::nodeTime<core::float>': 0,
-    'core::node<golden::GoldenSource>': 0,
-    'core::nodeIndex<core::String,core::node<golden::GoldenConstituency>>': 0,
-    'core::SearchResult<core::String,core::node<caclr::CaclrMunicipality>>': 0,
-    'core::Array<runtime::McpTool>': 0,
-    'core::nodeTime$info$args': 0,
-    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrCanton>>': 0,
-    'core::Array<caclrLoader::CaclrAlias>': 0,
-    'core::nodeIndex<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
-    'core::Array<core::SearchResult<core::Tensor,core::any?>>': 0,
-    'core::MathConstants': 0,
-    'core::SearchResult<core::String,core::node<bdaddress::BDAddress>>': 0,
-    'core::Map<core::String,core::any>': 0,
-    'core::Date': 0,
-    'core::Map<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
-    'core::Array<caclrLoader::CaclrResponseCantonItem>': 0,
-    'core::str': 0,
-    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrConstituency>>>': 0,
-    'core::nodeIndexBucket<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
-    'core::nodeTime<runtime::RuntimeUsage>': 0,
-    'core::Array<runtime::McpContentBlock>': 0,
-    'core::nodeList<core::node<bdaddress::BDAddress>>': 0,
-    'core::Array<caclrLoader::CaclrResponseStreetItem>': 0,
-    'core::Map<core::String,core::any?>': 0,
-    'core::Array<mengplaz::Match<core::node<golden::GoldenStreet>>>': 0,
-    'core::nodeIndex<core::String,core::node<bdaddress::BDAStreet>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenStreet>>>': 0,
-    'core::Array<runtime::McpRole>': 0,
-    'core::t3': 0,
-    'core::nodeIndexBucket<core::String,core::node<osm::OsmAddress>>': 0,
-    'core::Array<privateApi::ReconciliationReportMatchView>': 0,
-    'core::node<bdaddress::BDACity>': 0,
-    'core::node<caclr::CaclrMunicipality>': 0,
-    'core::Map': 0,
-    'core::Map<core::String,runtime::MediaTypeObject>': 0,
+    'core::node<mengplaz::ReconciliationReport>': 0,
+    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDAddress>>': 0,
+    'core::Tuple<core::int,core::node<bdaddress::BDAddress>>': 0,
+    'core::Array<runtime::WorkerUsage>': 0,
+    'core::type': 0,
+    'core::Array<core::node<golden::GoldenStreet>>': 0,
+    'core::Tuple<core::geo,core::node<bdaddress::BDAddress>>': 0,
+    'core::Tuple<core::geo,core::node<osm::OsmPartialAddress>>': 0,
+    'core::Array<runtime::Frame>': 0,
+    'core::Array<io::CsvColumnStatistics>': 0,
+    'core::node<mengplaz::StreetRecordProvider>': 0,
+    'core::Array<runtime::RuntimeUsage>': 0,
+    'core::Array<core::nodeIndex>': 0,
+    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrCity>>': 0,
+    'core::GeoCircle': 0,
+    'core::Map<core::int,searchService::ScoredCity>': 0,
+    'core::Tuple<core::time,core::float>': 0,
+    'core::Array<core::TableColumnMapping>': 0,
+    'core::nodeIndex$sample$args': 0,
+    'core::ErrorFrame': 0,
+    'core::Array<caclrLoader::CaclrResponseCantonItem>': 0,
+    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDAMunicipality>>': 0,
+    'core::Array<api::GeoJSONFeature>': 0,
+    'core::Table$applyMappings$args': 0,
+    'core::Array<core::int>': 0,
+    'core::Array<caclrLoader::CaclrAlias>': 0,
+    'core::Array<mengplaz::POIRecord>': 0,
+    'core::Array<core::NodeInfo<core::int>>': 0,
+    'core::t4f': 0,
+    'core::char': 0,
+    'core::nodeIndex$search_closest$args': 0,
+    'core::Array<io::File>': 0,
+    'core::node<caclr::CaclrToken?>': 0,
+    'core::nodeIndex<core::String,core::node<caclr::CaclrCity>>': 0,
+    'core::Array<goldenExporter::QualityDTO>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<golden::GoldenStreet>>>': 0,
-    'core::Array<core::float>': 0,
-    'core::nodeIndexBucket<core::String,core::node<trafic::Endpoint>>': 0,
+    'core::Map<core::node<mengplaz::DataSource>,core::Array<core::float>>': 0,
+    'core::SearchResult<core::Tensor,core::any?>': 0,
+    'core::nodeIndex<core::String,core::node<golden::GoldenCity>>': 0,
+    'core::Table<core::Tuple<core::time,core::any?>>': 0,
+    'core::Array': 0,
+    'core::Array<core::NodeInfo>': 0,
+    'core::Map<core::String,runtime::SchemaObject>': 0,
+    'core::nodeIndex<core::String,core::node<bdaddress::BDACity>>': 0,
+    'core::Map<core::String,core::any?>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDAMunicipality>>>': 0,
+    'core::Map<core::any,core::int>': 0,
+    'core::Map<core::int,searchService::ScoredStreet>': 0,
+    'core::Map<core::String,core::int>': 0,
+    'core::nodeIndex<core::String,core::node<mengplaz::DataSource>>': 0,
     'core::Map<core::String,core::String>': 0,
-    'core::Array<runtime::Variable>': 0,
-    'core::nodeIndex<core::String,core::node<golden::GoldenCanton>>': 0,
-    'core::Array<trafic::Traffic>': 0,
-    'core::Tuple<core::time,mengplaz::QualityEvent>': 0,
+    'core::Tuple<core::time,searchService::AddressSearchInput>': 0,
+    'core::Array<core::Map<core::String,core::any>>': 0,
+    'core::SearchResult<core::node<core::Tensor>,core::any?>': 0,
+    'core::nodeIndex<core::String,core::node<caclr::CaclrMunicipality>>': 0,
+    'core::nodeIndex<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
+    'core::NodeInfo<core::geo>': 0,
+    'core::Map<core::String,core::geo>': 0,
+    'core::Array<core::type>': 0,
+    'core::Array<core::any?>': 0,
+    'core::Array<mengplaz::CandidateMatch<core::node<mengplaz::POIRecordProvider>>>': 0,
+    'core::nodeIndex<core::String,core::node<bdaddress::BDAddress>>': 0,
+    'core::nodeList<core::node<osm::OsmPartialAddress>>': 0,
+    'core::Array<core::SearchResult<core::String,core::Array<core::node<golden::GoldenStreet>>>>': 0,
+    'core::node<caclr::CaclrStreet>': 0,
+    'core::Array<runtime::DateTuple>': 0,
+    'core::Array<mengplaz::ReconciliationCandidate>': 0,
+    'core::nodeIndexBucket<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
+    'core::node<osm::OsmAddress>': 0,
+    'core::nodeGeo$info$args': 0,
+    'core::node$resolve_all$args': 0,
+    'core::Array<io::S3Bucket>': 0,
+    'core::Array<core::int?>': 0,
+    'core::Array<core::SearchResult>': 0,
+    'core::MathConstants': 0,
+    'core::SearchResult<core::String,core::node<caclr::CaclrCanton>>': 0,
+    'core::Array<runtime::PeriodicTask>': 0,
+    'core::Date': 0,
+    'core::nodeTime$sample$args': 0,
+    'core::str': 0,
+    'core::SearchResult<core::String,core::node<golden::GoldenMunicipality>>': 0,
+    'core::node<caclr::CaclrMunicipality>': 0,
+    'core::SearchResult<core::String,core::node<caclr::CaclrConstituency>>': 0,
+    'core::Array<core::char>': 0,
+    'core::Map<core::String,runtime::PathItemObject>': 0,
+    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDACity>>': 0,
+    'core::nodeList$info$args': 0,
+    'core::nodeIndex<core::String,core::Array<core::node<golden::GoldenStreet>>>': 0,
+    'core::nodeIndex<core::String,core::node<osm::OsmAddress>>': 0,
+    'core::Map<core::String,runtime::ResponseObject>': 0,
+    'core::t3': 0,
+    'core::SearchResult<core::String,core::node<bdaddress::BDAMunicipality>>': 0,
+    'core::SearchResult<core::String,core::node<caclr::CaclrCity>>': 0,
+    'core::Array<mengplaz::StreetRecordRef>': 0,
+    'core::Map': 0,
+    'core::Array<mengplaz::POIFullRecordRef>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenCity>>>': 0,
+    'core::SearchResult<core::String,core::node<golden::GoldenConstituency>>': 0,
+    'core::Map<core::String,runtime::UserCredential>': 0,
+    'core::node<bdaddress::BDAStreet>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrMunicipality>>>': 0,
+    'core::Tuple<core::geo,core::node<caclr::CaclrBuilding>>': 0,
+    'core::Tuple<core::int,core::any?>': 0,
+    'core::Array<runtime::HeaderObject>': 0,
+    'core::Array<runtime::Job>': 0,
+    'core::SearchResult<core::String,core::node<golden::GoldenCity>>': 0,
+    'core::SearchResult<core::String,core::node<caclr::CaclrMunicipality>>': 0,
+    'core::nodeIndexBucket<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
+    'core::Tuple<core::int,core::int>': 0,
+    'core::Array<mengplaz::Alias>': 0,
+    'core::SearchResult<core::String,core::node<caclr::CaclrStreet>>': 0,
+    'core::node<core::bool>': 0,
+    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDAStreet>>': 0,
     'core::GeoBox': 0,
     'core::SamplingMode': 0,
-    'core::node<caclr::CaclrBuilding>': 0,
-    'core::nodeIndex<core::String,core::node<bdaddress::BDAMunicipality>>': 0,
-    'core::nodeIndexBucket<core::node<core::Tensor>,core::any?>': 0,
-    'core::Array<mengplaz::ReconciliationCandidate>': 0,
-    'core::Tuple<core::geo,core::node<osm::OsmPartialAddress>>': 0,
-    'core::Map<core::String,core::geo>': 0,
-    'core::SearchResult<core::String,core::node<golden::GoldenStreet>>': 0,
-    'core::SearchResult<core::String,core::node<mengplaz::POIRecordProvider>>': 0,
-    'core::Array<core::node?>': 0,
-    'core::nodeIndex$search_closest$args': 0,
-    'core::Table$applyMappings$args': 0,
-    'core::Array<runtime::SecurityEntity>': 0,
-    'core::Array<io::S3Bucket>': 0,
-    'core::SearchResult<core::String,core::node<caclr::CaclrCity>>': 0,
-    'core::node<bdaddress::BDAMunicipality>': 0,
+    'core::Array<caclrLoader::CaclrResponseMunicipalityItem>': 0,
+    'core::nodeTime<searchService::AddressSearchInput>': 0,
+    'core::Tuple<core::int,core::node<bdaddress::BDAStreet>>': 0,
+    'core::nodeIndexBucket<core::String,core::node<golden::GoldenConstituency>>': 0,
+    'core::Array<privateApi::MatchedCandidateDetail>': 0,
+    'core::Tuple<core::geo,core::node<osm::OsmAddress>>': 0,
+    'core::nodeIndex$info$args': 0,
+    'core::SearchResult<core::String,core::node<golden::GoldenCanton>>': 0,
+    'core::nodeTime<runtime::RuntimeUsage>': 0,
+    'core::Array<postal::PostalComponent>': 0,
     'core::CalendarUnit': 0,
-    'core::Array<runtime::ZoneUsage>': 0,
+    'core::Tuple<core::geo,core::any?>': 0,
     'core::int': 0,
-    'core::NodeInfo<core::time>': 0,
-    'core::Array<mengplaz::Match<core::node<golden::GoldenCity>>>': 0,
-    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDACity>>': 0,
+    'core::Array<util::HistogramBin>': 0,
+    'core::nodeIndexBucket<core::String,core::node<golden::GoldenStreet>>': 0,
     'core::function': 0,
-    'core::Tuple<core::time,trafic::Traffic>': 0,
-    'core::duration': 0,
-    'core::Array<api::GeoJSONFeature>': 0,
-    'core::nodeIndex<core::String,core::node<mengplaz::POIRecordProvider>>': 0,
-    'core::node<caclr::CaclrStreet>': 0,
-    'core::Tuple<core::int,core::node<bdaddress::BDAddress>>': 0,
-    'core::nodeTime<mengplaz::QualityEvent>': 0,
-    'core::nodeIndex': 0,
-    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDAddress>>': 0,
-    'core::nodeIndex<core::String,core::node<trafic::Endpoint>>': 0,
-    'core::NodeInfo': 0,
-    'core::Array<core::any>': 0,
-    'core::Map<core::String,runtime::ResponseObject>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<trafic::Endpoint>>>': 0,
-    'core::nodeIndexBucket<core::String,core::node<golden::GoldenCity>>': 0,
-    'core::t2f': 0,
-    'core::Array<runtime::Task>': 0,
-    'core::nodeIndexBucket<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
-    'core::Array<mengplaz::SearchRequest>': 0,
-    'core::Array<core::SearchResult<core::String,core::Array<core::node<golden::GoldenStreet>>>>': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenStreet>>': 0,
-    'core::nodeIndex<core::String,core::node<caclr::CaclrCity>>': 0,
-    'core::NodeInfo<core::int>': 0,
+    'core::duration': 0,
+    'core::Array<privateApi::SourceRef>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<mengplaz::DataSource>>>': 0,
+    'core::node<golden::GoldenCanton>': 0,
+    'core::nodeIndex': 0,
+    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrCanton>>': 0,
+    'core::node<mengplaz::DataSource>': 0,
+    'core::nodeIndex<core::String,core::node<golden::GoldenCanton>>': 0,
+    'core::NodeInfo': 0,
+    'core::Array<mengplaz::LinkedRecordEntry>': 0,
+    'core::nodeIndex<core::node<core::Tensor>,core::any?>': 0,
+    'core::Array<runtime::SecurityEntity>': 0,
+    'core::nodeGeo<core::node<osm::OsmPartialAddress>>': 0,
+    'core::nodeTime$info$args': 0,
+    'core::node<golden::GoldenCity>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDACity>>>': 0,
+    'core::t2f': 0,
+    'core::SearchResult<core::String,core::node<osm::OsmAddress>>': 0,
+    'core::Array<runtime::Role>': 0,
+    'core::nodeIndexBucket<core::String,core::node<trafic::Endpoint>>': 0,
+    'core::node<golden::GoldenMunicipality>': 0,
+    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrConstituency>>': 0,
+    'core::Map<core::int,searchService::ScoredPoi>': 0,
+    'core::Array<core::nodeTime>': 0,
+    'core::nodeTime<mengplaz::QualityEvent>': 0,
+    'core::nodeIndex<core::String,core::node<mengplaz::POIRecordProvider>>': 0,
     'core::t4': 0,
-    'core::Array<core::field>': 0,
-    'core::Array<searchService::ScoredPoi>': 0,
     'core::nodeList': 0,
-    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrBuilding>>>': 0,
-    'core::Array<mengplaz::POIRecord>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenMunicipality>>>': 0,
-    'core::Array<core::NodeInfo<core::geo>>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrMunicipality>>>': 0,
+    'core::Array<runtime::UserCredential>': 0,
+    'core::Array<mengplaz::POIRecordRef>': 0,
+    'core::Array<caclrLoader::CaclrResponseBuildingItem>': 0,
+    'core::Array<core::ErrorFrame>': 0,
     'core::bool': 0,
     'core::nodeGeo': 0,
-    'core::Array<core::SearchResult<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>>': 0,
-    'core::Map<core::any,core::int>': 0,
-    'core::Array<runtime::Role>': 0,
-    'core::SearchResult<core::String,core::node<bdaddress::BDAStreet>>': 0,
-    'core::Array<core::Array<core::String>>': 0,
-    'core::SearchResult<core::String,core::node<bdaddress::BDACity>>': 0,
-    'core::nodeIndex<core::node<core::Tensor>,core::any?>': 0,
-    'core::Tuple<core::geo,core::node<caclr::CaclrBuilding>>': 0,
+    'core::node<bdaddress::BDAddress>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<trafic::Endpoint>>>': 0,
+    'core::Array<runtime::ResponseObject>': 0,
+    'core::nodeIndexBucket<core::String,core::node<mengplaz::DataSource>>': 0,
     'core::Map<core::String,core::Map<core::String,core::any>>': 0,
-    'core::Array<core::Tuple<core::String,core::String?>>': 0,
-    'core::Array<mengplaz::POIRecordRef>': 0,
-    'core::SearchResult<core::String,core::node<bdaddress::BDAMunicipality>>': 0,
-    'core::Tuple<core::String,core::String?>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<bdaddress::BDAMunicipality>>>': 0,
-    'core::nodeIndexBucket<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
-    'core::nodeGeo<core::node<golden::GoldenPointOfInterest>>': 0,
-    'core::nodeList$sample$args': 0,
-    'core::SearchResult<core::String,core::node<golden::GoldenMunicipality>>': 0,
-    'core::nodeIndexBucket<core::String,core::node<bdaddress::BDAStreet>>': 0,
+    'core::Array<core::any>': 0,
+    'core::nodeList<core::node<bdaddress::BDAStreet>>': 0,
+    'core::SearchResult<core::String,core::node<golden::GoldenPointOfInterest>>': 0,
+    'core::node<bdaddress::BDAMunicipality>': 0,
+    'core::nodeIndex<core::String,core::node<caclr::CaclrStreet>>': 0,
+    'core::SearchResult<core::String,core::node<golden::GoldenStreet>>': 0,
+    'core::node<golden::GoldenSource>': 0,
+    'core::Array<core::node?>': 0,
+    'core::nodeIndexBucket<core::String,core::node<golden::GoldenMunicipality>>': 0,
+    'core::Array<runtime::DayOfWeek>': 0,
+    'core::Array<runtime::Permission>': 0,
+    'core::Array<core::NodeInfo<core::geo>>': 0,
+    'core::Array<searchService::AddressSearchInput>': 0,
+    'core::Array<goldenExporter::LinkedRecordDTO>': 0,
+    'core::Array<core::SearchResult<core::String,core::Array<core::node<golden::GoldenCity>>>>': 0,
+    'core::nodeIndex<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
+    'core::SearchResult<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
+    'core::nodeIndex<core::String,core::node<bdaddress::BDAStreet>>': 0,
+    'core::nodeIndexBucket<core::String,core::node<golden::GoldenPointOfInterest>>': 0,
+    'core::Array<core::SearchResult<core::node<mengplaz::POIRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>>': 0,
+    'core::Array<api::GoldenIndex>': 0,
     'core::Tuple': 0,
-    'core::nodeIndex<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
+    'core::node<caclr::CaclrBuilding>': 0,
     'core::nodeIndexBucket': 0,
-    'core::Array<searchService::ScoredStreet>': 0,
-    'core::Array<core::NodeInfo<core::time>>': 0,
-    'core::Array<core::Array<core::float>>': 0,
-    'core::nodeList$info$args': 0,
-    'core::nodeIndexBucket<core::String,core::node<golden::GoldenStreet>>': 0,
-    'core::nodeGeo$info$args': 0,
-    'core::Array<privateApi::GoldenRecordScore>': 0,
-    'core::Array<io::CsvColumnStatistics>': 0,
-    'core::SearchResult<core::String,core::node<caclr::CaclrStreet>>': 0,
-    'core::Array<mengplaz::LinkedRecordEntry>': 0,
-    'core::SearchResult<core::String,core::node<osm::OsmAddress>>': 0,
-    'core::nodeGeo<core::node<osm::OsmAddress>>': 0,
-    'core::Array<runtime::PathItemObject>': 0,
-    'core::Error': 0,
-    'core::Array<runtime::UserCredential>': 0,
     'core::SearchResult<core::node<mengplaz::POIRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
-    'core::Array<privateApi::SourceRef>': 0,
+    'core::Array<runtime::McpTool>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenConstituency>>>': 0,
+    'core::Array<core::SearchResult<core::node<core::Tensor>,core::any?>>': 0,
+    'core::node<osm::OsmPartialAddress>': 0,
+    'core::Tuple<core::time,trafic::Traffic>': 0,
     'core::Array<runtime::McpTask>': 0,
-    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrConstituency>>': 0,
+    'core::node<golden::GoldenConstituency>': 0,
+    'core::Error': 0,
+    'core::Tuple<core::time,mengplaz::QualityEvent>': 0,
+    'core::Array<runtime::SchemaObject>': 0,
+    'core::node<mengplaz::POIRecordProvider>': 0,
+    'core::Tuple<core::geo,core::node<golden::GoldenPointOfInterest>>': 0,
+    'core::nodeTime<core::float>': 0,
+    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenMunicipality>>>': 0,
     'core::Table': 0,
-    'core::Array<core::nodeList>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<osm::OsmAddress>>>': 0,
-    'core::Array<core::node<caclr::CaclrBuilding>>': 0,
+    'core::nodeIndex<core::String,core::node<golden::GoldenConstituency>>': 0,
+    'core::Array<runtime::MediaTypeObject>': 0,
+    'core::Tuple<core::time,core::any?>': 0,
+    'core::Array<trafic::Traffic>': 0,
     'core::nodeTimeCursor': 0,
-    'core::Array<core::SearchResult<core::String,core::node<golden::GoldenCity>>>': 0,
-    'core::node<core::Tensor>': 0,
+    'core::SearchResult<core::String,core::node<bdaddress::BDACity>>': 0,
+    'core::Array<core::NodeInfo<core::time>>': 0,
+    'core::SearchResult<core::String,core::node<caclr::CaclrBuilding>>': 0,
+    'core::Array<mengplaz::Match<core::node<golden::GoldenStreet>>>': 0,
     'core::time': 0,
-    'core::Map<core::node<mengplaz::DataSource>,core::Array<core::float>>': 0,
-    'core::Array<privateApi::GlobalQualityEntry>': 0,
-    'core::nodeIndexBucket<core::String,core::node<caclr::CaclrStreet>>': 0,
+    'core::Array<util::Quantizer>': 0,
     'core::Tuple<core::time,runtime::RuntimeUsage>': 0,
-    'core::nodeIndexBucket<core::String,core::node<mengplaz::POIRecordProvider>>': 0,
-    'core::Array<runtime::RuntimeUsage>': 0,
-    'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrCity>>>': 0,
-    'core::Array<runtime::HeaderObject>': 0,
-    'core::node$resolve_all$args': 0,
-    'core::Tuple<core::geo,core::any?>': 0,
-    'core::Array<mengplaz::QualityEvent>': 0,
+    'core::Array<searchService::ScoredCity>': 0,
+    'core::nodeIndexBucket<core::String,core::node<golden::GoldenCanton>>': 0,
+    'core::Array<core::float>': 0,
+    'core::SearchResult<core::String,core::node<bdaddress::BDAddress>>': 0,
+    'runtime::Debug$resume$args': 0,
+    'runtime::System': 0,
     'runtime::UserGroup': 0,
-    'runtime::User$logout$args': 0,
     'runtime::SchemaFormat': 0,
-    'runtime::mcp_tools_call$args': 0,
+    'runtime::System$get_all_envs$args': 0,
     'runtime::McpPriority': 0,
     'runtime::Scheduler': 0,
     'runtime::McpInitializeResult': 0,
-    'runtime::Scheduler$activate$args': 0,
+    'runtime::Runtime$info$args': 0,
     'runtime::McpRequestParams': 0,
     'runtime::PeriodicTask': 0,
     'runtime::McpClientTasksCapabilities': 0,
     'runtime::Debug': 0,
-    'runtime::Scheduler$add$args': 0,
     'runtime::McpToolsListResult': 0,
-    'runtime::User$renew$args': 0,
-    'runtime::User$login$args': 0,
     'runtime::ChildProcess': 0,
     'runtime::McpContentBlock': 0,
-    'runtime::Role$all$args': 0,
+    'runtime::mcp_tasks_list$args': 0,
     'runtime::UserCredential': 0,
-    'runtime::Runtime$abi$args': 0,
-    'runtime::Task$cancel$args': 0,
+    'runtime::SecurityFields$set$args': 0,
     'runtime::McpClientCapabilities': 0,
+    'runtime::mcp_tools_call$args': 0,
     'runtime::McpToolsCallResult': 0,
-    'runtime::Task$running$args': 0,
     'runtime::ZoneUsage': 0,
-    'runtime::User$tokenLogin$args': 0,
+    'runtime::Scheduler$activate$args': 0,
     'runtime::McpToolExecution': 0,
     'runtime::McpTaskStatus': 0,
     'runtime::OpenIDConnect$config$args': 0,
     'runtime::DailyPeriodicity': 0,
-    'runtime::Runtime$root$args': 0,
     'runtime::McpTaskSupport': 0,
+    'runtime::User$logout$args': 0,
+    'runtime::SecurityFields$get$args': 0,
     'runtime::Frame': 0,
     'runtime::McpClientRoots': 0,
     'runtime::OpenApi': 0,
-    'runtime::SecurityFields$set$args': 0,
-    'runtime::Debug$all$args': 0,
+    'runtime::mcp_tasks_result$args': 0,
+    'runtime::Scheduler$add$args': 0,
     'runtime::InfoObject': 0,
-    'runtime::User$setPassword$args': 0,
+    'runtime::Debug$get$args': 0,
     'runtime::McpAudioContent': 0,
     'runtime::McpTasksCancelParams': 0,
-    'runtime::System$get_all_envs$args': 0,
-    'runtime::SecurityEntity$set$args': 0,
-    'runtime::Runtime$info$args': 0,
     'runtime::McpTasksCreateResult': 0,
     'runtime::OpenApiV3': 0,
     'runtime::Month': 0,
     'runtime::McpToolsCallParams': 0,
     'runtime::McpContentType': 0,
-    'runtime::McpServerTasksCapabilities': 0,
+    'runtime::mcp_initialize$args': 0,
     'runtime::DayOfWeek': 0,
+    'runtime::McpServerTasksCapabilities': 0,
     'runtime::LogDataUsage': 0,
     'runtime::McpImplementation': 0,
+    'runtime::mcp_tools_list$args': 0,
+    'runtime::User$setPassword$args': 0,
     'runtime::Periodicity': 0,
-    'runtime::Task$is_running$args': 0,
-    'runtime::SecurityFields': 0,
     'runtime::UserGroupPolicyType': 0,
+    'runtime::SecurityFields': 0,
     'runtime::User': 0,
     'runtime::McpTool': 0,
     'runtime::RuntimeInfo': 0,
-    'runtime::Task$history$args': 0,
     'runtime::MergeStrategy': 0,
     'runtime::Job': 0,
     'runtime::HeaderObject': 0,
+    'runtime::User$current$args': 0,
     'runtime::OpenApiVersion': 0,
-    'runtime::SecurityEntity$all$args': 0,
+    'runtime::Task$is_running$args': 0,
     'runtime::mcp_tasks_cancel$args': 0,
     'runtime::Permission': 0,
     'runtime::McpResult': 0,
     'runtime::McpServerPromptsCapabilities': 0,
+    'runtime::User$me$args': 0,
     'runtime::McpInitializeParams': 0,
     'runtime::McpImageContent': 0,
     'runtime::McpToolsListParams': 0,
     'runtime::TaskStatus': 0,
-    'runtime::Scheduler$list$args': 0,
+    'runtime::Permission$all$args': 0,
     'runtime::LicenseType': 0,
     'runtime::McpBaseMetadata': 0,
+    'runtime::SecurityEntity$set$args': 0,
+    'runtime::Scheduler$list$args': 0,
     'runtime::McpTasksResultParams': 0,
     'runtime::OpenIDConnect': 0,
     'runtime::McpResourceContent': 0,
-    'runtime::mcp_initialize$args': 0,
-    'runtime::User$current$args': 0,
+    'runtime::Runtime$root$args': 0,
+    'runtime::SecurityEntity$all$args': 0,
     'runtime::Role': 0,
-    'runtime::mcp_tasks_list$args': 0,
+    'runtime::Scheduler$deactivate$args': 0,
+    'runtime::Task$cancel$args': 0,
+    'runtime::Scheduler$find$args': 0,
+    'runtime::User$renew$args': 0,
     'runtime::SecurityPolicy': 0,
-    'runtime::Permission$all$args': 0,
-    'runtime::mcp_tasks_get$args': 0,
+    'runtime::Task$running$args': 0,
     'runtime::ResponseObject': 0,
-    'runtime::Debug$get$args': 0,
-    'runtime::McpTask': 0,
     'runtime::SchemaType': 0,
-    'runtime::OperationObject': 0,
+    'runtime::McpTask': 0,
     'runtime::McpServerToolsCapabilities': 0,
+    'runtime::OperationObject': 0,
     'runtime::PeriodicOptions': 0,
-    'runtime::User$me$args': 0,
     'runtime::YearlyPeriodicity': 0,
-    'runtime::Runtime$backup_full$args': 0,
+    'runtime::mcp_tasks_get$args': 0,
     'runtime::McpTasksGetParams': 0,
-    'runtime::SecurityFields$get$args': 0,
     'runtime::McpServerResourcesCapabilities': 0,
     'runtime::License': 0,
-    'runtime::Scheduler$deactivate$args': 0,
+    'runtime::User$login$args': 0,
+    'runtime::Runtime$usage$args': 0,
     'runtime::DateTuple': 0,
-    'runtime::ResponseCode': 0,
-    'runtime::McpTaskCreateParams': 0,
-    'runtime::ChildProcessResult': 0,
+    'runtime::User$tokenLogin$args': 0,
     'runtime::OpenApi$v3$args': 0,
+    'runtime::McpTaskCreateParams': 0,
+    'runtime::ResponseCode': 0,
+    'runtime::ChildProcessResult': 0,
+    'runtime::Runtime$abi$args': 0,
     'runtime::UserGroupPolicy': 0,
     'runtime::McpTasksListResult': 0,
     'runtime::RuntimeUsage': 0,
     'runtime::LogLevel': 0,
-    'runtime::User$permissions$args': 0,
     'runtime::PathItemObject': 0,
     'runtime::SecurityEntity': 0,
-    'runtime::Runtime$usage$args': 0,
     'runtime::McpServerCapabilities': 0,
-    'runtime::Debug$resume$args': 0,
     'runtime::Variable': 0,
     'runtime::Log': 0,
     'runtime::WeeklyPeriodicity': 0,
-    'runtime::mcp_tasks_result$args': 0,
+    'runtime::Debug$all$args': 0,
+    'runtime::Task$history$args': 0,
     'runtime::MonthlyPeriodicity': 0,
     'runtime::FixedPeriodicity': 0,
     'runtime::McpTextContent': 0,
@@ -3203,101 +3230,101 @@ declare namespace gc {
     'runtime::SchemaObject': 0,
     'runtime::RequestBodyObject': 0,
     'runtime::ComponentsObject': 0,
-    'runtime::mcp_tools_list$args': 0,
+    'runtime::Runtime$backup_full$args': 0,
     'runtime::Runtime': 0,
     'runtime::McpRole': 0,
-    'runtime::WorkerUsage': 0,
+    'runtime::User$permissions$args': 0,
     'runtime::MediaTypeObject': 0,
-    'runtime::Scheduler$find$args': 0,
-    'runtime::System': 0,
-    'io::JsonReader<goldenExporter::GoldenPOIDTO>': 0,
-    'io::JsonWriter<goldenExporter::GoldenCityDTO>': 0,
-    'io::Http<caclrLoader::CaclrResponseStreets>': 0,
-    'io::Reader<goldenExporter::GoldenStreetDTO>': 0,
+    'runtime::WorkerUsage': 0,
+    'runtime::Role$all$args': 0,
+    'io::Writer<goldenExporter::GoldenPOIDTO>': 0,
+    'io::CsvReader<bdAddressLoader::BDAddressLine>': 0,
+    'io::JsonReader<goldenExporter::GoldenMunicipalityDTO>': 0,
+    'io::Reader<golden::GoldenConstituency>': 0,
     'io::SmtpMode': 0,
     'io::S3': 0,
-    'io::JsonWriter': 0,
-    'io::Writer<goldenExporter::GoldenCityDTO>': 0,
-    'io::Reader<goldenExporter::GoldenQualityHistoryDTO>': 0,
-    'io::JsonReader<goldenExporter::GoldenStreetDTO>': 0,
-    'io::GcbReader': 0,
-    'io::Reader<goldenExporter::GoldenMunicipalityDTO>': 0,
     'io::Csv$generate$args': 0,
-    'io::CsvStatistics': 0,
-    'io::TextReader': 0,
-    'io::HttpResponse<caclrLoader::CaclrResponseCantons>': 0,
-    'io::Reader<golden::GoldenConstituency>': 0,
-    'io::Csv$analyze$args': 0,
-    'io::Reader<goldenExporter::GoldenCityDTO>': 0,
-    'io::CsvReader<goldenExporter::GoldenQualityHistoryDTO>': 0,
-    'io::GcbReader<golden::GoldenConstituency>': 0,
-    'io::File': 0,
-    'io::JsonReader': 0,
-    'io::Json': 0,
-    'io::Http<caclrLoader::CaclrResponseMunicipalities>': 0,
-    'io::Url': 0,
-    'io::JsonWriter<goldenExporter::GoldenConstituencyDTO>': 0,
-    'io::S3Object': 0,
-    'io::Reader<goldenExporter::GoldenCantonDTO>': 0,
-    'io::Writer<goldenExporter::GoldenMunicipalityDTO>': 0,
-    'io::S3Bucket': 0,
-    'io::BinReader': 0,
-    'io::TextWriter': 0,
-    'io::S3BasicCredentials': 0,
-    'io::CsvSharding': 0,
-    'io::JsonWriter<goldenExporter::GoldenStreetDTO>': 0,
-    'io::HttpResponse<core::Array<bdAddressLoader::BDAddressLine>>': 0,
-    'io::XmlReader': 0,
-    'io::Http<caclrLoader::CaclrResponseCities>': 0,
-    'io::Writer<goldenExporter::GoldenStreetDTO>': 0,
+    'io::JsonWriter': 0,
     'io::CsvWriter<goldenExporter::GoldenQualityHistoryDTO>': 0,
-    'io::HttpResponse<caclrLoader::CaclrResponseCities>': 0,
-    'io::Http<core::Array<bdAddressLoader::BDAddressLine>>': 0,
-    'io::CsvFormat': 0,
-    'io::Reader<core::String>': 0,
-    'io::CsvAnalysisConfig': 0,
-    'io::HttpResponse<caclrLoader::CaclrResponseBuildings>': 0,
-    'io::Writer<goldenExporter::GoldenPOIDTO>': 0,
-    'io::Email': 0,
-    'io::Writer<goldenExporter::GoldenCantonDTO>': 0,
-    'io::Writer': 0,
-    'io::Writer<goldenExporter::GoldenConstituencyDTO>': 0,
-    'io::GcbWriter': 0,
-    'io::HttpResponse': 0,
+    'io::Reader<goldenExporter::GoldenStreetDTO>': 0,
     'io::JsonWriter<goldenExporter::GoldenMunicipalityDTO>': 0,
-    'io::Csv$sample$args': 0,
-    'io::Writer<goldenExporter::GoldenQualityHistoryDTO>': 0,
-    'io::JsonReader<goldenExporter::GoldenConstituencyDTO>': 0,
-    'io::CsvReader': 0,
-    'io::JsonReader<goldenExporter::GoldenCantonDTO>': 0,
-    'io::Http<caclrLoader::CaclrResponseCantons>': 0,
-    'io::HttpMethod': 0,
-    'io::Smtp': 0,
-    'io::HttpResponse<osmLoader::OsmOverpassResponse>': 0,
     'io::Http<osmLoader::OsmOverpassResponse>': 0,
-    'io::HttpRequest': 0,
-    'io::HttpResponse<caclr::CaclrTokenResponse>': 0,
-    'io::Http<caclrLoader::CaclrResponseBuildings>': 0,
-    'io::JsonReader<goldenExporter::GoldenMunicipalityDTO>': 0,
-    'io::FileWalker': 0,
-    'io::Reader': 0,
+    'io::GcbReader': 0,
+    'io::HttpResponse<core::Array<bdAddressLoader::BDAddressLine>>': 0,
+    'io::CsvStatistics': 0,
     'io::Reader<bdAddressLoader::BDAddressLine>': 0,
-    'io::CsvWriter': 0,
-    'io::JsonReader<goldenExporter::GoldenCityDTO>': 0,
-    'io::Reader<goldenExporter::GoldenPOIDTO>': 0,
-    'io::SmtpAuth': 0,
-    'io::HttpResponse<caclrLoader::CaclrResponseMunicipalities>': 0,
+    'io::JsonWriter<goldenExporter::GoldenCityDTO>': 0,
+    'io::HttpResponse<caclrLoader::CaclrResponseStreets>': 0,
+    'io::TextReader': 0,
     'io::Http<caclr::CaclrTokenResponse>': 0,
     'io::Writer<golden::GoldenConstituency>': 0,
-    'io::JsonWriter<goldenExporter::GoldenPOIDTO>': 0,
-    'io::JsonWriter<goldenExporter::GoldenCantonDTO>': 0,
-    'io::CsvReader<bdAddressLoader::BDAddressLine>': 0,
-    'io::Reader<goldenExporter::GoldenConstituencyDTO>': 0,
-    'io::Http': 0,
+    'io::JsonReader': 0,
+    'io::File': 0,
+    'io::Json': 0,
+    'io::Csv$analyze$args': 0,
+    'io::Http<caclrLoader::CaclrResponseCities>': 0,
+    'io::Url': 0,
+    'io::HttpResponse<caclr::CaclrTokenResponse>': 0,
+    'io::S3Object': 0,
+    'io::GcbReader<golden::GoldenConstituency>': 0,
+    'io::Reader<core::String>': 0,
+    'io::Writer<goldenExporter::GoldenCantonDTO>': 0,
+    'io::Http<caclrLoader::CaclrResponseBuildings>': 0,
+    'io::HttpResponse<caclrLoader::CaclrResponseMunicipalities>': 0,
+    'io::S3Bucket': 0,
+    'io::BinReader': 0,
+    'io::JsonReader<goldenExporter::GoldenCantonDTO>': 0,
+    'io::Http<core::Array<bdAddressLoader::BDAddressLine>>': 0,
+    'io::TextWriter': 0,
+    'io::S3BasicCredentials': 0,
+    'io::Http<caclrLoader::CaclrResponseMunicipalities>': 0,
+    'io::Csv$sample$args': 0,
+    'io::Writer<goldenExporter::GoldenConstituencyDTO>': 0,
+    'io::Reader<goldenExporter::GoldenQualityHistoryDTO>': 0,
+    'io::HttpResponse<osmLoader::OsmOverpassResponse>': 0,
+    'io::CsvSharding': 0,
+    'io::Reader<goldenExporter::GoldenPOIDTO>': 0,
+    'io::JsonWriter<goldenExporter::GoldenConstituencyDTO>': 0,
+    'io::Reader<goldenExporter::GoldenCantonDTO>': 0,
+    'io::HttpResponse<caclrLoader::CaclrResponseCities>': 0,
+    'io::HttpResponse<caclrLoader::CaclrResponseCantons>': 0,
+    'io::XmlReader': 0,
+    'io::Writer<goldenExporter::GoldenStreetDTO>': 0,
+    'io::CsvFormat': 0,
+    'io::CsvAnalysisConfig': 0,
+    'io::Email': 0,
+    'io::Writer': 0,
+    'io::Writer<goldenExporter::GoldenMunicipalityDTO>': 0,
+    'io::GcbWriter': 0,
+    'io::HttpResponse': 0,
     'io::GcbWriter<golden::GoldenConstituency>': 0,
+    'io::JsonReader<goldenExporter::GoldenPOIDTO>': 0,
+    'io::CsvReader<goldenExporter::GoldenQualityHistoryDTO>': 0,
+    'io::CsvReader': 0,
+    'io::JsonReader<goldenExporter::GoldenCityDTO>': 0,
+    'io::HttpMethod': 0,
+    'io::Http<caclrLoader::CaclrResponseStreets>': 0,
+    'io::Smtp': 0,
+    'io::JsonWriter<goldenExporter::GoldenPOIDTO>': 0,
+    'io::HttpRequest': 0,
+    'io::Reader<goldenExporter::GoldenCityDTO>': 0,
+    'io::Reader<goldenExporter::GoldenMunicipalityDTO>': 0,
+    'io::HttpResponse<caclrLoader::CaclrResponseBuildings>': 0,
+    'io::FileWalker': 0,
+    'io::Reader': 0,
+    'io::CsvWriter': 0,
+    'io::Writer<goldenExporter::GoldenCityDTO>': 0,
+    'io::SmtpAuth': 0,
+    'io::JsonWriter<goldenExporter::GoldenStreetDTO>': 0,
+    'io::JsonReader<goldenExporter::GoldenStreetDTO>': 0,
+    'io::Reader<goldenExporter::GoldenConstituencyDTO>': 0,
+    'io::JsonReader<goldenExporter::GoldenConstituencyDTO>': 0,
+    'io::Http': 0,
     'io::CsvColumnStatistics': 0,
     'io::Csv': 0,
-    'io::HttpResponse<caclrLoader::CaclrResponseStreets>': 0,
+    'io::Http<caclrLoader::CaclrResponseCantons>': 0,
+    'io::JsonWriter<goldenExporter::GoldenCantonDTO>': 0,
+    'io::Writer<goldenExporter::GoldenQualityHistoryDTO>': 0,
     'util::TimeWindow': 0,
     'util::GaussianProfileSlot': 0,
     'util::ProgressTracker': 0,
@@ -3308,73 +3335,73 @@ declare namespace gc {
     'util::Random': 0,
     'util::Stack': 0,
     'util::Histogram': 0,
+    'util::Quantizer<core::Array>': 0,
     'util::SlidingWindow': 0,
     'util::CustomQuantizer': 0,
     'util::HistogramStats': 0,
     'util::Queue': 0,
     'util::Crypto': 0,
     'util::Gaussian': 0,
-    'util::QuantizerSlotBound<core::Array>': 0,
-    'util::Quantizer<core::Array>': 0,
     'util::Plot': 0,
     'util::QuantizerSlotBound': 0,
     'util::Quantizer': 0,
     'util::LogQuantizer': 0,
+    'util::QuantizerSlotBound<core::Array>': 0,
     'util::MultiQuantizer': 0,
-    'project::loadOsm$args': 0,
-    'project::Root': 0,
+    'project::populateGoldenIndexes$args': 0,
     'project::loadBda$args': 0,
     'project::loadCaclr$args': 0,
-    'project::populateGoldenIndexes$args': 0,
-    'privateApi::unlockSource$args': 0,
-    'privateApi::promoteRecord$args': 0,
-    'privateApi::getRecordTab$args': 0,
-    'privateApi::getSources$args': 0,
-    'privateApi::reconcilePOIs$args': 0,
+    'project::Root': 0,
+    'project::loadOsm$args': 0,
+    'privateApi::unlinkRecord$args': 0,
+    'privateApi::linkAllFullMatched$args': 0,
     'privateApi::ReconciliationReportView': 0,
     'privateApi::RecordLocation': 0,
     'privateApi::SourceRef': 0,
-    'privateApi::reconcile$args': 0,
+    'privateApi::getReconciliationReport$args': 0,
+    'privateApi::promoteRecord$args': 0,
     'privateApi::ComparisonViewData': 0,
     'privateApi::GoldenRecordScore': 0,
+    'privateApi::getSources$args': 0,
+    'privateApi::reconcile$args': 0,
     'privateApi::QualityTrend': 0,
-    'privateApi::computeGlobalQuality$args': 0,
-    'privateApi::getComparisonViewData$args': 0,
-    'privateApi::linkRecords$args': 0,
-    'privateApi::lockDatasource$args': 0,
     'privateApi::RecordTabResult': 0,
+    'privateApi::reconcilePOIs$args': 0,
+    'privateApi::getRecordTab$args': 0,
     'privateApi::MatchedCandidateDetail': 0,
+    'privateApi::getComparisonViewData$args': 0,
     'privateApi::GlobalQualityHistory': 0,
+    'privateApi::getLinkedComparisonViewData$args': 0,
+    'privateApi::computeGlobalQuality$args': 0,
     'privateApi::LinkParameters': 0,
     'privateApi::GlobalQualityEntry': 0,
-    'privateApi::unlinkRecord$args': 0,
-    'privateApi::getLinkedComparisonViewData$args': 0,
     'privateApi::mergePositionsToGolden$args': 0,
+    'privateApi::unlockSource$args': 0,
     'privateApi::ReconciliationReportMatchView': 0,
-    'privateApi::getReconciliationReport$args': 0,
-    'privateApi::linkAllFullMatched$args': 0,
-    'api::getGlobalQualityHistory$args': 0,
+    'privateApi::linkRecords$args': 0,
+    'privateApi::lockDatasource$args': 0,
+    'api::getGoldenNumbersByStreetId$args': 0,
+    'api::getGoldenRecords$args': 0,
+    'api::getRecordByGeoportailID$args': 0,
     'api::getGoldenRecordDetails$args': 0,
     'api::POIFeatures': 0,
-    'api::getGoldenStreetsByCityId$args': 0,
-    'api::getGoldenCities$args': 0,
-    'api::appInfo$args': 0,
-    'api::getPoisInStreet$args': 0,
-    'api::GeoJSONGeometry': 0,
-    'api::GoldenIndex': 0,
-    'api::searchStreet$args': 0,
-    'api::GeoJSONFeature': 0,
-    'api::getGoldenRecordRefByUid$args': 0,
+    'api::getGlobalQualityHistory$args': 0,
     'api::getPois$args': 0,
-    'api::getGoldenNumbersByStreetId$args': 0,
-    'api::getGoldenRecordsGeoJson$args': 0,
-    'api::openapi$args': 0,
-    'api::getPoisByGeo$args': 0,
-    'api::GeoJSON': 0,
-    'api::getRecordByGeoportailID$args': 0,
-    'api::GoldenRecordDetails': 0,
     'api::searchAddress$args': 0,
-    'api::getGoldenRecords$args': 0,
+    'api::GeoJSONGeometry': 0,
+    'api::getGoldenCities$args': 0,
+    'api::GoldenIndex': 0,
+    'api::getGoldenStreetsByCityId$args': 0,
+    'api::getPoisByGeo$args': 0,
+    'api::openapi$args': 0,
+    'api::getPoisInStreet$args': 0,
+    'api::GeoJSONFeature': 0,
+    'api::searchStreet$args': 0,
+    'api::getGoldenRecordsGeoJson$args': 0,
+    'api::getGoldenRecordRefByUid$args': 0,
+    'api::GeoJSON': 0,
+    'api::appInfo$args': 0,
+    'api::GoldenRecordDetails': 0,
     'caclrLoader::CaclrResponseCities': 0,
     'caclrLoader::CaclrResponseMunicipalities': 0,
     'caclrLoader::CaclrResponseCantonItem': 0,
@@ -3433,8 +3460,9 @@ declare namespace gc {
     'mengplaz::ScoringWeights': 0,
     'mengplaz::DataSource': 0,
     'mengplaz::POIRecordRef': 0,
-    'mengplaz::CandidateMatch<core::node<mengplaz::POIRecordProvider>>': 0,
+    'mengplaz::Match<core::node<golden::GoldenCity>>': 0,
     'mengplaz::ReconciliationCandidate': 0,
+    'mengplaz::Match<core::node<golden::GoldenStreet>>': 0,
     'mengplaz::POIFullRecordRef': 0,
     'mengplaz::QualityEventType': 0,
     'mengplaz::LinkedRecordEntry': 0,
@@ -3444,11 +3472,10 @@ declare namespace gc {
     'mengplaz::Match': 0,
     'mengplaz::SearchParameters': 0,
     'mengplaz::SearchResult': 0,
-    'mengplaz::Match<core::node<golden::GoldenCity>>': 0,
     'mengplaz::POIRecordProvider': 0,
     'mengplaz::StreetRecord': 0,
     'mengplaz::GeoParameters': 0,
-    'mengplaz::Match<core::node<golden::GoldenStreet>>': 0,
+    'mengplaz::CandidateMatch<core::node<mengplaz::POIRecordProvider>>': 0,
     'mengplaz::SearchItem': 0,
     'mengplaz::QualityEvent': 0,
     'mengplaz::ReconciliationCandidateScore': 0,
@@ -3460,22 +3487,29 @@ declare namespace gc {
     'golden::GoldenPointOfInterest': 0,
     'golden::GoldenConstituency': 0,
     'golden::GoldenMunicipality': 0,
-    'golden::GoldenSource': 0,
     'golden::GoldenStreet': 0,
     'golden::GoldenCity': 0,
+    'golden::GoldenSource': 0,
     'goldenServices::GoldenServices': 0,
     'traffic_service::Traffic_Service': 0,
     'searchService::ScoredStreet': 0,
-    'searchService::ScoredCity': 0,
+    'searchService::AddressSearchInput': 0,
     'searchService::ScoredPoi': 0,
+    'searchService::ScoredCity': 0,
     'utils::SplitAlphaNumericalString': 0,
-    'postal::PostalAddress': 0,
-    'postal::PostalComponent': 0,
-    'postal::PostalOptions': 0,
     'postal::PostalParsedAddress': 0,
+    'postal::PostalOptions': 0,
+    'postal::PostalComponent': 0,
+    'postal::PostalAddress': 0,
   }
 
   interface $FieldsMap {
+    'core::nodeList$sample$args::refs': 0,
+    'core::nodeList$sample$args::from': 0,
+    'core::nodeList$sample$args::to': 0,
+    'core::nodeList$sample$args::maxRows': 0,
+    'core::nodeList$sample$args::mode': 0,
+    'core::nodeList$sample$args::maxDephasing': 0,
     'core::Chars::codepoints': 0,
     'core::VectorIndex::values': 0,
     'core::VectorIndex::count': 0,
@@ -3483,6 +3517,11 @@ declare namespace gc {
     'core::VectorIndex::entry_node_ref': 0,
     'core::VectorIndex::rng': 0,
     'core::VectorIndex::distance': 0,
+    'core::nodeGeo$sample$args::refs': 0,
+    'core::nodeGeo$sample$args::from': 0,
+    'core::nodeGeo$sample$args::to': 0,
+    'core::nodeGeo$sample$args::maxRows': 0,
+    'core::nodeGeo$sample$args::mode': 0,
     'core::SearchResult::key': 0,
     'core::SearchResult::value': 0,
     'core::SearchResult::distance': 0,
@@ -3492,30 +3531,23 @@ declare namespace gc {
     'core::VectorVertex::vector': 0,
     'core::VectorVertex::level_sizes': 0,
     'core::VectorVertex::neighbour_nodes': 0,
+    'core::GeoCircle::center': 0,
+    'core::GeoCircle::radius': 0,
     'core::nodeIndex$sample$args::refs': 0,
     'core::nodeIndex$sample$args::from': 0,
     'core::nodeIndex$sample$args::maxRows': 0,
     'core::nodeIndex$sample$args::mode': 0,
-    'core::nodeIndex$info$args::nodes': 0,
-    'core::GeoCircle::center': 0,
-    'core::GeoCircle::radius': 0,
     'core::ErrorFrame::module': 0,
     'core::ErrorFrame::function': 0,
     'core::ErrorFrame::line': 0,
     'core::ErrorFrame::column': 0,
-    'core::nodeGeo$sample$args::refs': 0,
-    'core::nodeGeo$sample$args::from': 0,
-    'core::nodeGeo$sample$args::to': 0,
-    'core::nodeGeo$sample$args::maxRows': 0,
-    'core::nodeGeo$sample$args::mode': 0,
-    'core::nodeTime$sample$args::refs': 0,
-    'core::nodeTime$sample$args::from': 0,
-    'core::nodeTime$sample$args::to': 0,
-    'core::nodeTime$sample$args::maxRows': 0,
-    'core::nodeTime$sample$args::mode': 0,
-    'core::nodeTime$sample$args::maxDephasing': 0,
-    'core::nodeTime$sample$args::tz': 0,
-    'core::nodeTime$info$args::nodes': 0,
+    'core::Table$applyMappings$args::table': 0,
+    'core::Table$applyMappings$args::mappings': 0,
+    'core::nodeIndex$search_closest$args::i': 0,
+    'core::nodeIndex$search_closest$args::key': 0,
+    'core::nodeIndex$search_closest$args::max': 0,
+    'core::nodeGeo$info$args::nodes': 0,
+    'core::node$resolve_all$args::n': 0,
     'core::Date::year': 0,
     'core::Date::month': 0,
     'core::Date::day': 0,
@@ -3523,44 +3555,39 @@ declare namespace gc {
     'core::Date::minute': 0,
     'core::Date::second': 0,
     'core::Date::microsecond': 0,
+    'core::nodeTime$sample$args::refs': 0,
+    'core::nodeTime$sample$args::from': 0,
+    'core::nodeTime$sample$args::to': 0,
+    'core::nodeTime$sample$args::maxRows': 0,
+    'core::nodeTime$sample$args::mode': 0,
+    'core::nodeTime$sample$args::maxDephasing': 0,
+    'core::nodeTime$sample$args::tz': 0,
+    'core::nodeList$info$args::nodes': 0,
     'core::GeoBox::sw': 0,
     'core::GeoBox::ne': 0,
-    'core::nodeIndex$search_closest$args::i': 0,
-    'core::nodeIndex$search_closest$args::key': 0,
-    'core::nodeIndex$search_closest$args::max': 0,
-    'core::Table$applyMappings$args::table': 0,
-    'core::Table$applyMappings$args::mappings': 0,
+    'core::nodeIndex$info$args::nodes': 0,
     'core::NodeInfo::size': 0,
     'core::NodeInfo::from': 0,
     'core::NodeInfo::to': 0,
-    'core::nodeList$sample$args::refs': 0,
-    'core::nodeList$sample$args::from': 0,
-    'core::nodeList$sample$args::to': 0,
-    'core::nodeList$sample$args::maxRows': 0,
-    'core::nodeList$sample$args::mode': 0,
-    'core::nodeList$sample$args::maxDephasing': 0,
+    'core::nodeTime$info$args::nodes': 0,
     'core::Tuple::x': 0,
     'core::Tuple::y': 0,
     'core::nodeIndexBucket::key': 0,
     'core::nodeIndexBucket::value': 0,
     'core::nodeIndexBucket::next': 0,
-    'core::nodeList$info$args::nodes': 0,
-    'core::nodeGeo$info$args::nodes': 0,
     'core::Error::message': 0,
     'core::Error::stack': 0,
     'core::nodeTimeCursor::n': 0,
     'core::nodeTimeCursor::req_time': 0,
-    'core::node$resolve_all$args::n': 0,
+    'runtime::Debug$resume$args::id': 0,
     'runtime::UserGroup::id': 0,
     'runtime::UserGroup::name': 0,
     'runtime::UserGroup::activated': 0,
-    'runtime::mcp_tools_call$args::params': 0,
     'runtime::McpInitializeResult::_meta': 0,
     'runtime::McpInitializeResult::protocolVersion': 0,
     'runtime::McpInitializeResult::capabilities': 0,
     'runtime::McpInitializeResult::serverInfo': 0,
     'runtime::McpInitializeResult::instructions': 0,
-    'runtime::Scheduler$activate$args::function': 0,
     'runtime::PeriodicTask::function': 0,
     'runtime::PeriodicTask::periodicity': 0,
     'runtime::PeriodicTask::options': 0,
@@ -3573,23 +3600,19 @@ declare namespace gc {
     'runtime::Debug::id': 0,
     'runtime::Debug::frames': 0,
     'runtime::Debug::root': 0,
-    'runtime::Scheduler$add$args::function': 0,
-    'runtime::Scheduler$add$args::periodicity': 0,
-    'runtime::Scheduler$add$args::options': 0,
     'runtime::McpToolsListResult::_meta': 0,
     'runtime::McpToolsListResult::tools': 0,
-    'runtime::User$renew$args::use_cookie': 0,
-    'runtime::User$login$args::credentials': 0,
-    'runtime::User$login$args::use_cookie': 0,
     'runtime::ChildProcess::pid': 0,
+    'runtime::mcp_tasks_list$args::params': 0,
     'runtime::UserCredential::offset': 0,
     'runtime::UserCredential::pass': 0,
-    'runtime::Task$cancel$args::task_id': 0,
+    'runtime::SecurityFields$set$args::f': 0,
     'runtime::McpClientCapabilities::experimental': 0,
     'runtime::McpClientCapabilities::roots': 0,
     'runtime::McpClientCapabilities::sampling': 0,
     'runtime::McpClientCapabilities::elicitation': 0,
     'runtime::McpClientCapabilities::tasks': 0,
+    'runtime::mcp_tools_call$args::params': 0,
     'runtime::McpToolsCallResult::_meta': 0,
     'runtime::McpToolsCallResult::content': 0,
     'runtime::McpToolsCallResult::structuredContent': 0,
@@ -3599,8 +3622,7 @@ declare namespace gc {
     'runtime::ZoneUsage::reserved_blocks': 0,
     'runtime::ZoneUsage::blocks': 0,
     'runtime::ZoneUsage::cache': 0,
-    'runtime::User$tokenLogin$args::token': 0,
-    'runtime::User$tokenLogin$args::use_cookie': 0,
+    'runtime::Scheduler$activate$args::function': 0,
     'runtime::McpToolExecution::taskSupport': 0,
     'runtime::DailyPeriodicity::hour': 0,
     'runtime::DailyPeriodicity::minute': 0,
@@ -3614,11 +3636,13 @@ declare namespace gc {
     'runtime::Frame::column': 0,
     'runtime::Frame::scope': 0,
     'runtime::McpClientRoots::listChanged': 0,
-    'runtime::SecurityFields$set$args::f': 0,
+    'runtime::mcp_tasks_result$args::params': 0,
+    'runtime::Scheduler$add$args::function': 0,
+    'runtime::Scheduler$add$args::periodicity': 0,
+    'runtime::Scheduler$add$args::options': 0,
     'runtime::InfoObject::title': 0,
     'runtime::InfoObject::version': 0,
-    'runtime::User$setPassword$args::name': 0,
-    'runtime::User$setPassword$args::pass': 0,
+    'runtime::Debug$get$args::id': 0,
     'runtime::McpAudioContent::type': 0,
     'runtime::McpAudioContent::_meta': 0,
     'runtime::McpAudioContent::annotations': 0,
@@ -3626,7 +3650,6 @@ declare namespace gc {
     'runtime::McpAudioContent::mimeType': 0,
     'runtime::McpTasksCancelParams::_meta': 0,
     'runtime::McpTasksCancelParams::taskId': 0,
-    'runtime::SecurityEntity$set$args::entity': 0,
     'runtime::McpTasksCreateResult::_meta': 0,
     'runtime::McpTasksCreateResult::task': 0,
     'runtime::OpenApiV3::openapi': 0,
@@ -3637,6 +3660,7 @@ declare namespace gc {
     'runtime::McpToolsCallParams::name': 0,
     'runtime::McpToolsCallParams::arguments': 0,
     'runtime::McpToolsCallParams::task': 0,
+    'runtime::mcp_initialize$args::params': 0,
     'runtime::McpServerTasksCapabilities::list': 0,
     'runtime::McpServerTasksCapabilities::cancel': 0,
     'runtime::McpServerTasksCapabilities::requests': 0,
@@ -3650,7 +3674,9 @@ declare namespace gc {
     'runtime::McpImplementation::name': 0,
     'runtime::McpImplementation::title': 0,
     'runtime::McpImplementation::version': 0,
-    'runtime::Task$is_running$args::task_id': 0,
+    'runtime::mcp_tools_list$args::params': 0,
+    'runtime::User$setPassword$args::name': 0,
+    'runtime::User$setPassword$args::pass': 0,
     'runtime::SecurityFields::email': 0,
     'runtime::SecurityFields::name': 0,
     'runtime::SecurityFields::first_name': 0,
@@ -3685,12 +3711,11 @@ declare namespace gc {
     'runtime::RuntimeInfo::mem_total': 0,
     'runtime::RuntimeInfo::mem_worker': 0,
     'runtime::RuntimeInfo::disk_data_bytes': 0,
-    'runtime::Task$history$args::offset': 0,
-    'runtime::Task$history$args::max': 0,
     'runtime::Job::function': 0,
     'runtime::Job::arguments': 0,
     'runtime::HeaderObject::description': 0,
     'runtime::HeaderObject::required': 0,
+    'runtime::Task$is_running$args::task_id': 0,
     'runtime::mcp_tasks_cancel$args::params': 0,
     'runtime::Permission::name': 0,
     'runtime::Permission::description': 0,
@@ -3706,6 +3731,7 @@ declare namespace gc {
     'runtime::McpImageContent::mimeType': 0,
     'runtime::McpToolsListParams::_meta': 0,
     'runtime::McpToolsListParams::cursor': 0,
+    'runtime::SecurityEntity$set$args::entity': 0,
     'runtime::McpTasksResultParams::_meta': 0,
     'runtime::McpTasksResultParams::taskId': 0,
     'runtime::OpenIDConnect::url': 0,
@@ -3717,20 +3743,20 @@ declare namespace gc {
     'runtime::McpResourceContent::description': 0,
     'runtime::McpResourceContent::mimeType': 0,
     'runtime::McpResourceContent::size': 0,
-    'runtime::mcp_initialize$args::params': 0,
     'runtime::Role::name': 0,
     'runtime::Role::permissions': 0,
-    'runtime::mcp_tasks_list$args::params': 0,
+    'runtime::Scheduler$deactivate$args::function': 0,
+    'runtime::Task$cancel$args::task_id': 0,
+    'runtime::Scheduler$find$args::function': 0,
+    'runtime::User$renew$args::use_cookie': 0,
     'runtime::SecurityPolicy::entities': 0,
     'runtime::SecurityPolicy::credentials': 0,
     'runtime::SecurityPolicy::fields': 0,
     'runtime::SecurityPolicy::keys': 0,
     'runtime::SecurityPolicy::keys_last_refresh': 0,
-    'runtime::mcp_tasks_get$args::params': 0,
     'runtime::ResponseObject::description': 0,
     'runtime::ResponseObject::headers': 0,
     'runtime::ResponseObject::content': 0,
-    'runtime::Debug$get$args::id': 0,
     'runtime::McpTask::taskId': 0,
     'runtime::McpTask::status': 0,
     'runtime::McpTask::statusMessage': 0,
@@ -3738,17 +3764,18 @@ declare namespace gc {
     'runtime::McpTask::lastUpdatedAt': 0,
     'runtime::McpTask::ttl': 0,
     'runtime::McpTask::pollInterval': 0,
+    'runtime::McpServerToolsCapabilities::listChanged': 0,
     'runtime::OperationObject::tags': 0,
     'runtime::OperationObject::description': 0,
     'runtime::OperationObject::requestBody': 0,
     'runtime::OperationObject::responses': 0,
-    'runtime::McpServerToolsCapabilities::listChanged': 0,
     'runtime::PeriodicOptions::immediate': 0,
     'runtime::PeriodicOptions::activated': 0,
     'runtime::PeriodicOptions::start': 0,
     'runtime::PeriodicOptions::max_duration': 0,
     'runtime::YearlyPeriodicity::dates': 0,
     'runtime::YearlyPeriodicity::timezone': 0,
+    'runtime::mcp_tasks_get$args::params': 0,
     'runtime::McpTasksGetParams::_meta': 0,
     'runtime::McpTasksGetParams::taskId': 0,
     'runtime::McpServerResourcesCapabilities::subscribe': 0,
@@ -3761,9 +3788,12 @@ declare namespace gc {
     'runtime::License::extra_1': 0,
     'runtime::License::extra_2': 0,
     'runtime::License::type': 0,
-    'runtime::Scheduler$deactivate$args::function': 0,
+    'runtime::User$login$args::credentials': 0,
+    'runtime::User$login$args::use_cookie': 0,
     'runtime::DateTuple::day': 0,
     'runtime::DateTuple::month': 0,
+    'runtime::User$tokenLogin$args::token': 0,
+    'runtime::User$tokenLogin$args::use_cookie': 0,
     'runtime::McpTaskCreateParams::ttl': 0,
     'runtime::ChildProcessResult::code': 0,
     'runtime::ChildProcessResult::stdout': 0,
@@ -3791,7 +3821,6 @@ declare namespace gc {
     'runtime::McpServerCapabilities::resources': 0,
     'runtime::McpServerCapabilities::tools': 0,
     'runtime::McpServerCapabilities::tasks': 0,
-    'runtime::Debug$resume$args::id': 0,
     'runtime::Variable::name': 0,
     'runtime::Variable::value': 0,
     'runtime::Log::level': 0,
@@ -3803,7 +3832,8 @@ declare namespace gc {
     'runtime::Log::data': 0,
     'runtime::WeeklyPeriodicity::days': 0,
     'runtime::WeeklyPeriodicity::daily': 0,
-    'runtime::mcp_tasks_result$args::params': 0,
+    'runtime::Task$history$args::offset': 0,
+    'runtime::Task$history$args::max': 0,
     'runtime::MonthlyPeriodicity::days': 0,
     'runtime::MonthlyPeriodicity::daily': 0,
     'runtime::FixedPeriodicity::every': 0,
@@ -3846,22 +3876,20 @@ declare namespace gc {
     'runtime::RequestBodyObject::content': 0,
     'runtime::RequestBodyObject::required': 0,
     'runtime::ComponentsObject::schemas': 0,
-    'runtime::mcp_tools_list$args::params': 0,
+    'runtime::MediaTypeObject::schema': 0,
     'runtime::WorkerUsage::memory': 0,
     'runtime::WorkerUsage::cache': 0,
     'runtime::WorkerUsage::writes': 0,
     'runtime::WorkerUsage::reads': 0,
-    'runtime::MediaTypeObject::schema': 0,
-    'runtime::Scheduler$find$args::function': 0,
     'io::S3::host': 0,
     'io::S3::region': 0,
     'io::S3::credentials': 0,
     'io::S3::force_path_style': 0,
+    'io::Csv$generate$args::stats': 0,
     'io::JsonWriter::path': 0,
     'io::JsonWriter::append': 0,
     'io::GcbReader::path': 0,
     'io::GcbReader::pos': 0,
-    'io::Csv$generate$args::stats': 0,
     'io::CsvStatistics::header_lines': 0,
     'io::CsvStatistics::separator': 0,
     'io::CsvStatistics::string_delimiter': 0,
@@ -3873,13 +3901,13 @@ declare namespace gc {
     'io::CsvStatistics::file_count': 0,
     'io::TextReader::path': 0,
     'io::TextReader::pos': 0,
-    'io::Csv$analyze$args::paths': 0,
-    'io::Csv$analyze$args::config': 0,
+    'io::JsonReader::path': 0,
+    'io::JsonReader::pos': 0,
     'io::File::path': 0,
     'io::File::size': 0,
     'io::File::last_modification': 0,
-    'io::JsonReader::path': 0,
-    'io::JsonReader::pos': 0,
+    'io::Csv$analyze$args::paths': 0,
+    'io::Csv$analyze$args::config': 0,
     'io::Url::protocol': 0,
     'io::Url::host': 0,
     'io::Url::port': 0,
@@ -3900,6 +3928,8 @@ declare namespace gc {
     'io::TextWriter::append': 0,
     'io::S3BasicCredentials::access_key': 0,
     'io::S3BasicCredentials::secret_key': 0,
+    'io::Csv$sample$args::reader': 0,
+    'io::Csv$sample$args::max_lines': 0,
     'io::CsvSharding::id': 0,
     'io::CsvSharding::column': 0,
     'io::CsvSharding::modulo': 0,
@@ -3939,8 +3969,6 @@ declare namespace gc {
     'io::HttpResponse::headers': 0,
     'io::HttpResponse::content': 0,
     'io::HttpResponse::error_msg': 0,
-    'io::Csv$sample$args::reader': 0,
-    'io::Csv$sample$args::max_lines': 0,
     'io::CsvReader::path': 0,
     'io::CsvReader::pos': 0,
     'io::CsvReader::format': 0,
@@ -4056,14 +4084,9 @@ declare namespace gc {
     'util::LogQuantizer::bins': 0,
     'util::LogQuantizer::open': 0,
     'util::MultiQuantizer::quantizers': 0,
-    'privateApi::unlockSource$args::source': 0,
-    'privateApi::promoteRecord$args::sourceRecord': 0,
-    'privateApi::promoteRecord$args::streetIdx': 0,
-    'privateApi::getRecordTab$args::source': 0,
-    'privateApi::getRecordTab$args::recordId': 0,
-    'privateApi::reconcilePOIs$args::source': 0,
-    'privateApi::reconcilePOIs$args::poiIds': 0,
-    'privateApi::reconcilePOIs$args::params': 0,
+    'privateApi::unlinkRecord$args::sourceRecord': 0,
+    'privateApi::linkAllFullMatched$args::source': 0,
+    'privateApi::linkAllFullMatched$args::recordIds': 0,
     'privateApi::ReconciliationReportView::date': 0,
     'privateApi::ReconciliationReportView::linked': 0,
     'privateApi::ReconciliationReportView::fullMatch': 0,
@@ -4075,8 +4098,10 @@ declare namespace gc {
     'privateApi::SourceRef::ref': 0,
     'privateApi::SourceRef::name': 0,
     'privateApi::SourceRef::locked': 0,
-    'privateApi::reconcile$args::source': 0,
-    'privateApi::reconcile$args::params': 0,
+    'privateApi::getReconciliationReport$args::source': 0,
+    'privateApi::getReconciliationReport$args::city': 0,
+    'privateApi::promoteRecord$args::sourceRecord': 0,
+    'privateApi::promoteRecord$args::streetIdx': 0,
     'privateApi::ComparisonViewData::sourceRecord': 0,
     'privateApi::ComparisonViewData::candidates': 0,
     'privateApi::GoldenRecordScore::uid': 0,
@@ -4086,18 +4111,19 @@ declare namespace gc {
     'privateApi::GoldenRecordScore::postcode': 0,
     'privateApi::GoldenRecordScore::linkedCount': 0,
     'privateApi::GoldenRecordScore::quality': 0,
+    'privateApi::reconcile$args::source': 0,
+    'privateApi::reconcile$args::params': 0,
     'privateApi::QualityTrend::currentScore': 0,
     'privateApi::QualityTrend::previousScore': 0,
     'privateApi::QualityTrend::delta': 0,
     'privateApi::QualityTrend::linkedSourcesCount': 0,
-    'privateApi::getComparisonViewData$args::source': 0,
-    'privateApi::getComparisonViewData$args::recordId': 0,
-    'privateApi::linkRecords$args::sourceRecord': 0,
-    'privateApi::linkRecords$args::candidateRecord': 0,
-    'privateApi::linkRecords$args::params': 0,
-    'privateApi::lockDatasource$args::source': 0,
     'privateApi::RecordTabResult::tab': 0,
     'privateApi::RecordTabResult::score': 0,
+    'privateApi::reconcilePOIs$args::source': 0,
+    'privateApi::reconcilePOIs$args::poiIds': 0,
+    'privateApi::reconcilePOIs$args::params': 0,
+    'privateApi::getRecordTab$args::source': 0,
+    'privateApi::getRecordTab$args::recordId': 0,
     'privateApi::MatchedCandidateDetail::ref': 0,
     'privateApi::MatchedCandidateDetail::numberScore': 0,
     'privateApi::MatchedCandidateDetail::streetScore': 0,
@@ -4106,50 +4132,52 @@ declare namespace gc {
     'privateApi::MatchedCandidateDetail::geoScore': 0,
     'privateApi::MatchedCandidateDetail::overallScore': 0,
     'privateApi::MatchedCandidateDetail::record': 0,
+    'privateApi::getComparisonViewData$args::source': 0,
+    'privateApi::getComparisonViewData$args::recordId': 0,
     'privateApi::GlobalQualityHistory::current': 0,
     'privateApi::GlobalQualityHistory::history': 0,
     'privateApi::GlobalQualityHistory::goldenRecords': 0,
+    'privateApi::getLinkedComparisonViewData$args::source': 0,
+    'privateApi::getLinkedComparisonViewData$args::recordId': 0,
     'privateApi::LinkParameters::addCityAlias': 0,
     'privateApi::LinkParameters::addStreetAlias': 0,
     'privateApi::LinkParameters::updateSimilarStreetMismatch': 0,
     'privateApi::GlobalQualityEntry::timestamp': 0,
     'privateApi::GlobalQualityEntry::averageQuality': 0,
-    'privateApi::unlinkRecord$args::sourceRecord': 0,
-    'privateApi::getLinkedComparisonViewData$args::source': 0,
-    'privateApi::getLinkedComparisonViewData$args::recordId': 0,
     'privateApi::mergePositionsToGolden$args::source': 0,
     'privateApi::mergePositionsToGolden$args::recordIds': 0,
+    'privateApi::unlockSource$args::source': 0,
     'privateApi::ReconciliationReportMatchView::score': 0,
     'privateApi::ReconciliationReportMatchView::id': 0,
-    'privateApi::getReconciliationReport$args::source': 0,
-    'privateApi::getReconciliationReport$args::city': 0,
-    'privateApi::linkAllFullMatched$args::source': 0,
-    'privateApi::linkAllFullMatched$args::recordIds': 0,
-    'api::getGlobalQualityHistory$args::from': 0,
-    'api::getGlobalQualityHistory$args::to': 0,
+    'privateApi::linkRecords$args::sourceRecord': 0,
+    'privateApi::linkRecords$args::candidateRecord': 0,
+    'privateApi::linkRecords$args::params': 0,
+    'privateApi::lockDatasource$args::source': 0,
+    'api::getGoldenNumbersByStreetId$args::streetId': 0,
+    'api::getRecordByGeoportailID$args::id': 0,
     'api::getGoldenRecordDetails$args::uid': 0,
     'api::POIFeatures::coords': 0,
     'api::POIFeatures::number': 0,
-    'api::getGoldenStreetsByCityId$args::cityId': 0,
-    'api::getPoisInStreet$args::e': 0,
+    'api::getGlobalQualityHistory$args::from': 0,
+    'api::getGlobalQualityHistory$args::to': 0,
+    'api::searchAddress$args::addr': 0,
+    'api::searchAddress$args::max': 0,
     'api::GeoJSONGeometry::type': 0,
     'api::GeoJSONGeometry::coordinates': 0,
     'api::GoldenIndex::id': 0,
     'api::GoldenIndex::name': 0,
-    'api::searchStreet$args::e': 0,
+    'api::getGoldenStreetsByCityId$args::cityId': 0,
+    'api::getPoisByGeo$args::coords': 0,
+    'api::getPoisInStreet$args::e': 0,
     'api::GeoJSONFeature::type': 0,
     'api::GeoJSONFeature::geometry': 0,
     'api::GeoJSONFeature::properties': 0,
+    'api::searchStreet$args::e': 0,
     'api::getGoldenRecordRefByUid$args::uid': 0,
-    'api::getGoldenNumbersByStreetId$args::streetId': 0,
-    'api::getPoisByGeo$args::coords': 0,
     'api::GeoJSON::type': 0,
     'api::GeoJSON::features': 0,
-    'api::getRecordByGeoportailID$args::id': 0,
     'api::GoldenRecordDetails::golden': 0,
     'api::GoldenRecordDetails::associated': 0,
-    'api::searchAddress$args::addr': 0,
-    'api::searchAddress$args::max': 0,
     'caclrLoader::CaclrResponseCities::totalCount': 0,
     'caclrLoader::CaclrResponseCities::items': 0,
     'caclrLoader::CaclrResponseMunicipalities::totalCount': 0,
@@ -4529,9 +4557,7 @@ declare namespace gc {
     'golden::GoldenMunicipality::lastUpdate': 0,
     'golden::GoldenMunicipality::canton': 0,
     'golden::GoldenMunicipality::cities_by_id': 0,
-    'golden::GoldenSource::reconciliationReport': 0,
-    'golden::GoldenSource::isReconciling': 0,
-    'golden::GoldenSource::qualityHistory': 0,
+    'golden::GoldenMunicipality::cities_by_name': 0,
     'golden::GoldenStreet::id': 0,
     'golden::GoldenStreet::name': 0,
     'golden::GoldenStreet::nameAliases': 0,
@@ -4546,20 +4572,21 @@ declare namespace gc {
     'golden::GoldenCity::municipality': 0,
     'golden::GoldenCity::streets_by_id': 0,
     'golden::GoldenCity::streets_by_name': 0,
+    'golden::GoldenSource::reconciliationReport': 0,
+    'golden::GoldenSource::isReconciling': 0,
+    'golden::GoldenSource::qualityHistory': 0,
     'traffic_service::Traffic_Service::start': 0,
     'traffic_service::Traffic_Service::endPoint': 0,
     'searchService::ScoredStreet::street': 0,
     'searchService::ScoredStreet::distance': 0,
-    'searchService::ScoredCity::city': 0,
-    'searchService::ScoredCity::distance': 0,
+    'searchService::AddressSearchInput::input': 0,
+    'searchService::AddressSearchInput::results': 0,
     'searchService::ScoredPoi::poi': 0,
     'searchService::ScoredPoi::distance': 0,
+    'searchService::ScoredCity::city': 0,
+    'searchService::ScoredCity::distance': 0,
     'utils::SplitAlphaNumericalString::alpha': 0,
     'utils::SplitAlphaNumericalString::numerical': 0,
-    'postal::PostalComponent::label': 0,
-    'postal::PostalComponent::value': 0,
-    'postal::PostalOptions::language': 0,
-    'postal::PostalOptions::country': 0,
     'postal::PostalParsedAddress::house': 0,
     'postal::PostalParsedAddress::house_number': 0,
     'postal::PostalParsedAddress::road': 0,
@@ -4579,6 +4606,10 @@ declare namespace gc {
     'postal::PostalParsedAddress::world_region': 0,
     'postal::PostalParsedAddress::island': 0,
     'postal::PostalParsedAddress::category': 0,
+    'postal::PostalOptions::language': 0,
+    'postal::PostalOptions::country': 0,
+    'postal::PostalComponent::label': 0,
+    'postal::PostalComponent::value': 0,
   }
 
   interface $FunctionsMap {
@@ -4600,6 +4631,7 @@ declare namespace gc {
     'runtime::mcp_tasks_result': 0,
     'runtime::mcp_tasks_list': 0,
     'runtime::mcp_tasks_cancel': 0,
+    'runtime::System::get_all_envs': 0,
     'runtime::Scheduler::deactivate': 0,
     'runtime::Scheduler::activate': 0,
     'runtime::Scheduler::find': 0,
@@ -4633,7 +4665,6 @@ declare namespace gc {
     'runtime::Runtime::abi': 0,
     'runtime::Runtime::usage': 0,
     'runtime::Runtime::info': 0,
-    'runtime::System::get_all_envs': 0,
     'io::Csv::sample': 0,
     'io::Csv::analyze': 0,
     'io::Csv::generate': 0,
@@ -4725,6 +4756,7 @@ declare namespace gc {
   export import Table = gc.core.Table;
   export import nodeTimeCursor = gc.core.nodeTimeCursor;
   export import time = gc.core.time;
+  export import System = gc.runtime.System;
   export import UserGroup = gc.runtime.UserGroup;
   export import McpPriority = gc.runtime.McpPriority;
   export import Scheduler = gc.runtime.Scheduler;
@@ -4749,13 +4781,13 @@ declare namespace gc {
   export import Month = gc.runtime.Month;
   export import McpToolsCallParams = gc.runtime.McpToolsCallParams;
   export import McpContentType = gc.runtime.McpContentType;
-  export import McpServerTasksCapabilities = gc.runtime.McpServerTasksCapabilities;
   export import DayOfWeek = gc.runtime.DayOfWeek;
+  export import McpServerTasksCapabilities = gc.runtime.McpServerTasksCapabilities;
   export import LogDataUsage = gc.runtime.LogDataUsage;
   export import McpImplementation = gc.runtime.McpImplementation;
   export import Periodicity = gc.runtime.Periodicity;
-  export import SecurityFields = gc.runtime.SecurityFields;
   export import UserGroupPolicyType = gc.runtime.UserGroupPolicyType;
+  export import SecurityFields = gc.runtime.SecurityFields;
   export import User = gc.runtime.User;
   export import McpTool = gc.runtime.McpTool;
   export import RuntimeInfo = gc.runtime.RuntimeInfo;
@@ -4799,15 +4831,14 @@ declare namespace gc {
   export import McpTasksListParams = gc.runtime.McpTasksListParams;
   export import Runtime = gc.runtime.Runtime;
   export import McpRole = gc.runtime.McpRole;
-  export import System = gc.runtime.System;
   export import SmtpMode = gc.io.SmtpMode;
   export import S3 = gc.io.S3;
   export import JsonWriter = gc.io.JsonWriter;
   export import GcbReader = gc.io.GcbReader;
   export import CsvStatistics = gc.io.CsvStatistics;
   export import TextReader = gc.io.TextReader;
-  export import File = gc.io.File;
   export import JsonReader = gc.io.JsonReader;
+  export import File = gc.io.File;
   export import Json = gc.io.Json;
   export import Url = gc.io.Url;
   export import S3Object = gc.io.S3Object;
@@ -4951,19 +4982,20 @@ declare namespace gc {
   export import GoldenPointOfInterest = gc.golden.GoldenPointOfInterest;
   export import GoldenConstituency = gc.golden.GoldenConstituency;
   export import GoldenMunicipality = gc.golden.GoldenMunicipality;
-  export import GoldenSource = gc.golden.GoldenSource;
   export import GoldenStreet = gc.golden.GoldenStreet;
   export import GoldenCity = gc.golden.GoldenCity;
+  export import GoldenSource = gc.golden.GoldenSource;
   export import GoldenServices = gc.goldenServices.GoldenServices;
   export import Traffic_Service = gc.traffic_service.Traffic_Service;
   export import ScoredStreet = gc.searchService.ScoredStreet;
-  export import ScoredCity = gc.searchService.ScoredCity;
+  export import AddressSearchInput = gc.searchService.AddressSearchInput;
   export import ScoredPoi = gc.searchService.ScoredPoi;
+  export import ScoredCity = gc.searchService.ScoredCity;
   export import SplitAlphaNumericalString = gc.utils.SplitAlphaNumericalString;
-  export import PostalAddress = gc.postal.PostalAddress;
-  export import PostalComponent = gc.postal.PostalComponent;
-  export import PostalOptions = gc.postal.PostalOptions;
   export import PostalParsedAddress = gc.postal.PostalParsedAddress;
+  export import PostalOptions = gc.postal.PostalOptions;
+  export import PostalComponent = gc.postal.PostalComponent;
+  export import PostalAddress = gc.postal.PostalAddress;
   export import mcp_initialize = gc.runtime.mcp_initialize;
   export import mcp_tools_list = gc.runtime.mcp_tools_list;
   export import mcp_tools_call = gc.runtime.mcp_tools_call;

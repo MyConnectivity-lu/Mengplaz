@@ -92,6 +92,16 @@ fn loadCaclr() {
 @permission("admin")
 @expose
 fn populateGoldenIndexes() {
+    for (_, nMun in golden_municipalities_by_id) {
+        var munKey = nMun->name.lowercase();
+
+        if (nMun->cities_by_name == null) {
+            nMun->cities_by_name = nodeIndex<String, node<GoldenCity>> {};
+        }
+
+        golden_municipalities_by_name.set(munKey, nMun);
+    }
+
     for (_, nCity in golden_cities_by_id) {
         var cityKey = nCity->name.lowercase();
         var cities = golden_cities_by_name.get(cityKey);
@@ -104,6 +114,7 @@ fn populateGoldenIndexes() {
         if (nCity->streets_by_name == null) {
             nCity->streets_by_name = nodeIndex<String, node<GoldenStreet>> {};
         }
+        nCity->municipality->cities_by_name?.set(cityKey, nCity);
     }
 
     for (_, nStreet in golden_streets_by_id) {
