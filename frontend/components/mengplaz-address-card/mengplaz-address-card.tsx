@@ -74,10 +74,18 @@ export class MengplazAddressCard extends HTMLElement {
 
   render() {
     const record = this.value?.record;
+    const sourceUrl = this.getSourceUrl(record);
     this.replaceChildren(
       <div className={'card'}>
         <div className={'card-title'} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing)' }}>
           <h4 style={{ color: colorForKey(record?.sourceName ?? ''), margin: '0' }}>{record?.sourceName ?? 'Unknown Source'}</h4>
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" title={`Open in ${record?.sourceName} source`}>
+              <sl-icon-button name="box-arrow-up-right" label="Open source" />
+            </a>
+          ) : (
+            ''
+          )}
           <div style={{ flexGrow: '1' }} />
           {this.showGoTo === true && record?.sourceName == 'Golden' ? (
             <sl-button
@@ -133,6 +141,34 @@ export class MengplazAddressCard extends HTMLElement {
         {this.confirm}
       </div>,
     );
+  }
+
+  private getSourceUrl(record: unknown): string | null {
+    if (typeof record !== 'object' || record == null) return null;
+    const sourceName = (record as any).sourceName as string | undefined;
+    const loc = (record as any).primaryLocation as gc.geo | null | undefined;
+    if (!sourceName) return null;
+
+    switch (sourceName) {
+      case 'OSM': {
+        const id = (record as any).id;
+        if (id != null && id !== '') {
+          return `https://www.openstreetmap.org/node/${id}`;
+        }
+        return null;
+      }
+      case 'BDA': {
+        const idGeo = (record as any).id_geoportail as string | undefined;
+        if (!idGeo || loc == null) return null;
+        const R = 6378137;
+        const latRad = (loc.lat * Math.PI) / 180;
+        const x = ((loc.lng * Math.PI) / 180) * R;
+        const y = R * Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+        return `https://map.geoportail.lu/theme/main?lang=fr&version=3&X=${x.toFixed(0)}&Y=${y.toFixed(0)}&zoom=17&rotation=0&features=&layers=152&opacities=1&time=&bgLayer=basemap_2015_global&fid=152_${idGeo}`;
+      }
+      default:
+        return null;
+    }
   }
 
   private renderMap(record: unknown) {
