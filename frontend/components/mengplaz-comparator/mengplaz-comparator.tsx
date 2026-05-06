@@ -39,7 +39,9 @@ export class MengplazComparator extends HTMLElement {
         {this.details ? (
           <>
             <mengplaz-address-card value={this.details?.golden} showQuickLink={true} showMap={true} />
-            <div style={{ display: 'grid', gap: 'var(--spacing)', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))' }}>
+            <div
+              style={{ display: 'grid', gap: 'var(--spacing)', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', alignItems: 'stretch' }}
+            >
               {this.details.associated.map((r) => (
                 <mengplaz-address-card value={r} showUnlink={this.userIsAdmin} />
               ))}

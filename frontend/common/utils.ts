@@ -137,8 +137,10 @@ export function getGeoMatchQuality(distanceKm: number): {
 }
 
 export const SOURCE_COLORS: Record<string, string> = {
+  Golden: '#ff18a4',
   BDA: '#7c3aed',
   OSM: '#f59e0b',
+  CACLR: '#10b981',
 };
 
 export function colorForKey(key: string): string {

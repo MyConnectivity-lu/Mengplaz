@@ -2,7 +2,7 @@ import './mengplaz-address-card.css';
 import '../address-field/address-content';
 import '../mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import { MengplazConfirmDialog } from '../mengplaz-confirm-dialog/mengplaz-confirm-dialog';
-import { handleGoToRecord } from '~/common/utils';
+import { colorForKey, handleGoToRecord } from '~/common/utils';
 
 export class MengplazAddressCard extends HTMLElement {
   _value?: gc.mengplaz.POIRecordRef | gc.mengplaz.POIFullRecordRef;

@@ -1,5 +1,4 @@
 import '../../pages/search/search';
-import '../../pages/landing/landing';
 import '../../pages/map/map';
 import '../../pages/reconcile/reconcile';
 import '../../pages/index/index';
