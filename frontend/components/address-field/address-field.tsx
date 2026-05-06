@@ -1,4 +1,4 @@
-import { prettifyCamelCase } from '~/common/utils';
+import { colorForKey, prettifyCamelCase } from '~/common/utils';
 import './address-field.css';
 
 export class AddressField extends HTMLElement {
@@ -53,9 +53,7 @@ export class AddressField extends HTMLElement {
               <sl-icon name="info-circle"></sl-icon>
             </a>
           </div>
-          <div className="field-value">
-            {(Number(this._value) * 100).toFixed(0)} %
-          </div>
+          <div className="field-value">{(Number(this._value) * 100).toFixed(0)} %</div>
         </div>,
       );
       return;
@@ -95,11 +93,15 @@ export class AddressField extends HTMLElement {
   }
 
   private renderMapPositions(value: Map<string, gc.core.geo>) {
-    return [...value].map(([k, v]) => (
-      <sl-badge pill className="position-map-badge" title={v.toString()}>
-        <sl-icon name="geo-alt"></sl-icon> {k}
-      </sl-badge>
-    ));
+    return (
+      <div className={'address-locations'}>
+        {[...value].map(([k, v]) => (
+          <div title={v.toString()}>
+            <sl-icon name="geo-alt" style={{ color: colorForKey(k) }}></sl-icon> {k}
+          </div>
+        ))}
+      </div>
+    );
   }
 }
 

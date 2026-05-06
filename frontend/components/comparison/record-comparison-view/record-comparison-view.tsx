@@ -139,7 +139,7 @@ export class RecordComparisonView extends HTMLElement {
           <div className={['section-panel', 'panel-map']}>
             {this._sourceRecord.record.primaryLocation || this._candidate.record.primaryLocation ? (
               <div className="map-container">
-                <mengplaz-minimap primary={this._sourceRecord.record.primaryLocation} secondary={this._candidate.record.primaryLocation} />
+                <mengplaz-minimap source={this._sourceRecord.record.primaryLocation} golden={this._candidate.record.primaryLocation} />
               </div>
             ) : (
               <span className="no-coordinates">No Coordinates found</span>

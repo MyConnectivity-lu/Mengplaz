@@ -23,6 +23,8 @@ export class MengplazAddressCard extends HTMLElement {
    */
   showLink?: gc.node;
 
+  showMap?: boolean;
+
   private confirm: MengplazConfirmDialog;
 
   constructor() {
@@ -125,8 +127,8 @@ export class MengplazAddressCard extends HTMLElement {
           )}
         </div>
         <address-content value={record} />
-       
-        {this.renderMap(record)}
+
+        {this.showMap ? this.renderMap(record) : ''}
 
         {this.confirm}
       </div>,
@@ -135,7 +137,11 @@ export class MengplazAddressCard extends HTMLElement {
 
   private renderMap(record: unknown) {
     if (typeof record === 'object' && record != null && 'primaryLocation' in record && record['primaryLocation'] != null) {
-      return  <div className={'map-container'}> <mengplaz-minimap primary={record['primaryLocation'] as gc.geo}  /> </div> ;
+      return (
+        <div className={'map-container'}>
+          <mengplaz-minimap golden={record['primaryLocation'] as gc.geo} locations={(record as any)?.['secondaryLocations']} />
+        </div>
+      );
     }
   }
 }
