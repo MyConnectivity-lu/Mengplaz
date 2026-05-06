@@ -76,8 +76,8 @@ export class MengplazAddressCard extends HTMLElement {
     const record = this.value?.record;
     this.replaceChildren(
       <div className={'card'}>
-        <div className={'card-title'} style={{ display: 'flex' }}>
-          <h4>{record?.sourceName ?? 'Unknown Source'}</h4>
+        <div className={'card-title'} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing)' }}>
+          <h4 style={{ color: colorForKey(record?.sourceName ?? ''), margin: '0' }}>{record?.sourceName ?? 'Unknown Source'}</h4>
           <div style={{ flexGrow: '1' }} />
           {this.showGoTo === true && record?.sourceName == 'Golden' ? (
             <sl-button
