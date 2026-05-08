@@ -56,6 +56,8 @@ type GoldenConstituency {
     nameAliases: Array<Alias>;
 
     cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
+
+    caclrConstituency: node<CaclrConstituency>?;
 }
 
 type GoldenCanton {
@@ -68,6 +70,7 @@ type GoldenCanton {
 
     constituency: node<GoldenConstituency>;
     municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
+    caclrCanton: node<CaclrCanton>?;
 }
 
 type GoldenMunicipality {
@@ -81,6 +84,8 @@ type GoldenMunicipality {
     canton: node<GoldenCanton>;
     cities_by_id: nodeIndex<String, node<GoldenCity>>;
     cities_by_name: nodeIndex<String, node<GoldenCity>>?;
+
+    caclrMunicipality: node<CaclrMunicipality>?;
 
     fn indexing(self: node<GoldenMunicipality>) {
         var munKey = this.name.lowercase();
@@ -106,6 +111,8 @@ type GoldenCity {
     municipality: node<GoldenMunicipality>;
     streets_by_id: nodeIndex<String, node<GoldenStreet>>;
     streets_by_name: nodeIndex<String, node<GoldenStreet>>?;
+
+    caclrCity: node<CaclrCity>?;
 
     fn indexing(self: node<GoldenCity>) {
         var cityKey = this.name.lowercase();
@@ -137,6 +144,8 @@ type GoldenStreet extends StreetRecordProvider {
     city: node<GoldenCity>;
     pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
     pois_by_number: nodeIndex<String, node<GoldenPointOfInterest>>?;
+
+    caclrStreet: node<CaclrStreet>?;
 
     fn toRecord(): StreetRecord {
         var record = StreetRecord {

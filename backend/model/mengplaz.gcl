@@ -22,6 +22,9 @@ abstract type DataSource {
     private reconciliationReport: node<ReconciliationReport>;
     private isReconciling: node<bool>?;
 
+    // Timestamp of last import
+    lastUpdate: time?;
+
     abstract fn name(): String;
     abstract fn getWeight(): float;
     abstract fn getReconciliationReport(): ReconciliationReport?;
@@ -33,7 +36,7 @@ abstract type DataSource {
         if (searchParams == null) {
             searchParams = SearchParameters::default();
         }
-        var workers = 8;
+        var workers = Runtime::info().bg_threads;
         var jobs = Array<Job> {};
         for (var i = 0; i < workers; i++) {
             jobs.add(

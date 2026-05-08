@@ -1,0 +1,67 @@
+@permission("admin")
+@expose
+fn updateCACLR() {
+    info("Started CACLR Import");
+    // Import
+    CACLRLoader::loadCantons();
+    CACLRLoader::loadMunicipalities();
+    CACLRLoader::loadCities();
+    CACLRLoader::loadStreets();
+    CACLRLoader::loadBuildings();
+
+    // Create New Golden Mun, City and Streets except Pois
+    info("Filling Golden from fresh CACLR Import");
+    GoldenServices::fillFromCaclr();
+
+    // PostProcessing to handle new records
+
+    var s = sources_by_name.get(CaclrSource::NAME);
+    if (s == null) {
+        return;
+    }
+    var report = s->reconciliationReport;
+    var toReconcile = Array<node<POIRecordProvider>> {};
+    for (id, nBuilding in caclr_buildings_by_id) {
+        // neither linked to golden or in unlinked report index  ->  new record
+        if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
+            toReconcile.add(nBuilding);
+        }
+    }
+    info("Found ${toReconcile.size()} Records to reconcile");
+    // Reconcile newly created CALCR Records
+    if (s->isReconciling?.resolve() == false) {
+        try {
+            s->setIsReconciling();
+            DataSource::reconcile(s, null, toReconcile);
+        } catch (err) {
+            error(err);
+        }
+        s->removeIsReconciling();
+    }
+
+    var lastT = s->lastUpdate ?? time::min;
+    // Verify if reconciled Record is unmatched and newer than lastUpdate create Golden Record
+    var toPromote = Array<node<CaclrBuilding>> {};
+    for (record: node<CaclrBuilding>, candidates in report->unlinked) {
+        if (candidates.size() == 0 && record->lastUpdate > lastT) {
+            toPromote.add(record);
+        }
+    }
+    info("Found ${toPromote.size()} Records to promote");
+
+    for (_, record in toPromote) {
+        try {
+            if (record->street != null) {
+                var streetIdx = record->street->goldenStreet?.resolve().id;
+                if (streetIdx != null) {
+                    promoteRecord(record, streetIdx);
+                }
+            }
+        } catch (err) {
+            error("Failed promoting ${record->id}  \n ${err}");
+        }
+    }
+
+    s->lastUpdate == time::now();
+    info("Caclr Update finished");
+}

@@ -27,6 +27,7 @@ type CaclrConstituency {
     code: String;
     name: String;
     cantons_by_id: nodeIndex<String, node<CaclrCanton>>;
+    goldenConstituency: node<GoldenConstituency>?;
 }
 
 type CaclrCanton {
@@ -37,6 +38,7 @@ type CaclrCanton {
 
     constituency: node<CaclrConstituency>;
     municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>>;
+    goldenCanton: node<GoldenCanton>?;
 }
 
 type CaclrMunicipality {
@@ -59,6 +61,8 @@ type CaclrMunicipality {
     canton: node<CaclrCanton>;
 
     cities_by_id: nodeIndex<String, node<CaclrCity>>;
+
+    goldenMunicipality: node<GoldenMunicipality>?;
 }
 
 type CaclrCity {
@@ -78,6 +82,8 @@ type CaclrCity {
 
     municipality: node<CaclrMunicipality>;
     streets_by_id: nodeIndex<String, node<CaclrStreet>>;
+
+    goldenCity: node<GoldenCity>?;
 }
 
 type CaclrStreet {
@@ -99,6 +105,8 @@ type CaclrStreet {
     city: node<CaclrCity>;
 
     buildings_by_id: nodeIndex<String, node<CaclrBuilding>>;
+
+    goldenStreet: node<GoldenStreet>?;
 }
 
 @volatile

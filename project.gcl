@@ -93,6 +93,111 @@ fn loadCaclr() {
 
 @permission("admin")
 @expose
+fn linkCaclrToGolden() {
+    var constLinked = 0;
+    var constMissed = 0;
+    var cantonLinked = 0;
+    var cantonMissed = 0;
+    var munLinked = 0;
+    var munMissed = 0;
+    var cityLinked = 0;
+    var cityMissed = 0;
+    var streetLinked = 0;
+    var streetMissed = 0;
+
+    for (constCode, nCaclrConst in caclr_consistuency_by_code) {
+        if (constCode == "UNKNOWN") {
+            continue;
+        }
+
+        var nGoldenConst = golden_constituency_by_code.get(constCode);
+        if (nGoldenConst == null) {
+            constMissed++;
+            warn("No GoldenConstituency found for CACLR code:${constCode} name:${nCaclrConst->name}");
+            continue;
+        }
+
+        nCaclrConst->goldenConstituency = nGoldenConst;
+        nGoldenConst->caclrConstituency = nCaclrConst;
+        constLinked++;
+
+        for (cantonId, nCaclrCanton in nCaclrConst->cantons_by_id) {
+            if (cantonId == "UNKNOWN") {
+                continue;
+            }
+
+            var caclrCantonName = nCaclrCanton->name.lowercase();
+            var nGoldenCanton: node<GoldenCanton>? = null;
+            for (_, nCandidate in nGoldenConst->cantons_by_id) {
+                if (nCandidate->name.lowercase() == caclrCantonName) {
+                    nGoldenCanton = nCandidate;
+                    break;
+                }
+            }
+
+            if (nGoldenCanton == null) {
+                cantonMissed++;
+                warn("No GoldenCanton found for CACLR id:${cantonId} name:${nCaclrCanton->name}");
+                continue;
+            }
+
+            nCaclrCanton->goldenCanton = nGoldenCanton;
+            nGoldenCanton->caclrCanton = nCaclrCanton;
+            cantonLinked++;
+        }
+    }
+
+    for (munId, nCaclrMun in caclr_municipalities_by_id) {
+        if (munId == "UNKNOWN") {
+            continue;
+        }
+
+        var nGoldenMun = golden_municipalities_by_name.get(nCaclrMun->name.lowercase());
+        if (nGoldenMun == null) {
+            munMissed++;
+            warn("No GoldenMunicipality found for CACLR id:${munId} name:${nCaclrMun->name}");
+            continue;
+        }
+
+        nCaclrMun->goldenMunicipality = nGoldenMun;
+        nGoldenMun->caclrMunicipality = nCaclrMun;
+        munLinked++;
+
+        for (cityId, nCaclrCity in nCaclrMun->cities_by_id) {
+            var nGoldenCity = nGoldenMun->cities_by_name?.get(nCaclrCity->name.lowercase());
+            if (nGoldenCity == null) {
+                cityMissed++;
+                continue;
+            }
+
+            nCaclrCity->goldenCity = nGoldenCity;
+            nGoldenCity->caclrCity = nCaclrCity;
+            cityLinked++;
+
+            for (streetId, nCaclrStreet in nCaclrCity->streets_by_id) {
+                var nGoldenStreet = nGoldenCity->streets_by_name?.get(nCaclrStreet->name.lowercase());
+                if (nGoldenStreet == null) {
+                    warn("No Street found for CACLR id:${streetId} name:${nCaclrStreet->name}");
+                    streetMissed++;
+                    continue;
+                }
+
+                nCaclrStreet->goldenStreet = nGoldenStreet;
+                nGoldenStreet->caclrStreet = nCaclrStreet;
+                streetLinked++;
+            }
+        }
+    }
+
+    info("Constituencies linked: ${constLinked}, missed: ${constMissed}");
+    info("Cantons linked: ${cantonLinked}, missed: ${cantonMissed}");
+    info("Municipalities linked: ${munLinked}, missed: ${munMissed}");
+    info("Cities linked: ${cityLinked}, missed: ${cityMissed}");
+    info("Streets linked: ${streetLinked}, missed: ${streetMissed}");
+}
+
+@permission("admin")
+@expose
 fn populateGoldenIndexes() {
     for (_, nMun in golden_municipalities_by_id) {
         var munKey = nMun->name.lowercase();

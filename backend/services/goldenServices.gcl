@@ -320,113 +320,143 @@ type GoldenServices {
 
     static fn fillFromCaclr() {
         for (constCode, nConstituency in caclr_consistuency_by_code) {
-            var nGoldenConstituency = node<GoldenConstituency> {
-                GoldenConstituency {
-                    code: nConstituency->code,
-                    name: nConstituency->name,
-                    nameAliases: Array<Alias> {},
-                    cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
-                }
-            };
-            golden_constituency_by_code.set(constCode, nGoldenConstituency);
-
-            for (cantonId, nCanton in nConstituency->cantons_by_id) {
-                var newCantonUID: String;
-                do {
-                    newCantonUID = GoldenServices::generateUID();
-                } while (golden_cantons_by_id.get(newCantonUID) != null);
-                var nGoldenCanton = node<GoldenCanton> {
-                    GoldenCanton {
-                        id: newCantonUID,
-                        name: nCanton->name,
+            var nGoldenConstituency = nConstituency->goldenConstituency;
+            if (nGoldenConstituency == null) {
+                nGoldenConstituency = node<GoldenConstituency> {
+                    GoldenConstituency {
+                        code: nConstituency->code,
+                        name: nConstituency->name,
                         nameAliases: Array<Alias> {},
-                        lastUpdate: nCanton->lastUpdate,
-                        constituency: nGoldenConstituency,
-                        municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
+                        cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
                     }
                 };
-                nGoldenConstituency->cantons_by_id.set(newCantonUID, nGoldenCanton);
-                golden_cantons_by_id.set(newCantonUID, nGoldenCanton);
+                golden_constituency_by_code.set(constCode, nGoldenConstituency);
+                nConstituency->goldenConstituency = nGoldenConstituency;
+                nGoldenConstituency->caclrConstituency = nConstituency;
+                info("New GoldenConstituency added: code=${nGoldenConstituency->code} name=${nGoldenConstituency->name}");
+            }
 
-                for (municipalityId, nMunicipality in nCanton->municipalities_by_id) {
-                    var newMunicipalityUID: String;
+            for (cantonId, nCanton in nConstituency->cantons_by_id) {
+                var nGoldenCanton = nCanton->goldenCanton;
+                if (nGoldenCanton == null) {
+                    var newCantonUID: String;
                     do {
-                        newMunicipalityUID = GoldenServices::generateUID();
-                    } while (golden_municipalities_by_id.get(newMunicipalityUID) != null);
-                    var nGoldenMunicipality = node<GoldenMunicipality> {
-                        GoldenMunicipality {
-                            id: newMunicipalityUID,
-                            name: nMunicipality->name,
+                        newCantonUID = GoldenServices::generateUID();
+                    } while (golden_cantons_by_id.get(newCantonUID) != null);
+                    nGoldenCanton = node<GoldenCanton> {
+                        GoldenCanton {
+                            id: newCantonUID,
+                            name: nCanton->name,
                             nameAliases: Array<Alias> {},
-                            lastUpdate: nMunicipality->lastUpdate,
-                            canton: nGoldenCanton,
-                            cities_by_id: nodeIndex<String, node<GoldenCity>> {},
+                            lastUpdate: nCanton->lastUpdate,
+                            constituency: nGoldenConstituency,
+                            municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
                         }
                     };
-                    nGoldenMunicipality->indexing(nGoldenMunicipality);
+                    nGoldenConstituency->cantons_by_id.set(newCantonUID, nGoldenCanton);
+                    golden_cantons_by_id.set(newCantonUID, nGoldenCanton);
+                    nCanton->goldenCanton = nGoldenCanton;
+                    nGoldenCanton->caclrCanton = nCanton;
+                    info("New GoldenCanton added: id=${nGoldenCanton->id} name=${nGoldenCanton->name}");
+                }
 
-                    for (cityId, nCity in nMunicipality->cities_by_id) {
-                        var newCityUID: String;
+                for (municipalityId, nMunicipality in nCanton->municipalities_by_id) {
+                    var nGoldenMunicipality = nMunicipality->goldenMunicipality;
+                    if (nGoldenMunicipality == null) {
+                        var newMunicipalityUID: String;
                         do {
-                            newCityUID = GoldenServices::generateUID();
-                        } while (golden_municipalities_by_id.get(newCityUID) != null);
-                        var nGoldenCity = node<GoldenCity> {
-                            GoldenCity {
-                                id: newCityUID,
-                                name: nCity->name,
+                            newMunicipalityUID = GoldenServices::generateUID();
+                        } while (golden_municipalities_by_id.get(newMunicipalityUID) != null);
+                        nGoldenMunicipality = node<GoldenMunicipality> {
+                            GoldenMunicipality {
+                                id: newMunicipalityUID,
+                                name: nMunicipality->name,
                                 nameAliases: Array<Alias> {},
-                                lastUpdate: nCity->lastUpdate,
-                                municipality: nGoldenMunicipality,
-                                streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
+                                lastUpdate: nMunicipality->lastUpdate,
+                                canton: nGoldenCanton,
+                                cities_by_id: nodeIndex<String, node<GoldenCity>> {},
                             }
                         };
-                        for (_, alias in nCity->aliases) {
-                            nGoldenCity->nameAliases.add(clone(alias));
-                        }
-                        nGoldenMunicipality->cities_by_id.set(newCityUID, nGoldenCity);
-                        nGoldenCity->indexing(nGoldenCity);
+                        nGoldenMunicipality->indexing(nGoldenMunicipality);
+                        nMunicipality->goldenMunicipality = nGoldenMunicipality;
+                        nGoldenMunicipality->caclrMunicipality = nMunicipality;
+                        info("New GoldenMunicipality added: id=${nGoldenMunicipality->id} name=${nGoldenMunicipality->name}");
+                    }
 
-                        for (streetId, nStreet in nCity->streets_by_id) {
-                            var newStreetUID: String;
+                    for (cityId, nCity in nMunicipality->cities_by_id) {
+                        var nGoldenCity = nCity->goldenCity;
+                        if (nGoldenCity == null) {
+                            var newCityUID: String;
                             do {
-                                newStreetUID = GoldenServices::generateUID();
-                            } while (golden_municipalities_by_id.get(newStreetUID) != null);
-                            var nGoldenStreet = node<GoldenStreet> {
-                                GoldenStreet {
-                                    id: newStreetUID,
-                                    name: nStreet->name,
+                                newCityUID = GoldenServices::generateUID();
+                            } while (golden_municipalities_by_id.get(newCityUID) != null);
+                            nGoldenCity = node<GoldenCity> {
+                                GoldenCity {
+                                    id: newCityUID,
+                                    name: nCity->name,
                                     nameAliases: Array<Alias> {},
-                                    lastUpdate: nStreet->lastUpdate,
-                                    city: nGoldenCity,
-                                    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+                                    lastUpdate: nCity->lastUpdate,
+                                    municipality: nGoldenMunicipality,
+                                    streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
                                 }
                             };
-                            for (_, alias in nStreet->aliases) {
-                                nGoldenStreet->nameAliases.add(clone(alias));
+                            for (_, alias in nCity->aliases) {
+                                nGoldenCity->nameAliases.add(clone(alias));
                             }
-                            nGoldenStreet->indexing(nGoldenStreet);
+                            nGoldenMunicipality->cities_by_id.set(newCityUID, nGoldenCity);
+                            nGoldenCity->indexing(nGoldenCity);
+                            nCity->goldenCity = nGoldenCity;
+                            nGoldenCity->caclrCity = nCity;
+                            info("New GoldenCity added: id=${nGoldenCity->id} name=${nGoldenCity->name}");
+                        }
 
-                            for (buildingId, nBuilding in nStreet->buildings_by_id) {
-                                var newUID: String;
+                        for (streetId, nStreet in nCity->streets_by_id) {
+                            var nGoldenStreet = nStreet->goldenStreet;
+                            if (nGoldenStreet == null) {
+                                var newStreetUID: String;
                                 do {
-                                    newUID = GoldenServices::generateUID();
-                                } while (golden_pois_by_id.get(newUID) != null);
-
-                                var nGoldenPOI = node<GoldenPointOfInterest> {
-                                    GoldenPointOfInterest {
-                                        uid: newUID,
-                                        number: nBuilding->number,
-                                        multipleCode: nBuilding->multipleCode,
-                                        postCode: nBuilding->postalCode,
-                                        secondaryLocations: Map<String, geo> {},
-                                        lastUpdate: nBuilding->lastUpdate,
-                                        street: nGoldenStreet,
-                                        linkedRecords: Array<LinkedRecordEntry> {},
-                                        quality: nodeTime<QualityEvent> {}
+                                    newStreetUID = GoldenServices::generateUID();
+                                } while (golden_municipalities_by_id.get(newStreetUID) != null);
+                                nGoldenStreet = node<GoldenStreet> {
+                                    GoldenStreet {
+                                        id: newStreetUID,
+                                        name: nStreet->name,
+                                        nameAliases: Array<Alias> {},
+                                        lastUpdate: nStreet->lastUpdate,
+                                        city: nGoldenCity,
+                                        pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
                                     }
                                 };
-                                nGoldenPOI->indexing(nGoldenPOI);
+                                for (_, alias in nStreet->aliases) {
+                                    nGoldenStreet->nameAliases.add(clone(alias));
+                                }
+                                nGoldenStreet->indexing(nGoldenStreet);
+                                nStreet->goldenStreet = nGoldenStreet;
+                                nGoldenStreet->caclrStreet = nStreet;
+                                info("New GoldenStreet added: id=${nGoldenStreet->id} name=${nGoldenStreet->name}");
                             }
+
+                            // for (buildingId, nBuilding in nStreet->buildings_by_id) {
+                            //     var newUID: String;
+                            //     do {
+                            //         newUID = GoldenServices::generateUID();
+                            //     } while (golden_pois_by_id.get(newUID) != null);
+
+                            //     var nGoldenPOI = node<GoldenPointOfInterest> {
+                            //         GoldenPointOfInterest {
+                            //             uid: newUID,
+                            //             number: nBuilding->number,
+                            //             multipleCode: nBuilding->multipleCode,
+                            //             postCode: nBuilding->postalCode,
+                            //             secondaryLocations: Map<String, geo> {},
+                            //             lastUpdate: nBuilding->lastUpdate,
+                            //             street: nGoldenStreet,
+                            //             linkedRecords: Array<LinkedRecordEntry> {},
+                            //             quality: nodeTime<QualityEvent> {}
+                            //         }
+                            //     };
+                            //     nGoldenPOI->indexing(nGoldenPOI);
+                            // }
                         }
                     }
                 }
