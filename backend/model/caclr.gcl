@@ -344,6 +344,10 @@ type CaclrBuilding extends POIRecordProvider {
         return this.street?->city->name;
     }
 
+    fn getPostcode(): String? {
+        return this.postalCode;
+    }
+
     fn indexing(self: node<CaclrBuilding>) {
         var nStreet = this.street;
         if (nStreet != null) {
@@ -465,5 +469,127 @@ type CaclrSource extends DataSource {
 
     fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return caclr_buildings_by_id;
+    }
+
+    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+        var byKey = Map<int, ScoredCity> {};
+
+        var muniExact = caclr_municipalities_by_name.get(name);
+        if (muniExact != null) {
+            for (_, nCity in muniExact->cities_by_id) {
+                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
+            }
+        } else {
+            var muniResults = caclr_municipalities_by_name.search(name, max);
+            for (_, mr in muniResults) {
+                if (mr.distance > distanceThreshold) {
+                    continue;
+                }
+                for (_, nCity in mr.value->cities_by_id) {
+                    var k = nCity as int;
+                    if (byKey.get(k) == null) {
+                        byKey.set(k, ScoredCity { city: nCity, distance: mr.distance });
+                    }
+                }
+            }
+        }
+
+        var cityExact = caclr_cities_by_name.get(name);
+        if (cityExact != null) {
+            for (_, nCity in cityExact) {
+                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
+            }
+        } else {
+            var cityResults = caclr_cities_by_name.search(name, max);
+            for (_, cr in cityResults) {
+                if (cr.distance > distanceThreshold) {
+                    continue;
+                }
+                for (_, nCity in cr.value) {
+                    var k = nCity as int;
+                    if (byKey.get(k) == null) {
+                        byKey.set(k, ScoredCity { city: nCity, distance: cr.distance });
+                    }
+                }
+            }
+        }
+
+        var out = Array<ScoredCity> {};
+        for (_, sc in byKey) {
+            out.add(sc);
+        }
+        return out;
+    }
+
+    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var nCity = sc.city as node<CaclrCity>;
+        if (nCity->streets_by_name == null) {
+            return streets;
+        }
+        var idx = nCity->streets_by_name;
+        var exact = idx.get(road);
+        if (exact != null) {
+            streets.add(ScoredStreet { street: exact, distance: 0.0 });
+            return streets;
+        }
+        var streetResults = idx.search(road, max);
+        for (_, sr in streetResults) {
+            if (sr.distance > distanceThreshold) {
+                continue;
+            }
+            streets.add(ScoredStreet { street: sr.value, distance: sr.distance });
+        }
+        return streets;
+    }
+
+    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var exact = caclr_streets_by_name.get(road);
+        if (exact != null) {
+            for (_, nStreet in exact) {
+                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
+            }
+            return streets;
+        }
+        var globalResults = caclr_streets_by_name.search(road, 100);
+        for (_, gr in globalResults) {
+            if (gr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - gr.key.jaro(road);
+            for (_, nStreet in gr.value) {
+                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
+            }
+        }
+        return streets;
+    }
+
+    fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
+        var results = Array<ScoredPoi> {};
+        var nStreet = ss.street as node<CaclrStreet>;
+        if (houseNumber == null) {
+            for (_, nPoi in nStreet->buildings_by_id) {
+                if (postcode == null || nPoi->getPostcode() == postcode) {
+                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
+                }
+            }
+            return results;
+        }
+        var exact = nStreet->buildings_by_number?.get(houseNumber);
+        if (exact != null) {
+            if (postcode == null || exact->getPostcode() == postcode) {
+                results.add(ScoredPoi { poi: exact, distance: 0.0 });
+                return results;
+            }
+        }
+        var poiResults = nStreet->buildings_by_number?.search(houseNumber, max);
+        for (_, pr in poiResults?) {
+            if (pr.distance > distanceThreshold) {
+                continue;
+            }
+            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
+        }
+        return results;
     }
 }

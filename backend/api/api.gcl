@@ -338,11 +338,18 @@ fn appInfo(): RuntimeInfo {
 }
 
 @expose
-fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
+fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> {
     if (max == null) {
         max = 5;
     }
     var distanceThreshold = 10;
+
+    var srcName = source ?? GoldenSource::NAME;
+    var nSource = sources_by_name.get(srcName);
+    if (nSource == null) {
+        throw "Unknown source: ${srcName}";
+    }
+    var src = *nSource;
 
     var ts = Traffic_Service::start(searchAddress);
     var parsed = PostalAddress::parseStructured(addr, PostalOptions { country: "lu" });
@@ -381,21 +388,18 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
         }
     }
 
-    // info("parsed: roads=${roads} localities=${localities} houseNumbers=${houseNumbers} postcode='${postcode}'");
-
     var scopeByCity = Map<int, ScoredCity> {};
     for (_, locality in localities) {
-        for (_, sc in findLocalityScopes(locality, max, distanceThreshold)) {
+        for (_, sc in src.findLocalityScopes(locality, max, distanceThreshold)) {
             var k = sc.city as int;
             scopeByCity.set(k, sc);
         }
     }
-    // info("matched ${scopeByCity.size()} city scopes for ${localities.size()} locality value(s)");
 
     var streetMap = Map<int, ScoredStreet> {};
     for (_, road in roads) {
         for (_, scopedCity in scopeByCity) {
-            for (_, ss in findStreetsInCity(scopedCity.city, road, max, distanceThreshold)) {
+            for (_, ss in src.findStreetsInCity(scopedCity, road, max, distanceThreshold)) {
                 var totalDist = scopedCity.distance + ss.distance;
                 var k = ss.street as int;
                 streetMap.set(k, ScoredStreet { street: ss.street, distance: totalDist });
@@ -405,21 +409,17 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
 
     if (streetMap.size() == 0) {
         for (_, road in roads) {
-            for (_, ss in findStreetsByName(road, max, distanceThreshold)) {
+            for (_, ss in src.findStreetsByName(road, max, distanceThreshold)) {
                 var k = ss.street as int;
-                // info("${ss.distance}  ${ss.street->name}");
                 streetMap.set(k, ss);
             }
         }
-        // info("global street fallback returned ${streetMap.size()} street(s)");
-    } else {
-        // info("matched ${streetMap.size()} street(s) within locality scopes");
     }
 
     var poiMap = Map<int, ScoredPoi> {};
     for (_, ss in streetMap) {
         if (houseNumbers.size() == 0) {
-            for (_, sp in findPoisInStreet(ss.street, null, postcode, max, distanceThreshold)) {
+            for (_, sp in src.findPoisInStreet(ss, null, postcode, max, distanceThreshold)) {
                 var totalDist = ss.distance + sp.distance;
                 var k = sp.poi as int;
                 var existing = poiMap.get(k);
@@ -429,7 +429,7 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
             }
         } else {
             for (_, hn in houseNumbers) {
-                for (_, sp in findPoisInStreet(ss.street, hn, postcode, max, distanceThreshold)) {
+                for (_, sp in src.findPoisInStreet(ss, hn, postcode, max, distanceThreshold)) {
                     var totalDist = ss.distance + sp.distance;
                     var k = sp.poi as int;
                     var existing = poiMap.get(k);
@@ -457,8 +457,7 @@ fn searchAddress(addr: String, max: int?): Array<POIRecordRef> {
     }
 
     var t = ts.end();
-    // info("returned ${results.size()} POIs in ${t}");
-    address_searches.setAt(time::now(), AddressSearchInput { input: addr, results: pois });
+    address_searches.setAt(time::now(), AddressSearchInput { input: addr, source: srcName, results: pois });
     return results;
 }
 

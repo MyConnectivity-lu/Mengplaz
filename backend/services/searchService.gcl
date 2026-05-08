@@ -1,114 +1,24 @@
 type AddressSearchInput {
     input: String;
+    source: String?;
     results: Array<node<POIRecordProvider>>;
 }
 
 var address_searches: nodeTime<AddressSearchInput>;
 
 type ScoredCity {
-    city: node<GoldenCity>;
+    city: any;
     distance: float;
 }
 
 type ScoredStreet {
-    street: node<GoldenStreet>;
+    street: any;
     distance: float;
 }
 
 type ScoredPoi {
-    poi: node<GoldenPointOfInterest>;
+    poi: node<POIRecordProvider>;
     distance: float;
-}
-
-fn findCities(city: String, max: int, distanceThreshold: int): Array<ScoredCity> {
-    var cities = Array<ScoredCity> {};
-    var exact = golden_cities_by_name.get(city);
-    if (exact != null) {
-        for (_, nCity in exact) {
-            cities.add(ScoredCity { city: nCity, distance: 0.0 });
-        }
-        return cities;
-    }
-    var cityResults = golden_cities_by_name.search(city, max);
-    for (_, cr in cityResults) {
-        if (cr.distance > distanceThreshold) {
-            continue;
-        }
-        for (_, nCity in cr.value) {
-            cities.add(ScoredCity { city: nCity, distance: cr.distance });
-        }
-    }
-    return cities;
-}
-
-fn findStreetsInCity(nCity: node<GoldenCity>, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-    var streets = Array<ScoredStreet> {};
-    if (nCity->streets_by_name == null) {
-        return streets;
-    }
-    var idx = nCity->streets_by_name;
-    var exact = idx.get(road);
-    if (exact != null) {
-        streets.add(ScoredStreet { street: exact, distance: 0.0 });
-        return streets;
-    }
-    var streetResults = idx.search(road, max);
-    for (_, sr in streetResults) {
-        if (sr.distance > distanceThreshold) {
-            continue;
-        }
-        streets.add(ScoredStreet { street: sr.value, distance: sr.distance });
-    }
-    return streets;
-}
-
-fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-    var streets = Array<ScoredStreet> {};
-    var exact = golden_streets_by_name.get(road);
-    if (exact != null) {
-        for (_, nStreet in exact) {
-            streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
-        }
-        return streets;
-    }
-    var globalResults = golden_streets_by_name.search(road, 100);
-    for (_, gr in globalResults) {
-        if (gr.distance > distanceThreshold) {
-            continue;
-        }
-        var jaroDist = 1.0 - gr.key.jaro(road);
-        for (_, nStreet in gr.value) {
-            streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
-        }
-    }
-    return streets;
-}
-
-fn findPoisInStreet(nStreet: node<GoldenStreet>, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
-    var results = Array<ScoredPoi> {};
-    if (houseNumber == null) {
-        for (_, nPoi in nStreet->pois_by_id) {
-            if (postcode == null || nPoi->postCode == postcode) {
-                results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
-            }
-        }
-        return results;
-    }
-    var exact = nStreet->pois_by_number?.get(houseNumber);
-    if (exact != null) {
-        if (postcode == null || exact->postCode == postcode) {
-            results.add(ScoredPoi { poi: exact, distance: 0.0 });
-            return results;
-        }
-    }
-    var poiResults = nStreet->pois_by_number?.search(houseNumber, max);
-    for (_, pr in poiResults?) {
-        if (pr.distance > distanceThreshold) {
-            continue;
-        }
-        results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
-    }
-    return results;
 }
 
 fn iter(arr: Array<String>?): Array<String> {
@@ -121,44 +31,6 @@ fn iter(arr: Array<String>?): Array<String> {
         if (s.size() > 0) {
             out.add(s);
         }
-    }
-    return out;
-}
-
-fn findMunicipalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
-    var cities = Array<ScoredCity> {};
-    var exact = golden_municipalities_by_name.get(name);
-    if (exact != null) {
-        for (_, nCity in exact->cities_by_id) {
-            cities.add(ScoredCity { city: nCity, distance: 0.0 });
-        }
-        return cities;
-    }
-    var muniResults = golden_municipalities_by_name.search(name, max);
-    for (_, mr in muniResults) {
-        if (mr.distance > distanceThreshold) {
-            continue;
-        }
-        for (_, nCity in mr.value->cities_by_id) {
-            cities.add(ScoredCity { city: nCity, distance: mr.distance });
-        }
-    }
-    return cities;
-}
-
-fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
-    var byKey = Map<int, ScoredCity> {};
-    for (_, sc in findMunicipalityScopes(name, max, distanceThreshold)) {
-        var key = sc.city as int;
-        byKey.set(key, sc);
-    }
-    for (_, sc in findCities(name, max, distanceThreshold)) {
-        var key = sc.city as int;
-        byKey.set(key, sc);
-    }
-    var out = Array<ScoredCity> {};
-    for (_, sc in byKey) {
-        out.add(sc);
     }
     return out;
 }

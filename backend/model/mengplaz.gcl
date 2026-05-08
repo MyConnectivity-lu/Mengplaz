@@ -32,6 +32,11 @@ abstract type DataSource {
     // abstract fn search(req: SearchRequest): Array<SearchResult>;
     abstract fn getIndex(): nodeIndex<String, node<POIRecordProvider>>;
 
+    abstract fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity>;
+    abstract fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet>;
+    abstract fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet>;
+    abstract fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi>;
+
     static fn reconcile(nSource: node<DataSource>, searchParams: SearchParameters?, pois: Array<node<POIRecordProvider>>?): ReconciliationReport {
         if (searchParams == null) {
             searchParams = SearchParameters::default();
@@ -208,6 +213,7 @@ abstract type POIRecordProvider {
     abstract fn toSearchItem(): SearchItem;
     abstract fn getStreet(): String?;
     abstract fn getCity(): String?;
+    abstract fn getPostcode(): String?;
 }
 
 @volatile
