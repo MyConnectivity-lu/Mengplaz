@@ -46,3 +46,9 @@ sl-tab-group {
   overflow: hidden;
   min-height: 0;
 }
+
+.reconcile-address-search {
+  position: relative;
+  width: 320px;
+  flex-shrink: 0;
+}

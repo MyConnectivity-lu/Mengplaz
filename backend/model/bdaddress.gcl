@@ -146,7 +146,7 @@ type BDAddress extends POIRecordProvider {
 
     fn toMengplazRecord(): POIRecord {
         var record = POIRecord {
-            uid: "${this.id_caclr}",
+            uid: this.id_geoportail,
             number: "${this.number}",
             street: this.street->name,
             postcode: this.postcode,

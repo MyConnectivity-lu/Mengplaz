@@ -9,6 +9,8 @@ import { MengplazPromotionDialog } from '~/components/mengplaz-promotion-dialog/
 import '~/components/mengplaz-promotion-dialog/mengplaz-promotion-dialog';
 import { SearchParametersDialog } from '~/components/search-parameters-dialog/search-parameters-dialog';
 import '~/components/search-parameters-dialog/search-parameters-dialog';
+import { AddressSelectEvent, MengplazAddressSearch } from '~/components/mengplaz-address-search/mengplaz-address-search';
+import '~/components/mengplaz-address-search/mengplaz-address-search';
 import { getQueryParam } from '~/common/utils';
 import './reconcile.css';
 
@@ -169,6 +171,7 @@ export class ReconcilePage extends HTMLElement {
   private confirm: MengplazConfirmDialog;
   private promote: MengplazPromotionDialog;
   private searchParamsDialog: SearchParametersDialog;
+  private addressSearch: MengplazAddressSearch;
   private searchParams: gc.mengplaz.SearchParameters = new gc.mengplaz.SearchParameters(
     0.7,
     0.7,
@@ -204,6 +207,7 @@ export class ReconcilePage extends HTMLElement {
           this.startReconcilePolling();
         }
       }
+      this.addressSearch.source = this.sourceSelect.value?.name;
       this.updateLocalReconciliationReport();
     });
 
@@ -218,6 +222,12 @@ export class ReconcilePage extends HTMLElement {
     this.confirm = (<mengplaz-confirm-dialog />) as MengplazConfirmDialog;
     this.promote = (<mengplaz-promotion-dialog />) as MengplazPromotionDialog;
     this.searchParamsDialog = (<search-parameters-dialog />) as SearchParametersDialog;
+    this.addressSearch = (<mengplaz-address-search />) as MengplazAddressSearch;
+    this.addressSearch.placeholder = 'Search address in source...';
+    this.addressSearch.addEventListener('address-select', (e: Event) => {
+      const id = (e as CustomEvent<AddressSelectEvent>).detail.record.record.uid;
+      if (id) this.handleIdSearch(id);
+    });
 
     this.reportContainer = (<div className="report-container"></div>) as HTMLElement;
   }
@@ -255,6 +265,7 @@ export class ReconcilePage extends HTMLElement {
         const matchingSource = filteredSources.find((s) => s.name === urlSource);
         if (matchingSource) {
           this.sourceSelect.value = matchingSource;
+          this.addressSearch.source = matchingSource.name;
           await this.updateLocalReconciliationReport();
         }
       }
@@ -755,9 +766,10 @@ export class ReconcilePage extends HTMLElement {
         <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
           <h3 className="content-title">Reconcile</h3>
           <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
             {this.sourceSelect}
             {this.reconcileButton}
+            <div className="reconcile-address-search">{this.addressSearch}</div>
           </div>
           <p>No reconciliation available.</p>
           {this.confirm}
@@ -832,10 +844,11 @@ export class ReconcilePage extends HTMLElement {
       <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
         <h3 className="content-title">Reconcile</h3>
         <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
           {this.sourceSelect}
           {this.reconcileButton}
           {this.citySelect}
+          <div className="reconcile-address-search">{this.addressSearch}</div>
         </div>
         {this.reportContainer}
         {this.confirm}
