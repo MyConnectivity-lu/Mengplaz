@@ -250,3 +250,185 @@ fn populateGoldenIndexes() {
     info("Golden indexes populated");
 }
 
+@permission("admin")
+@expose
+fn populateCaclrIndexes() {
+    for (_, nMun in caclr_municipalities_by_id) {
+        if (nMun->id == "UNKNOWN") {
+            continue;
+        }
+        var munKey = nMun->name.lowercase();
+
+        if (nMun->cities_by_name == null) {
+            nMun->cities_by_name = nodeIndex<String, node<CaclrCity>> {};
+        }
+
+        caclr_municipalities_by_name.set(munKey, nMun);
+    }
+
+    for (_, nCity in caclr_cities_by_id) {
+        if (nCity->id == "UNKNOWN") {
+            continue;
+        }
+        var cityKey = nCity->name.lowercase();
+        var cities = caclr_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<CaclrCity>> {};
+        }
+        cities.add(nCity);
+        caclr_cities_by_name.set(cityKey, cities);
+
+        if (nCity->streets_by_name == null) {
+            nCity->streets_by_name = nodeIndex<String, node<CaclrStreet>> {};
+        }
+        nCity->municipality->cities_by_name?.set(cityKey, nCity);
+    }
+
+    for (_, nStreet in caclr_streets_by_id) {
+        if (nStreet->id == "UNKNOWN") {
+            continue;
+        }
+        var streetKey = nStreet->name.lowercase();
+        var streets = caclr_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<CaclrStreet>> {};
+        }
+        streets.add(nStreet);
+        caclr_streets_by_name.set(streetKey, streets);
+
+        nStreet->city->streets_by_name?.set(streetKey, nStreet);
+
+        if (nStreet->buildings_by_number == null) {
+            nStreet->buildings_by_number = nodeIndex<String, node<CaclrBuilding>> {};
+        }
+    }
+
+    for (_, nBuilding in caclr_buildings_by_id) {
+        var nStreet = nBuilding->street;
+        if (nStreet != null) {
+            var numKey = "${nBuilding->number}${nBuilding->multipleCode}";
+            nStreet->buildings_by_number?.set(numKey, nBuilding);
+        }
+    }
+
+    info("CACLR indexes populated");
+}
+
+@permission("admin")
+@expose
+fn populateBdaIndexes() {
+    for (_, nAddress in bda_address_by_geoportalid) {
+        var munKey = nAddress->municipatlity->name.lowercase();
+        bda_municipalities_by_name.set(munKey, nAddress->municipatlity);
+        if (nAddress->municipatlity->cities_by_name == null) {
+            nAddress->municipatlity->cities_by_name = nodeIndex<String, node<BDACity>> {};
+        }
+    }
+
+    for (_, nAddress in bda_address_by_geoportalid) {
+        var cityKey = nAddress->city->name.lowercase();
+        if (nAddress->municipatlity->cities_by_name.get(cityKey) == null) {
+            nAddress->municipatlity->cities_by_name.set(cityKey, nAddress->city);
+            var cities = bda_cities_by_name.get(cityKey);
+            if (cities == null) {
+                cities = Array<node<BDACity>> {};
+            }
+            if (nAddress->city->municipality == null) {
+                nAddress->city->municipality = nAddress->municipatlity;
+            }
+            cities.add(nAddress->city);
+            bda_cities_by_name.set(cityKey, cities);
+        }
+    }
+
+    for (_, nAddress in bda_address_by_geoportalid) {
+        var streetKey = nAddress->street->name.lowercase();
+
+        if (nAddress->city->streets_by_name == null) {
+            nAddress->city->streets_by_name = nodeIndex<String, node<BDAStreet>> {};
+        }
+
+        if (nAddress->city->streets_by_name.get(streetKey) == null) {
+            nAddress->city->streets_by_name.set(streetKey, nAddress->street);
+            var streets = bda_streets_by_name.get(streetKey);
+            if (streets == null) {
+                streets = Array<node<BDAStreet>> {};
+            }
+            streets.add(nAddress->street);
+            bda_streets_by_name.set(streetKey, streets);
+            bda_street_by_cacrid.set(nAddress->street->id_caclr, nAddress->street);
+
+            if (nAddress->street->city == null) {
+                nAddress->street->city = nAddress->city;
+            }
+            if (nAddress->street->addresses_by_id == null) {
+                nAddress->street->addresses_by_id = nodeIndex<String, node<BDAddress>> {};
+            }
+            if (nAddress->street->addresses_by_number == null) {
+                nAddress->street->addresses_by_number = nodeIndex<String, node<BDAddress>> {};
+            }
+        }
+    }
+
+    for (_, nAddress in bda_address_by_geoportalid) {
+        nAddress->street->addresses_by_id.set(nAddress->id_geoportail, nAddress);
+        nAddress->street->addresses_by_number.set(nAddress->number, nAddress);
+    }
+
+    info("BDA indexes populated");
+}
+
+@permission("admin")
+@expose
+fn populateOsmIndexes() {
+    for (_, nAddress in osm_by_id) {
+        var cityName = nAddress->getCity()!!;
+        var cityKey = cityName.lowercase();
+        if (osm_cities_by_name.get(cityKey) == null) {
+            var nCity = node<OsmCity> {
+                OsmCity {
+                    name: cityName,
+                    streets_by_name: nodeIndex<String, node<OsmStreet>> {},
+                }
+            };
+            nCity->indexing(nCity);
+        }
+    }
+
+    for (_, nAddress in osm_by_id) {
+        var cityKey = nAddress->getCity()!!.lowercase();
+        var streetName = nAddress->getStreet()!!;
+        var streetKey = streetName.lowercase();
+        var nCity = osm_cities_by_name.get(cityKey)!!;
+        if (nCity->streets_by_name.get(streetKey) == null) {
+            var nStreet = node<OsmStreet> {
+                OsmStreet {
+                    name: streetName,
+                    city: nCity,
+                    addresses_by_id: nodeIndex<String, node<OsmAddress>> {},
+                    addresses_by_number: nodeIndex<String, node<OsmAddress>> {},
+                }
+            };
+            nStreet->indexing(nStreet);
+        }
+    }
+
+    for (_, nAddress in osm_by_id) {
+        var cityKey = nAddress->getCity()!!.lowercase();
+        var streetKey = nAddress->getStreet()!!.lowercase();
+        var nStreet = osm_cities_by_name.get(cityKey)!!->streets_by_name.get(streetKey)!!;
+        nStreet->addresses_by_id.set("${nAddress->id}", nAddress);
+        nStreet->addresses_by_number.set(nAddress->number, nAddress);
+    }
+
+    for (_, v in osm_streets_by_name) {
+        for (_, s in v) {
+            for (_, a in s->addresses_by_id) {
+                a->streetRef = s;
+            }
+        }
+    }
+
+    info("OSM indexes populated");
+}
+

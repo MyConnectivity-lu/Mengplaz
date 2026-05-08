@@ -5,6 +5,10 @@ var caclr_cities_by_id: nodeIndex<String, node<CaclrCity>>;
 var caclr_streets_by_id: nodeIndex<String, node<CaclrStreet>>;
 var caclr_buildings_by_id: nodeIndex<String, node<CaclrBuilding>>;
 
+var caclr_municipalities_by_name: nodeIndex<String, node<CaclrMunicipality>>;
+var caclr_cities_by_name: nodeIndex<String, Array<node<CaclrCity>>>;
+var caclr_streets_by_name: nodeIndex<String, Array<node<CaclrStreet>>>;
+
 var caclr_buildings_by_geo: nodeGeo<node<CaclrBuilding>>;
 
 enum CaclrDataStatus {
@@ -61,8 +65,21 @@ type CaclrMunicipality {
     canton: node<CaclrCanton>;
 
     cities_by_id: nodeIndex<String, node<CaclrCity>>;
+    cities_by_name: nodeIndex<String, node<CaclrCity>>?;
 
     goldenMunicipality: node<GoldenMunicipality>?;
+
+    fn indexing(self: node<CaclrMunicipality>) {
+        var munKey = this.name.lowercase();
+
+        if (this.cities_by_name == null) {
+            this.cities_by_name = nodeIndex<String, node<CaclrCity>> {};
+        }
+
+        this.canton->municipalities_by_id.set(this.id, self);
+        caclr_municipalities_by_id.set(this.id, self);
+        caclr_municipalities_by_name.set(munKey, self);
+    }
 }
 
 type CaclrCity {
@@ -82,8 +99,27 @@ type CaclrCity {
 
     municipality: node<CaclrMunicipality>;
     streets_by_id: nodeIndex<String, node<CaclrStreet>>;
+    streets_by_name: nodeIndex<String, node<CaclrStreet>>?;
 
     goldenCity: node<GoldenCity>?;
+
+    fn indexing(self: node<CaclrCity>) {
+        var cityKey = this.name.lowercase();
+        var cities = caclr_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<CaclrCity>> {};
+        }
+        cities.add(self);
+
+        if (this.streets_by_name == null) {
+            this.streets_by_name = nodeIndex<String, node<CaclrStreet>> {};
+        }
+
+        this.municipality->cities_by_id.set(this.id, self);
+        this.municipality->cities_by_name?.set(cityKey, self);
+        caclr_cities_by_id.set(this.id, self);
+        caclr_cities_by_name.set(cityKey, cities);
+    }
 }
 
 type CaclrStreet {
@@ -105,8 +141,27 @@ type CaclrStreet {
     city: node<CaclrCity>;
 
     buildings_by_id: nodeIndex<String, node<CaclrBuilding>>;
+    buildings_by_number: nodeIndex<String, node<CaclrBuilding>>?;
 
     goldenStreet: node<GoldenStreet>?;
+
+    fn indexing(self: node<CaclrStreet>) {
+        var streetKey = this.name.lowercase();
+        var streets = caclr_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<CaclrStreet>> {};
+        }
+        streets.add(self);
+
+        if (this.buildings_by_number == null) {
+            this.buildings_by_number = nodeIndex<String, node<CaclrBuilding>> {};
+        }
+
+        caclr_streets_by_name.set(streetKey, streets);
+        caclr_streets_by_id.set(this.id, self);
+        this.city->streets_by_name?.set(streetKey, self);
+        this.city->streets_by_id.set(this.id, self);
+    }
 }
 
 @volatile
@@ -287,6 +342,17 @@ type CaclrBuilding extends POIRecordProvider {
 
     fn getCity(): String? {
         return this.street?->city->name;
+    }
+
+    fn indexing(self: node<CaclrBuilding>) {
+        var nStreet = this.street;
+        if (nStreet != null) {
+            var numKey = "${this.number}${this.multipleCode}";
+            nStreet->buildings_by_number?.set(numKey, self);
+            nStreet->buildings_by_id.set(this.id, self);
+        }
+
+        caclr_buildings_by_id.set(this.id, self);
     }
 }
 

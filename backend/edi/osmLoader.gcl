@@ -40,10 +40,48 @@ abstract type OSMLoader {
 
             for (_, elem in elements) {
                 try {
-                    var addr = OsmAddress::parse(elem);
-                    var nAddr = node<OsmAddress> { addr };
-                    osm_by_id.set("${addr.id}", nAddr);
-                    osm_by_geo.set(addr.position, nAddr);
+                    var parsed = OsmAddress::parse(elem);
+
+                    var cityKey = parsed.city.lowercase();
+                    var nCity = osm_cities_by_name.get(cityKey);
+                    if (nCity == null) {
+                        nCity = node<OsmCity> {
+                            OsmCity {
+                                name: parsed.city,
+                                streets_by_name: nodeIndex<String, node<OsmStreet>> {},
+                            }
+                        };
+                        nCity->indexing(nCity);
+                    }
+
+                    var streetKey = parsed.street.lowercase();
+                    var nStreet = nCity->streets_by_name.get(streetKey);
+                    if (nStreet == null) {
+                        nStreet = node<OsmStreet> {
+                            OsmStreet {
+                                name: parsed.street,
+                                city: nCity,
+                                addresses_by_id: nodeIndex<String, node<OsmAddress>> {},
+                                addresses_by_number: nodeIndex<String, node<OsmAddress>> {},
+                            }
+                        };
+                        nStreet->indexing(nStreet);
+                    }
+
+                    var nAddr = node<OsmAddress> {
+                        OsmAddress {
+                            id: parsed.id,
+                            position: parsed.position,
+                            city: parsed.city,
+                            postcode: parsed.postcode,
+                            street: parsed.street,
+                            number: parsed.number,
+                            ref_caclr: parsed.ref_caclr,
+                            building: parsed.building,
+                            streetRef: nStreet,
+                        }
+                    };
+                    nAddr->indexing(nAddr);
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
                     var addr = OsmPartialAddress::parse(elem);

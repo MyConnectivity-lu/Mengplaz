@@ -3,6 +3,50 @@ var osm_partial_by_id: nodeList<node<OsmPartialAddress>>;
 var osm_by_geo: nodeGeo<node<OsmAddress>>;
 var osm_partial_by_geo: nodeGeo<node<OsmPartialAddress>>;
 
+var osm_cities_by_name: nodeIndex<String, node<OsmCity>>;
+var osm_streets_by_name: nodeIndex<String, Array<node<OsmStreet>>>;
+
+@volatile
+type OsmParsedAddress {
+    id: int;
+    position: geo;
+    city: String;
+    postcode: String;
+    street: String;
+    number: String;
+    ref_caclr: String?;
+    building: String?;
+}
+
+type OsmCity {
+    name: String;
+    streets_by_name: nodeIndex<String, node<OsmStreet>>;
+
+    fn indexing(self: node<OsmCity>) {
+        var key = this.name.lowercase();
+        osm_cities_by_name.set(key, self);
+    }
+}
+
+type OsmStreet {
+    name: String;
+    city: node<OsmCity>;
+    addresses_by_id: nodeIndex<String, node<OsmAddress>>;
+    addresses_by_number: nodeIndex<String, node<OsmAddress>>;
+
+    fn indexing(self: node<OsmStreet>) {
+        var key = this.name.lowercase();
+        var streets = osm_streets_by_name.get(key);
+        if (streets == null) {
+            streets = Array<node<OsmStreet>> {};
+        }
+        streets.add(self);
+
+        osm_streets_by_name.set(key, streets);
+        this.city->streets_by_name.set(key, self);
+    }
+}
+
 type OsmPartialAddress {
     id: int;
     position: geo?;
@@ -45,9 +89,11 @@ type OsmAddress extends POIRecordProvider {
     private ref_caclr: String?;
     private building: String?;
 
+    streetRef: node<OsmStreet>?;
+
     private goldenRef: node<GoldenPointOfInterest>?;
 
-    static fn parse(elem: Map): OsmAddress {
+    static fn parse(elem: Map): OsmParsedAddress {
         var tags = elem.get("tags") as Map<String, String>;
         var kind = elem.get("type");
         var street = tags.get("addr:street") ?? tags.get("addr:place");
@@ -75,7 +121,7 @@ type OsmAddress extends POIRecordProvider {
             throw "Can't read geo coordinates";
         }
 
-        return OsmAddress {
+        return OsmParsedAddress {
             id: elem.get("id") as int,
             position: geo { lat, lon },
             city: city,
@@ -194,6 +240,13 @@ type OsmAddress extends POIRecordProvider {
 
     fn getCity(): String? {
         return this.city;
+    }
+
+    fn indexing(self: node<OsmAddress>) {
+        osm_by_id.set("${this.id}", self);
+        osm_by_geo.set(this.position, self);
+        this.streetRef?->addresses_by_id.set("${this.id}", self);
+        this.streetRef?->addresses_by_number?.set(this.number, self);
     }
 }
 

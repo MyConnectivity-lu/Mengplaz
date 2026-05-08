@@ -1,4 +1,6 @@
 var bda_municipalities_by_name: nodeIndex<String, node<BDAMunicipality>>;
+var bda_cities_by_name: nodeIndex<String, Array<node<BDACity>>>;
+var bda_streets_by_name: nodeIndex<String, Array<node<BDAStreet>>>;
 var bda_street_by_cacrid: nodeList<node<BDAStreet>>;
 var bda_address_by_geo: nodeGeo<node<BDAddress>>;
 var bda_address_by_cacrid: nodeList<node<BDAddress>>;
@@ -6,18 +8,51 @@ var bda_address_by_geoportalid: nodeIndex<String, node<BDAddress>>;
 
 type BDAMunicipality {
     name: String;
-    cities: nodeIndex<String, node<BDACity>>;
+    cities_by_name: nodeIndex<String, node<BDACity>>?;
+
+    fn indexing(self: node<BDAMunicipality>) {
+        var munKey = this.name.lowercase();
+        bda_municipalities_by_name.set(munKey, self);
+    }
 }
 
 type BDACity {
     name: String;
-    streets: nodeIndex<String, node<BDAStreet>>;
+    municipality: node<BDAMunicipality>?;
+    streets_by_name: nodeIndex<String, node<BDAStreet>>?;
+
+    fn indexing(self: node<BDACity>) {
+        var cityKey = this.name.lowercase();
+        var cities = bda_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<BDACity>> {};
+        }
+        cities.add(self);
+
+        this.municipality->cities_by_name?.set(cityKey, self);
+        bda_cities_by_name.set(cityKey, cities);
+    }
 }
 
 type BDAStreet {
     name: String;
     id_caclr: int;
-    addresses: nodeIndex<String, node<BDAddress>>;
+    city: node<BDACity>?;
+    addresses_by_id: nodeIndex<String, node<BDAddress>>?;
+    addresses_by_number: nodeIndex<String, node<BDAddress>>?;
+
+    fn indexing(self: node<BDAStreet>) {
+        var streetKey = this.name.lowercase();
+        var streets = bda_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<BDAStreet>> {};
+        }
+        streets.add(self);
+
+        bda_streets_by_name.set(streetKey, streets);
+        bda_street_by_cacrid.set(this.id_caclr, self);
+        this.city->streets_by_name.set(streetKey, self);
+    }
 }
 
 @volatile
@@ -159,6 +194,14 @@ type BDAddress extends POIRecordProvider {
 
     fn getCity(): String {
         return this.city->name;
+    }
+
+    fn indexing(self: node<BDAddress>) {
+        bda_address_by_geoportalid.set(this.id_geoportail, self);
+        bda_address_by_cacrid.set(this.id_caclr, self);
+        bda_address_by_geo.set(this.position, self);
+        this.street->addresses_by_id.set(this.id_geoportail, self);
+        this.street->addresses_by_number.set(this.number, self);
     }
 }
 

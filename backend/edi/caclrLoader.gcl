@@ -335,8 +335,7 @@ abstract type CACLRLoader {
                             cities_by_id: nodeIndex<String, node<CaclrCity>> {},
                         }
                     };
-                    nCanton->municipalities_by_id.set(nMunicipality->id, nMunicipality);
-                    caclr_municipalities_by_id.set(nMunicipality->id, nMunicipality);
+                    nMunicipality->indexing(nMunicipality);
                     info("New CaclrMunicipality added: id=${nMunicipality->id} name=${nMunicipality->name}");
                 } else if (record->lastUpdate < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
@@ -402,8 +401,7 @@ abstract type CACLRLoader {
                             streets_by_id: nodeIndex<String, node<CaclrStreet>> {},
                         }
                     };
-                    nMunicipality->cities_by_id.set(nCity->id, nCity);
-                    caclr_cities_by_id.set(nCity->id, nCity);
+                    nCity->indexing(nCity);
                     info("New CaclrCity added: id=${nCity->id} name=${nCity->name}");
                 } else if (record->lastUpdate < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
@@ -469,8 +467,7 @@ abstract type CACLRLoader {
                             buildings_by_id: nodeIndex<String, node<CaclrBuilding>> {},
                         }
                     };
-                    nCity->streets_by_id.set(nStreet->id, nStreet);
-                    caclr_streets_by_id.set(nStreet->id, nStreet);
+                    nStreet->indexing(nStreet);
                     info("New CaclrStreet added: id=${nStreet->id} name=${nStreet->name}");
                 } else if (record->lastUpdate < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
@@ -571,8 +568,7 @@ abstract type CACLRLoader {
                                         street: nStreet,
                                     }
                                 };
-                                nStreet->buildings_by_id.set(nBuilding->id, nBuilding);
-                                //caclr_buildings_by_id.set(nBuilding->id, nBuilding);
+                                nBuilding->indexing(nBuilding);
                                 result.add(nBuilding);
                                 info("New CaclrBuilding added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}");
                             } else if (record->lastUpdate < elem.lastUpdate) {

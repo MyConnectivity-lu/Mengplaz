@@ -40,39 +40,44 @@ abstract type BDAddressLoader {
         while (reader.can_read()) {
             var record = reader.read();
 
-            var nMunicipality = bda_municipalities_by_name.get(record.commune);
+            var munKey = record.commune.lowercase();
+            var nMunicipality = bda_municipalities_by_name.get(munKey);
             if (nMunicipality == null) {
                 var municipality = BDAMunicipality {
                     name: record.commune,
-                    cities: nodeIndex<String, node<BDACity>> {},
+                    cities_by_name: nodeIndex<String, node<BDACity>> {},
                 };
                 nMunicipality = node<BDAMunicipality> { municipality };
-                bda_municipalities_by_name.set(nMunicipality->name, nMunicipality);
+                nMunicipality->indexing(nMunicipality);
             }
 
-            var nCity = nMunicipality->cities.get(record.localite);
+            var cityKey = record.localite.lowercase();
+            var nCity = nMunicipality->cities_by_name.get(cityKey);
             if (nCity == null) {
                 var city = BDACity {
-                    name: record.commune,
-                    streets: nodeIndex<String, node<BDAStreet>> {},
+                    name: record.localite,
+                    municipality: nMunicipality,
+                    streets_by_name: nodeIndex<String, node<BDAStreet>> {},
                 };
                 nCity = node<BDACity> { city };
-                nMunicipality->cities.set(nCity->name, nCity);
+                nCity->indexing(nCity);
             }
 
-            var nStreet = nCity->streets.get(record.rue);
+            var streetKey = record.rue.lowercase();
+            var nStreet = nCity->streets_by_name.get(streetKey);
             if (nStreet == null) {
                 var street = BDAStreet {
                     name: record.rue,
                     id_caclr: record.id_caclr_rue,
-                    addresses: nodeIndex<String, node<BDAddress>> {},
+                    city: nCity,
+                    addresses_by_id: nodeIndex<String, node<BDAddress>> {},
+                    addresses_by_number: nodeIndex<String, node<BDAddress>> {},
                 };
                 nStreet = node<BDAStreet> { street };
-                nCity->streets.set(nStreet->name, nStreet);
-                bda_street_by_cacrid.set(nStreet->id_caclr, nStreet);
+                nStreet->indexing(nStreet);
             }
 
-            var nAddress = nStreet->addresses.get(record.numero);
+            var nAddress = nStreet->addresses_by_id.get(record.id_geoportail);
             if (nAddress == null) {
                 var address = BDAddress {
                     number: record.numero,
@@ -85,10 +90,7 @@ abstract type BDAddressLoader {
                     municipatlity: nMunicipality,
                 };
                 nAddress = node<BDAddress> { address };
-                nStreet->addresses.set(nAddress->number, nAddress);
-                bda_address_by_cacrid.set(nAddress->id_caclr, nAddress);
-                bda_address_by_geoportalid.set(nAddress->id_geoportail, nAddress);
-                bda_address_by_geo.set(nAddress->position, nAddress);
+                nAddress->indexing(nAddress);
             }
             total++;
         }
