@@ -340,7 +340,7 @@ fn appInfo(): RuntimeInfo {
 @expose
 fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> {
     if (max == null) {
-        max = 5;
+        max = 6;
     }
     var distanceThreshold = 10;
 
@@ -355,7 +355,10 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     var parsed = PostalAddress::parseStructured(addr, PostalOptions { country: "lu" });
     var results = Array<POIRecordRef> {};
 
+    // Preprocessing, Clean Parsed Address
+
     var roads = iter(parsed.road);
+    // Without a road name it's impossible to find an address, Very unlikely to occur, the user probably hasn't finished typing the full address, so we return early.
     if (roads.size() == 0) {
         ts.end();
         return results;
@@ -383,11 +386,13 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     var postcode: String? = null;
     if (postcodeArr.size() > 0) {
         postcode = postcodeArr[0];
+        // Transform L-1235 into 1234
         if (postcode.startsWith("l")) {
             postcode = postcode.slice(2, postcode.size());
         }
     }
 
+    // First Search by City and Municipality
     var scopeByCity = Map<int, ScoredCity> {};
     for (_, locality in localities) {
         for (_, sc in src.findLocalityScopes(locality, max, distanceThreshold)) {
@@ -396,6 +401,7 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
         }
     }
 
+    // Search by streets in the relevant localities 
     var streetMap = Map<int, ScoredStreet> {};
     for (_, road in roads) {
         for (_, scopedCity in scopeByCity) {
@@ -407,6 +413,7 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
         }
     }
 
+    // No relevant matches found, Do a flat search in all streets
     if (streetMap.size() == 0) {
         for (_, road in roads) {
             for (_, ss in src.findStreetsByName(road, max, distanceThreshold)) {
@@ -461,32 +468,64 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     return results;
 }
 
-// fn benchmarkSearchAddress() {
-//     var addresses = Array<String> {
-//         "2 rue de la gare, Luxembourg",
-//         "10 avenue John F. Kennedy, 1855 Luxembourg",
-//         "1 place Guillaume II, Luxembourg",
-//         "5 rue de Strasbourg, 2560 Luxembourg",
-//         "20 boulevard Royal, 2449 Luxembourg",
-//     };
-//     var iterations = 5;
-//     info("=== searchAddress benchmark: ${addresses.size()} addresses x ${iterations} runs ===");
-//     for (_, addr in addresses) {
-//         info("Searching '${addr}'");
-//         var total = 0_us;
-//         for (var i = 0; i < iterations; i++) {
-//             var start = time::now();
-//             var res = searchAddress(addr, null);
-//             total = total + (time::now() - start);
-//             if (i == iterations - 1) {
-//                 info("Found ${res.size()} results");
-//                 if (res.size() > 0) {
-//                     info("${res[0].record.number} ${res[0].record.street}, ${res[0].record.postcode} ${res[0].record.locality}");
-//                 }
-//             }
-//         }
-//         var avg = total / iterations;
-//         info("avg ${avg}");
-//     }
-//     info("=== benchmark end ===");
-// }
+@volatile
+type GoldenWithLinkedRecords {
+    golden: POIRecord;
+    osm: Array<LinkedRecordDetails<OSMFullRecord>>;
+    caclr: Array<LinkedRecordDetails<CaclrPOIFullRecord>>;
+    bda: Array<LinkedRecordDetails<BDAddressFullRecord>>;
+}
+
+@volatile
+type LinkedRecordDetails<T> {
+    score: ReconciliationCandidateScore;
+    record: T;
+}
+
+@expose
+@permission("public")
+@tag("openapi")
+fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
+    var g = searchAddress(addr, 1, null);
+    if (g.size() == 0) {
+        return null;
+    }
+    var golden = g.get(0).ref as node<GoldenPointOfInterest>;
+    var osm = Array<LinkedRecordDetails<OSMFullRecord>> {};
+    var caclr = Array<LinkedRecordDetails<CaclrPOIFullRecord>> {};
+    var bda = Array<LinkedRecordDetails<BDAddressFullRecord>> {};
+
+    var bdaS = sources_by_name.get(BDAddressSource::NAME)?->getReconciliationReport();
+    var osmS = sources_by_name.get(OsmSource::NAME)?->getReconciliationReport();
+    var caclrS = sources_by_name.get(CaclrSource::NAME)?->getReconciliationReport();
+
+    for (_, l in golden->linkedRecords) {
+        if (bdaS != null && bdaS.linked.get(l.record) != null) {
+            bda.add(LinkedRecordDetails<BDAddressFullRecord> {
+                    record: l.record->toFullRecord() as BDAddressFullRecord,
+                    score: bdaS.linked.get(l.record)!!.score!!
+                });
+        }
+        if (osmS != null && osmS.linked.get(l.record) != null) {
+            osm.add(LinkedRecordDetails<OSMFullRecord> {
+                    record: l.record->toFullRecord() as OSMFullRecord,
+                    score: osmS.linked.get(l.record)!!.score!!
+                });
+        }
+        if (caclrS != null && caclrS.linked.get(l.record) != null) {
+            caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
+                    record: l.record->toFullRecord() as CaclrPOIFullRecord,
+                    score: caclrS.linked.get(l.record)!!.score!!
+                });
+        }
+    }
+
+    var r = GoldenWithLinkedRecords {
+        golden: golden->toMengplazRecord(),
+        osm: osm,
+        bda: bda,
+        caclr: caclr
+    };
+
+    return r;
+}

@@ -29,7 +29,7 @@ type BDACity {
         }
         cities.add(self);
 
-        this.municipality->cities_by_name?.set(cityKey, self);
+        this.municipality?->cities_by_name?.set(cityKey, self);
         bda_cities_by_name.set(cityKey, cities);
     }
 }
@@ -51,7 +51,7 @@ type BDAStreet {
 
         bda_streets_by_name.set(streetKey, streets);
         bda_street_by_cacrid.set(this.id_caclr, self);
-        this.city->streets_by_name.set(streetKey, self);
+        this.city?->streets_by_name?.set(streetKey, self);
     }
 }
 
@@ -204,8 +204,8 @@ type BDAddress extends POIRecordProvider {
         bda_address_by_geoportalid.set(this.id_geoportail, self);
         bda_address_by_cacrid.set(this.id_caclr, self);
         bda_address_by_geo.set(this.position, self);
-        this.street->addresses_by_id.set(this.id_geoportail, self);
-        this.street->addresses_by_number.set(this.number, self);
+        this.street->addresses_by_id?.set(this.id_geoportail, self);
+        this.street->addresses_by_number?.set(this.number, self);
     }
 }
 
@@ -313,7 +313,8 @@ type BDAddressSource extends DataSource {
             if (sr.distance > distanceThreshold) {
                 continue;
             }
-            streets.add(ScoredStreet { street: sr.value, distance: sr.distance });
+            var jaroDist = 1.0 - sr.key.jaro(road);
+            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
         }
         return streets;
     }

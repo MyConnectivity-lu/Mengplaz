@@ -116,7 +116,8 @@ type GoldenSource extends DataSource {
             if (sr.distance > distanceThreshold) {
                 continue;
             }
-            streets.add(ScoredStreet { street: sr.value, distance: sr.distance });
+            var jaroDist = 1.0 - sr.key.jaro(road);
+            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
         }
         return streets;
     }
