@@ -209,6 +209,7 @@ export class ReconcilePage extends HTMLElement {
         }
       }
       this.addressSearch.source = this.sourceSelect.value?.name;
+      this.warnIfOsmWithMunicipality();
       this.updateLocalReconciliationReport();
     });
 
@@ -216,8 +217,6 @@ export class ReconcilePage extends HTMLElement {
     this.citySelect.placeholder = 'Filter by golden cities';
     this.citySelect.nullable = true;
     this.citySelect.addEventListener('gui-change', () => {
-      console.log('citySelect', this.citySelect.value);
-
       this.updateLocalReconciliationReport();
     });
 
@@ -225,11 +224,10 @@ export class ReconcilePage extends HTMLElement {
     this.municipalitySelect.placeholder = 'Filter by golden Municipalities';
     this.municipalitySelect.nullable = true;
     this.municipalitySelect.addEventListener('gui-change', () => {
-      console.log('municipalitySelect', this.municipalitySelect.value);
-
       gc.api.getGoldenCities(this.municipalitySelect.value ?? null).then((d) => {
         this.citySelect.options = d.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
       });
+      this.warnIfOsmWithMunicipality();
       this.updateLocalReconciliationReport();
     });
 
@@ -258,6 +256,7 @@ export class ReconcilePage extends HTMLElement {
       this.handleReconcile((e as CustomEvent<RequestReconcileEvent>).detail);
     });
 
+    this.renderShell();
     this.showLoadingOverlay();
     try {
       const urlMuni = getQueryParam('municipality');
@@ -298,9 +297,8 @@ export class ReconcilePage extends HTMLElement {
         }
       }
 
-      // Render empty state if no report was loaded
       if (!this.reconciliationReport) {
-        this.render();
+        this.renderReport();
       }
 
       // Start polling if the selected source is currently reconciling
@@ -325,7 +323,7 @@ export class ReconcilePage extends HTMLElement {
         <sl-spinner style={{ fontSize: '2rem' }} />
       </div>
     ) as HTMLElement;
-    this.replaceChildren(this.loadingOverlay);
+    (this.reportContainer ?? this).replaceChildren(this.loadingOverlay);
   }
 
   private hideLoadingOverlay() {
@@ -729,6 +727,17 @@ export class ReconcilePage extends HTMLElement {
     this.handleReconcile({ pois: [...ids] });
   }
 
+  private warnIfOsmWithMunicipality() {
+    if (this.sourceSelect.value?.name === 'OSM' && this.municipalitySelect.value) {
+      toast.notify({
+        message: 'OSM source has no municipalities, only cities. Municipality filter will return no results.',
+        variant: 'warning',
+        duration: 5000,
+        icon: 'exclamation-triangle',
+      });
+    }
+  }
+
   private async updateLocalReconciliationReport() {
     this.reconcileButton.loading = true;
     if (this.sourceSelect.value) {
@@ -739,11 +748,11 @@ export class ReconcilePage extends HTMLElement {
 
         if (report != null) {
           this.reconciliationReport = report;
-          this.render();
+          this.renderReport();
           this.activateInitialTab();
         } else {
           this.reconciliationReport = undefined;
-          this.render();
+          this.renderReport();
         }
       } catch (e) {
         toast.notify({
@@ -778,32 +787,40 @@ export class ReconcilePage extends HTMLElement {
     }
   }
 
-  render() {
+  private renderShell() {
     if (!gc.$.default.hasPermission('admin')) {
       window.location.assign(window.location.origin);
     }
 
+    this.replaceChildren(
+      <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
+        <h3 className="content-title">Reconcile</h3>
+        <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
+          {this.sourceSelect}
+          {this.reconcileButton}
+          {this.municipalitySelect}
+          {this.citySelect}
+          <div className="reconcile-address-search">{this.addressSearch}</div>
+        </div>
+        {this.reportContainer}
+        {this.confirm}
+        {this.promote}
+        {this.searchParamsDialog}
+      </div>,
+    );
+  }
+
+  private renderReport() {
     // Reset stored references
     this.panes = {};
     this.badges = {};
     this.tabGroup = null;
 
+    if (!this.reportContainer) return;
+
     if (!this.reconciliationReport) {
-      this.replaceChildren(
-        <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
-          <h3 className="content-title">Reconcile</h3>
-          <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
-            {this.sourceSelect}
-            {this.reconcileButton}
-            <div className="reconcile-address-search">{this.addressSearch}</div>
-          </div>
-          <p>No reconciliation available.</p>
-          {this.confirm}
-          {this.promote}
-          {this.searchParamsDialog}
-        </div>,
-      );
+      this.reportContainer.replaceChildren(<p>No reconciliation available.</p>);
       return;
     }
 
@@ -860,30 +877,12 @@ export class ReconcilePage extends HTMLElement {
       this.updateUrlState(tabKey);
     });
 
-    this.reportContainer?.replaceChildren(this.tabGroup);
+    this.reportContainer.replaceChildren(this.tabGroup);
 
     // Re-append reconciling overlay if polling is active
     if (this.pollingTimer && this.reconcilingOverlay) {
-      this.reportContainer?.appendChild(this.reconcilingOverlay);
+      this.reportContainer.appendChild(this.reconcilingOverlay);
     }
-
-    this.replaceChildren(
-      <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
-        <h3 className="content-title">Reconcile</h3>
-        <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
-          {this.sourceSelect}
-          {this.reconcileButton}
-          {this.municipalitySelect}
-          {this.citySelect}
-          <div className="reconcile-address-search">{this.addressSearch}</div>
-        </div>
-        {this.reportContainer}
-        {this.confirm}
-        {this.promote}
-        {this.searchParamsDialog}
-      </div>,
-    );
   }
 }
 
