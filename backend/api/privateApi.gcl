@@ -331,7 +331,7 @@ type ReconciliationReportView {
 
 @expose
 @permission("admin")
-fn getReconciliationReport(source: node<DataSource>, city: String?): ReconciliationReportView? {
+fn getReconciliationReport(source: node<DataSource>, city: String?, municipality: String?): ReconciliationReportView? {
     var ts = Traffic_Service::start(getReconciliationReport).end();
     var report = source->getReconciliationReport();
     if (report == null) {
@@ -342,6 +342,9 @@ fn getReconciliationReport(source: node<DataSource>, city: String?): Reconciliat
     var partialMatch = Array<ReconciliationReportMatchView> {};
     var noMatch = Array<String> {};
     for (record, candidates in report.unlinked) {
+        if (municipality != null && record->getMunicipality() != municipality) {
+            continue;
+        }
         if (city != null && record->getCity() != city) {
             continue;
         }
@@ -361,6 +364,9 @@ fn getReconciliationReport(source: node<DataSource>, city: String?): Reconciliat
     partialMatch.sort_by(ReconciliationReportMatchView::score, SortOrder::desc);
     var linked = Array<String> {};
     for (key, value in report.linked) {
+        if (municipality != null && key->getMunicipality() != municipality) {
+            continue;
+        }
         if (city != null && key->getCity() != city) {
             continue;
         }

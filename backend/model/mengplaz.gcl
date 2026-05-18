@@ -213,6 +213,7 @@ abstract type POIRecordProvider {
     abstract fn toSearchItem(): SearchItem;
     abstract fn getStreet(): String?;
     abstract fn getCity(): String?;
+    abstract fn getMunicipality(): String?;
     abstract fn getPostcode(): String?;
 }
 

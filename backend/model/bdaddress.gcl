@@ -196,6 +196,10 @@ type BDAddress extends POIRecordProvider {
         return this.city->name;
     }
 
+    fn getMunicipality(): String? {
+        return this.city->municipality?.resolve().name;
+    }
+
     fn getPostcode(): String? {
         return this.postcode;
     }

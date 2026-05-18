@@ -167,6 +167,7 @@ function addRecordToReport(report: gc.privateApi.ReconciliationReportView, sourc
 export class ReconcilePage extends HTMLElement {
   private sourceSelect: GuiSelect;
   private citySelect: GuiSelect;
+  private municipalitySelect: GuiSelect;
   private reconcileButton: sl.SlButton;
   private confirm: MengplazConfirmDialog;
   private promote: MengplazPromotionDialog;
@@ -215,6 +216,20 @@ export class ReconcilePage extends HTMLElement {
     this.citySelect.placeholder = 'Filter by golden cities';
     this.citySelect.nullable = true;
     this.citySelect.addEventListener('gui-change', () => {
+      console.log('citySelect', this.citySelect.value);
+
+      this.updateLocalReconciliationReport();
+    });
+
+    this.municipalitySelect = new GuiSelect();
+    this.municipalitySelect.placeholder = 'Filter by golden Municipalities';
+    this.municipalitySelect.nullable = true;
+    this.municipalitySelect.addEventListener('gui-change', () => {
+      console.log('municipalitySelect', this.municipalitySelect.value);
+
+      gc.api.getGoldenCities(this.municipalitySelect.value ?? null).then((d) => {
+        this.citySelect.options = d.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
+      });
       this.updateLocalReconciliationReport();
     });
 
@@ -245,12 +260,25 @@ export class ReconcilePage extends HTMLElement {
 
     this.showLoadingOverlay();
     try {
-      const [sources, cities] = await Promise.all([gc.privateApi.getSources(), gc.api.getGoldenCities()]);
+      const urlMuni = getQueryParam('municipality');
+
+      const [sources, cities, municipalities] = await Promise.all([
+        gc.privateApi.getSources(),
+        gc.api.getGoldenCities(urlMuni),
+        gc.api.getGoldenMunicipalities(),
+      ]);
       const filteredSources = sources.filter((v) => v.name !== 'Golden');
       this.sourceSelect.options = filteredSources.map((s) => ({ value: s, text: s.name }) as GuiOption);
       this.citySelect.options = cities.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
+      this.municipalitySelect.options = municipalities.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
 
       // Restore city from URL param
+      if (urlMuni) {
+        const matchingMuni = municipalities.find((c) => c.name === urlMuni);
+        if (matchingMuni) {
+          this.municipalitySelect.value = matchingMuni;
+        }
+      }
       const urlCity = getQueryParam('city');
       if (urlCity) {
         const matchingCity = cities.find((c) => c.name === urlCity);
@@ -706,7 +734,8 @@ export class ReconcilePage extends HTMLElement {
     if (this.sourceSelect.value) {
       try {
         const cityName = this.citySelect.value ?? null;
-        const report = await gc.privateApi.getReconciliationReport(this.sourceSelect.value.ref, cityName);
+        const municipalityName = this.municipalitySelect.value ?? null;
+        const report = await gc.privateApi.getReconciliationReport(this.sourceSelect.value.ref, cityName, municipalityName);
 
         if (report != null) {
           this.reconciliationReport = report;
@@ -717,8 +746,6 @@ export class ReconcilePage extends HTMLElement {
           this.render();
         }
       } catch (e) {
-        console.log(e);
-
         toast.notify({
           message: 'An error occurred while generating reconciliation report.',
           duration: 3000,
@@ -847,6 +874,7 @@ export class ReconcilePage extends HTMLElement {
         <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
           {this.sourceSelect}
           {this.reconcileButton}
+          {this.municipalitySelect}
           {this.citySelect}
           <div className="reconcile-address-search">{this.addressSearch}</div>
         </div>

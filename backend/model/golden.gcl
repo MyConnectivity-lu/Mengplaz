@@ -456,6 +456,10 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return this.street?->city->name;
     }
 
+    fn getMunicipality(): String? {
+        return this.street?->city->municipality->name;
+    }
+
     fn getPostcode(): String? {
         return this.postCode;
     }

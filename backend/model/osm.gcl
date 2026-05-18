@@ -242,6 +242,10 @@ type OsmAddress extends POIRecordProvider {
         return this.city;
     }
 
+    fn getMunicipality(): String? {
+        return null;
+    }
+
     fn getPostcode(): String? {
         return this.postcode;
     }

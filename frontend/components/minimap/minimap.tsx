@@ -120,8 +120,6 @@ export class MiniMap extends HTMLElement {
         this.markers.push(marker);
       }
 
-      console.log(points);
-
       if (this.golden) m.setCenter([this.golden.lng, this.golden.lat]);
       else if (points.length > 0) m.setCenter([points[0].geo.lng, points[0].geo.lat]);
     });

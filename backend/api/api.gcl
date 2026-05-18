@@ -140,11 +140,14 @@ type GoldenIndex {
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenCities(): Array<GoldenIndex> {
+fn getGoldenCities(municipality: String?): Array<GoldenIndex> {
     var ts = Traffic_Service::start(getGoldenCities);
     var cities = Array<GoldenIndex> {};
     for (id, nCity in golden_cities_by_id) {
         if (id == "UNKNOWN") {
+            continue;
+        }
+        if (municipality != null && nCity->municipality->name != municipality) {
             continue;
         }
         cities.add(GoldenIndex {
@@ -155,6 +158,27 @@ fn getGoldenCities(): Array<GoldenIndex> {
     cities.sort_by(GoldenIndex::name, SortOrder::asc);
     ts.end();
     return cities;
+}
+
+/// Returns all the cities in the Golden collection. Provides the cityId to be used with getGoldenStreetsByCityId
+@expose
+@permission("public")
+@tag("openapi")
+fn getGoldenMunicipalities(): Array<GoldenIndex> {
+    var ts = Traffic_Service::start(getGoldenMunicipalities);
+    var municipalities = Array<GoldenIndex> {};
+    for (id, nCity in golden_municipalities_by_id) {
+        if (id == "UNKNOWN") {
+            continue;
+        }
+        municipalities.add(GoldenIndex {
+                id: id,
+                name: nCity->name
+            });
+    }
+    municipalities.sort_by(GoldenIndex::name, SortOrder::asc);
+    ts.end();
+    return municipalities;
 }
 
 /// Returns all the streets in the city referenced by this cityId. Provides the streetId to be used with getGoldenNumbersByStreetId
