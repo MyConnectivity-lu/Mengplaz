@@ -479,3 +479,24 @@ type GoldenPointOfInterest extends POIRecordProvider {
         }
     }
 }
+
+var golden_records_geo_recompute: nodeList<node<GoldenPointOfInterest>>;
+
+fn recomputeGoldenGeoScore() {
+    var params = SearchParameters::default();
+    for (_, nGolden in golden_records_geo_recompute) {
+        for (_, nSource in sources_by_name) {
+            for (sourceRecord, candidate in nSource->reconciliationReport->linked) {
+                if (candidate.detailedScore != null) {
+                    var score = candidate.detailedScore.resolve();
+                    var item = sourceRecord->toSearchItem();
+                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, nGolden->primaryLocation, params.geoParams);
+                    var overallScore = GoldenServices::computeOverallScore(score.cityScore, score.streetScore, score.numberScore, score.postcodeScore, geoScore, params.weights);
+                    score.geoScore = geoScore;
+                    score.overallScore = overallScore;
+                }
+            }
+        }
+    }
+    golden_records_geo_recompute.removeAll();
+}

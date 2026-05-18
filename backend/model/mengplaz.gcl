@@ -16,6 +16,7 @@ type LinkedRecordEntry {
     record: node<POIRecordProvider>;
     @precision(0.01)
     score: float;
+    detailedScore: node<ReconciliationCandidateScore>?;
 }
 
 abstract type DataSource {
@@ -148,6 +149,8 @@ type ReconciliationCandidate {
     candidateRecord: node<POIRecordProvider>;
     score: ReconciliationCandidateScore?;
     mismatch: MengplazMissmatch?;
+    // Same as score, but for linked records only, we do this to avoid creating permanent objects, since an unlinked score is temporary
+    detailedScore: node<ReconciliationCandidateScore>?;
 }
 
 type ReconciliationReport {

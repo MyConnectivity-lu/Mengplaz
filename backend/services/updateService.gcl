@@ -62,6 +62,8 @@ fn updateCACLR() {
         }
     }
 
+    //TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
+
     s->lastUpdate == time::now();
     info("Caclr Update finished");
 }

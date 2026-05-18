@@ -9,9 +9,18 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
     var nGolden = sourceRecord->promoteToGolden(streetIdx);
     sourceRecord->linkToGolden(nGolden);
 
+    var geoScore = 0.0;
+    if (sourceRecord->toSearchItem().coordinates != null) {
+        geoScore = 1.0;
+    }
+    var reconScore = node<ReconciliationCandidateScore> {
+        ReconciliationCandidateScore { cityScore: 1.0, geoScore: geoScore, numberScore: 1.0, overallScore: 1.0, postcodeScore: 1.0, streetScore: 1.0 }
+    };
+
     nGolden->linkedRecords.add(LinkedRecordEntry {
             record: sourceRecord,
-            score: 1.0
+            score: 1.0,
+            detailedScore: reconScore
         });
 
     // Record quality event
@@ -24,15 +33,12 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 
     var source = sourceRecord->getSource();
     source->reconciliationReport->unlinked.remove(sourceRecord);
-    var geoScore = 0.0;
-    if (sourceRecord->toSearchItem().coordinates != null) {
-        geoScore = 1.0;
-    }
+
     source->reconciliationReport->linked.set(
         sourceRecord,
         ReconciliationCandidate {
             candidateRecord: nGolden,
-            score: ReconciliationCandidateScore { cityScore: 1.0, geoScore: geoScore, numberScore: 1.0, overallScore: 1.0, postcodeScore: 1.0, streetScore: 1.0 }
+            detailedScore: reconScore
         }
     );
 
@@ -54,10 +60,16 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
     var source = sourceRecord->getSource();
     var candidates = source->reconciliationReport->unlinked.get(sourceRecord);
     var score: float = 1.0;
+    var reconScore: node<ReconciliationCandidateScore>?;
     var foundCandidate = false;
     for (_, candidate in candidates?) {
         if (candidate.candidateRecord == candidateRecord) {
-            source->reconciliationReport->linked.set(sourceRecord, clone(candidate));
+            var cCandidate = clone(candidate);
+            if (candidate.score != null) {
+                reconScore = node<ReconciliationCandidateScore> { clone(candidate.score) };
+                cCandidate.detailedScore = reconScore;
+            }
+            source->reconciliationReport->linked.set(sourceRecord, cCandidate);
             score = candidate.score?.overallScore ?? 1.0;
             foundCandidate = true;
             break;
@@ -79,16 +91,18 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
         var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
         var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
         var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
-        var reconScore = ReconciliationCandidateScore {
-            cityScore: cityScore,
-            streetScore: streetScore,
-            numberScore: numberScore,
-            postcodeScore: postcodeScore,
-            geoScore: geoScore,
-            overallScore: overallScore,
+        reconScore = node<ReconciliationCandidateScore> {
+            ReconciliationCandidateScore {
+                cityScore: cityScore,
+                streetScore: streetScore,
+                numberScore: numberScore,
+                postcodeScore: postcodeScore,
+                geoScore: geoScore,
+                overallScore: overallScore,
+            }
         };
         score = overallScore;
-        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate { candidateRecord: candidateRecord, score: reconScore });
+        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate { candidateRecord: candidateRecord, detailedScore: reconScore });
     }
 
     source->reconciliationReport->unlinked.remove(sourceRecord);
@@ -110,7 +124,8 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
             // Add to linkedRecords with score
             golden.linkedRecords.add(LinkedRecordEntry {
                     record: sourceRecord,
-                    score: score
+                    score: score,
+                    detailedScore: reconScore
                 });
 
             // Handle aliases
@@ -240,6 +255,7 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
             if (nGolden->primaryLocation == null) {
                 golden_pois_by_geo.set(otherRecord.primaryLocation, nGolden);
                 nGolden->primaryLocation = otherRecord.primaryLocation;
+                golden_records_geo_recompute.add(nGolden);
             } else if (nGolden->secondaryLocations.get(otherRecord.sourceName) == null) {
                 nGolden->secondaryLocations.set(otherRecord.sourceName, otherRecord.primaryLocation);
             }
@@ -517,17 +533,18 @@ fn getLinkedComparisonViewData(source: node<DataSource>, recordId: String): Comp
     var candidateDetails = Array<MatchedCandidateDetail> {};
     var basicRecord = candidate?.candidateRecord->toFullRecord();
     if (candidate != null && basicRecord != null) {
+        var score = candidate.detailedScore?.resolve();
         var details = MatchedCandidateDetail {
             ref: candidate.candidateRecord,
-            numberScore: trunc((candidate.score?.numberScore ?? 1.0) * 100),
-            streetScore: trunc((candidate.score?.streetScore ?? 1.0) * 100),
-            cityScore: trunc((candidate.score?.cityScore ?? 1.0) * 100),
-            overallScore: trunc((candidate.score?.overallScore ?? 1.0) * 100),
-            postcodeScore: trunc((candidate.score?.postcodeScore ?? 1.0) * 100),
+            numberScore: trunc((score?.numberScore ?? 1.0) * 100),
+            streetScore: trunc((score?.streetScore ?? 1.0) * 100),
+            cityScore: trunc((score?.cityScore ?? 1.0) * 100),
+            overallScore: trunc((score?.overallScore ?? 1.0) * 100),
+            postcodeScore: trunc((score?.postcodeScore ?? 1.0) * 100),
             record: basicRecord,
         };
-        if (candidate.score?.geoScore != null) {
-            details.geoScore = trunc((candidate.score.geoScore) * 100);
+        if (score?.geoScore != null) {
+            details.geoScore = trunc(score.geoScore * 100);
         }
         candidateDetails.add(details);
     }
