@@ -40,7 +40,7 @@ fn updateCACLR() {
     }
 
     var lastT = s->lastUpdate ?? time::min;
-    // Verify if reconciled Record is unmatched and newer than lastUpdate create Golden Record
+    // Verify if reconciled Record is unmatched and newer than lastUpdate 
     var toPromote = Array<node<CaclrBuilding>> {};
     for (record: node<CaclrBuilding>, candidates in report->unlinked) {
         if (candidates.size() == 0 && record->lastUpdate > lastT) {
@@ -63,6 +63,10 @@ fn updateCACLR() {
     }
 
     //TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
+
+    // for (_, nRecord in caclr_buildings_by_id) {
+    //     if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {}
+    // }
 
     s->lastUpdate == time::now();
     info("Caclr Update finished");

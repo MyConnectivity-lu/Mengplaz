@@ -1,6 +1,6 @@
 @include("backend");
 
-@library("std", "7.8.173-stable");
+@library("std", "7.8.175-stable");
 @library("explorer", "7.8.19-stable");
 @library("postal");
 
@@ -432,5 +432,38 @@ fn populateOsmIndexes() {
     }
 
     info("OSM indexes populated");
+}
+
+@permission("admin")
+@expose
+fn tmpFillIndex() {
+    for (key, value in golden_pois_by_id) {
+        golden_records_geo_recompute.add(value);
+    }
+}
+
+@permission("admin")
+@expose
+fn tmpFillScore() {
+    for (_, s in sources_by_name) {
+        for (r, c in s->reconciliationReport->linked) {
+            if (c.detailedScore == null) {
+                var reconScore: node<ReconciliationCandidateScore>;
+                if (c.score == null) {
+                    reconScore = node<ReconciliationCandidateScore> {
+                        ReconciliationCandidateScore { cityScore: 1.0, numberScore: 1.0, overallScore: 1.0, postcodeScore: 1.0, streetScore: 1.0 }
+                    };
+                } else {
+                    reconScore = node<ReconciliationCandidateScore> { clone(c.score) };
+                }
+                c.detailedScore = reconScore;
+                for (_, l in (c.candidateRecord as node<GoldenPointOfInterest>)->linkedRecords) {
+                    if (l.record == r) {
+                        l.detailedScore = reconScore;
+                    }
+                }
+            }
+        }
+    }
 }
 

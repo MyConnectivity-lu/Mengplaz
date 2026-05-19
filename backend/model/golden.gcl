@@ -482,21 +482,28 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
 var golden_records_geo_recompute: nodeList<node<GoldenPointOfInterest>>;
 
+@permission("admin")
+@expose
 fn recomputeGoldenGeoScore() {
     var params = SearchParameters::default();
+    var t = time::now();
     for (_, nGolden in golden_records_geo_recompute) {
-        for (_, nSource in sources_by_name) {
-            for (sourceRecord, candidate in nSource->reconciliationReport->linked) {
-                if (candidate.detailedScore != null) {
-                    var score = candidate.detailedScore.resolve();
-                    var item = sourceRecord->toSearchItem();
-                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, nGolden->primaryLocation, params.geoParams);
-                    var overallScore = GoldenServices::computeOverallScore(score.cityScore, score.streetScore, score.numberScore, score.postcodeScore, geoScore, params.weights);
-                    score.geoScore = geoScore;
-                    score.overallScore = overallScore;
-                }
+        for (_, l in nGolden->linkedRecords) {
+            if (l.detailedScore != null) {
+                var score = l.detailedScore.resolve();
+                var item = l.record->toSearchItem();
+                var geoScore = GoldenServices::computeGeoScore(item.coordinates, nGolden->primaryLocation, params.geoParams);
+                var overallScore = GoldenServices::computeOverallScore(score.cityScore, score.streetScore, score.numberScore, score.postcodeScore, geoScore, params.weights);
+                score.geoScore = geoScore;
+                score.overallScore = overallScore;
             }
         }
+        var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
+        nGolden->quality.setAt(t, QualityEvent {
+                score: newQuality,
+                eventType: QualityEventType::link
+            });
     }
+
     golden_records_geo_recompute.removeAll();
 }

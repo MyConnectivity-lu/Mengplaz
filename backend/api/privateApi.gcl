@@ -255,7 +255,9 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
             if (nGolden->primaryLocation == null) {
                 golden_pois_by_geo.set(otherRecord.primaryLocation, nGolden);
                 nGolden->primaryLocation = otherRecord.primaryLocation;
-                golden_records_geo_recompute.add(nGolden);
+                if (nGolden->linkedRecords.size() >= 2) {
+                    golden_records_geo_recompute.add(nGolden);
+                }
             } else if (nGolden->secondaryLocations.get(otherRecord.sourceName) == null) {
                 nGolden->secondaryLocations.set(otherRecord.sourceName, otherRecord.primaryLocation);
             }

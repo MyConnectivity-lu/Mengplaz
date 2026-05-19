@@ -3,12 +3,13 @@ var sources_by_name: nodeIndex<String, node<DataSource>>;
 enum QualityEventType {
     link;
     unlink;
+    update;
 }
 
 type QualityEvent {
     @precision(0.01)
     score: float;
-    sourceRecord: node<POIRecordProvider>;
+    sourceRecord: node<POIRecordProvider>?;
     eventType: QualityEventType;
 }
 

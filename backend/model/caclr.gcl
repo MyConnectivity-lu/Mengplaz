@@ -210,6 +210,8 @@ type CaclrBuilding extends POIRecordProvider {
 
     private goldenRef: node<GoldenPointOfInterest>?;
 
+    lastSeenAt: time?;
+
     fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
         this.goldenRef = nGolden;
     }

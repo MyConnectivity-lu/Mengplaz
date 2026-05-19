@@ -499,10 +499,10 @@ abstract type CACLRLoader {
         var count = 0;
         for (_, job in jobs) {
             var results = job.result();
-            for (_, nBuilding: node<CaclrBuilding> in results) {
+            for (_, nBuilding: node<CaclrBuilding> in results?) {
                 caclr_buildings_by_id.set(nBuilding->id, nBuilding);
             }
-            count = count + results.size();
+            count = count + (results?.size() ?? 0);
         }
         info("${count} new Buildings added");
     }
@@ -570,12 +570,12 @@ abstract type CACLRLoader {
                                 };
                                 nBuilding->indexing(nBuilding);
                                 result.add(nBuilding);
+                                record = nBuilding;
                                 info("New CaclrBuilding added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}");
                             } else if (record->lastUpdate < elem.lastUpdate) {
-                                warn("Record has been updated. Not supported yet.");
-                                warn("Our record: ${*record}");
-                                warn("New record: ${elem}");
+                                warn("Record has been updated. Not supported yet. Our record: ${*record}, New record: ${elem}");
                             }
+                            record->lastSeenAt = time::now();
                         }
                     }
                 } catch (err) {
