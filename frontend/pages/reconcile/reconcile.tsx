@@ -196,7 +196,7 @@ export class ReconcilePage extends HTMLElement {
 
     this.sourceSelect = new GuiSelect();
     this.sourceSelect.placeholder = 'Select a source...';
-    this.sourceSelect.addEventListener('gui-change', () => {
+    this.sourceSelect.addEventListener('gui-input', () => {
       this.stopReconcilePolling();
       if (this.sourceSelect.value) {
         const url = new URL(window.location.href);

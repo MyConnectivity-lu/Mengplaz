@@ -17,7 +17,7 @@ export class IndexPage extends HTMLElement {
   }
 
   private async getCities() {
-    const cities = await gc.api.getGoldenCities();
+    const cities = await gc.api.getGoldenCities(null);
     this.replaceChildren(
       <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
         <h3 className={'content-title'}> Index</h3>

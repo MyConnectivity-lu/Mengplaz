@@ -211,7 +211,7 @@ export class MengplazSearchDialog extends HTMLElement {
       .map((poi) => (
         <div className={['result-item', 'poi-item']}>
           <div className="poi-info">
-            <span className="poi-number">#{poi.record.number}</span>
+            <span className="poi-number">{poi.record.number}</span>
             <span className="poi-details">
               L-{poi.record.postcode}, {poi.record.locality}
             </span>

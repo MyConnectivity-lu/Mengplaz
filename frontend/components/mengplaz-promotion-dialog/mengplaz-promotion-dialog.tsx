@@ -50,7 +50,7 @@ export class MengplazPromotionDialog extends HTMLElement {
   async render() {
     if (!this._value) return;
     if (!this._cities) {
-      this._cities = await gc.getGoldenCities();
+      this._cities = await gc.getGoldenCities(null);
       this.citySelect.options = this._cities.map((c) => ({ value: c, text: c.name }));
     }
 
