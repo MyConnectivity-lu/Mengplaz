@@ -9,7 +9,7 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
     var nGolden = sourceRecord->promoteToGolden(streetIdx);
     sourceRecord->linkToGolden(nGolden);
 
-    var geoScore = 0.0;
+    var geoScore: float?;
     if (sourceRecord->toSearchItem().coordinates != null) {
         geoScore = 1.0;
     }

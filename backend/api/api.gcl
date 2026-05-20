@@ -502,7 +502,7 @@ type GoldenWithLinkedRecords {
 
 @volatile
 type LinkedRecordDetails<T> {
-    score: ReconciliationCandidateScore;
+    score: ReconciliationCandidateScore?;
     record: T;
 }
 
@@ -519,29 +519,21 @@ fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
     var caclr = Array<LinkedRecordDetails<CaclrPOIFullRecord>> {};
     var bda = Array<LinkedRecordDetails<BDAddressFullRecord>> {};
 
-    var bdaS = sources_by_name.get(BDAddressSource::NAME)?->getReconciliationReport();
-    var osmS = sources_by_name.get(OsmSource::NAME)?->getReconciliationReport();
-    var caclrS = sources_by_name.get(CaclrSource::NAME)?->getReconciliationReport();
-
     for (_, l in golden->linkedRecords) {
-        if (bdaS != null && bdaS.linked.get(l.record) != null) {
-            bda.add(LinkedRecordDetails<BDAddressFullRecord> {
-                    record: l.record->toFullRecord() as BDAddressFullRecord,
-                    score: bdaS.linked.get(l.record)!!.score!!
-                });
-        }
-        if (osmS != null && osmS.linked.get(l.record) != null) {
-            osm.add(LinkedRecordDetails<OSMFullRecord> {
-                    record: l.record->toFullRecord() as OSMFullRecord,
-                    score: osmS.linked.get(l.record)!!.score!!
-                });
-        }
-        if (caclrS != null && caclrS.linked.get(l.record) != null) {
-            caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
-                    record: l.record->toFullRecord() as CaclrPOIFullRecord,
-                    score: caclrS.linked.get(l.record)!!.score!!
-                });
-        }
+        bda.add(LinkedRecordDetails<BDAddressFullRecord> {
+                record: l.record->toFullRecord() as BDAddressFullRecord,
+                score: l.detailedScore?.resolve()
+            });
+
+        osm.add(LinkedRecordDetails<OSMFullRecord> {
+                record: l.record->toFullRecord() as OSMFullRecord,
+                score: l.detailedScore?.resolve()
+            });
+
+        caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
+                record: l.record->toFullRecord() as CaclrPOIFullRecord,
+                score: l.detailedScore?.resolve()
+            });
     }
 
     var r = GoldenWithLinkedRecords {

@@ -89,15 +89,20 @@ type GoldenServices {
     static fn searchCity(cityName: String, threshold: float): Array<Match<node<GoldenCity>>> {
         var citiesMatches = Array<Match<node<GoldenCity>>> {};
         for (_, nCity in golden_cities_by_id) {
+            var hit: node<GoldenCity>?;
             var d = GoldenServices::computeCityNameScore(cityName, nCity->name);
             if (d >= threshold) {
-                citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
+                hit = nCity;
             }
             for (_, alias in nCity->nameAliases) {
-                var d = GoldenServices::computeCityNameScore(cityName, alias.value);
-                if (d >= threshold) {
-                    citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
+                var d2 = GoldenServices::computeCityNameScore(cityName, alias.value);
+                if (d >= threshold && d2 > d) {
+                    hit = nCity;
+                    d = d2;
                 }
+            }
+            if (hit != null) {
+                citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: hit });
             }
         }
         citiesMatches.sort_by(Match::score, SortOrder::desc);
@@ -115,23 +120,29 @@ type GoldenServices {
         }
         for (_, nStreet in collection) {
             var d: float;
+            var hit: node<GoldenStreet>?;
             if (nCity == null) {
                 d = GoldenServices::computeStreetScoreGlobal(streetName, nStreet->name);
             } else {
                 d = GoldenServices::computeStreetScore(streetName, nStreet->name);
             }
             if (d >= threshold) {
-                streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
+                hit = nStreet;
             }
             for (_, alias in nStreet->nameAliases) {
+                var d2: float;
                 if (nCity == null) {
-                    d = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
+                    d2 = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
                 } else {
-                    d = GoldenServices::computeStreetScore(streetName, alias.value);
+                    d2 = GoldenServices::computeStreetScore(streetName, alias.value);
                 }
-                if (d >= threshold) {
-                    streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
+                if (d2 >= threshold && d2 > d) {
+                    hit = nStreet;
+                    d = d2;
                 }
+            }
+            if (hit != null) {
+                streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: hit });
             }
         }
         streetsMatches.sort_by(Match::score, SortOrder::desc);
@@ -226,11 +237,31 @@ type GoldenServices {
         params: SearchParameters,
         candidates: Array<CandidateMatch<node<POIRecordProvider>>>
     ): mengplaz::SearchResult? {
-        var streetsMatches = GoldenServices::searchStreet(
-            item.street,
-            params.streetSimilarityThreshold,
-            nCity
-        );
+        var bestByStreetId = Map<node<GoldenStreet>, Match<node<GoldenStreet>>> {};
+        var sourceNames = Array<String> { item.street };
+        if (item.streetAliases != null) {
+            for (_, alias in item.streetAliases) {
+                sourceNames.add(alias.value.lowercase());
+            }
+        }
+        for (_, sourceName in sourceNames) {
+            var matches = GoldenServices::searchStreet(
+                sourceName,
+                params.streetSimilarityThreshold,
+                nCity
+            );
+            for (_, m in matches) {
+                var existing = bestByStreetId.get(m.elem);
+                if (existing == null || m.score > existing.score) {
+                    bestByStreetId.set(m.elem, m);
+                }
+            }
+        }
+        var streetsMatches = Array<Match<node<GoldenStreet>>> {};
+        for (_, m in bestByStreetId) {
+            streetsMatches.add(m);
+        }
+        streetsMatches.sort_by(Match::score, SortOrder::desc);
         var perfectMatchCandidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
         for (_, streetMatch in streetsMatches) {
             var cityScore = GoldenServices::computeCityScore(item.city, streetMatch.elem->city);
@@ -498,12 +529,16 @@ type GoldenServices {
         for (_, entry in linkedRecords) {
             var nSource = entry.record->getSource();
             var scores = scoresBySource.get(nSource);
+            var s = entry.detailedScore?.resolve().overallScore;
+            if (s == null) {
+                continue;
+            }
             if (scores == null) {
                 var arr = Array<float> {};
-                arr.add(entry.score);
+                arr.add(s);
                 scoresBySource.set(nSource, arr);
             } else {
-                scores.add(entry.score);
+                scores.add(s);
             }
         }
         var weightedSum = 0.0;

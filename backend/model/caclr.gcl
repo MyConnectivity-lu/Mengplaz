@@ -332,9 +332,11 @@ type CaclrBuilding extends POIRecordProvider {
             number: "${this.number}",
             multipleCode: "${this.multipleCode}",
             postcode: this.postalCode,
-            street: this.street?->name.lowercase() ?? "",
-            city: this.street?->city->name.lowercase() ?? "",
+            street: this.street?.resolve().name.lowercase() ?? "",
+            city: this.street?.resolve().city->name.lowercase() ?? "",
             coordinates: this.position,
+            streetAliases: this.street?.resolve().aliases,
+            cityAliases: this.street?.resolve().city->aliases
         };
     }
 

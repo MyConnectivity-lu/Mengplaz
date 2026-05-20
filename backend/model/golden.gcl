@@ -359,7 +359,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
     fn toMengplazRecord(): POIRecord {
         var record = POIRecord {
             uid: this.uid,
-            number: "${this.number}${this.multipleCode}",
+            number: "${this.number} ${this.multipleCode}",
             street: this.street?->name,
             postcode: this.postCode,
             locality: this.street?->city->name,
@@ -501,7 +501,7 @@ fn recomputeGoldenGeoScore() {
         var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
         nGolden->quality.setAt(t, QualityEvent {
                 score: newQuality,
-                eventType: QualityEventType::link
+                eventType: QualityEventType::update
             });
     }
 

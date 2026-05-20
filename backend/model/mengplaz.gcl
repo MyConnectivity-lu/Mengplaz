@@ -246,9 +246,11 @@ type SearchRequest {
 type SearchItem {
     number: String;
     street: String;
+    streetAliases: Array<Alias>?;
     multipleCode: String;
     postcode: String;
     city: String;
+    cityAliases: Array<Alias>?;
     coordinates: geo?;
 }
 

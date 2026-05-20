@@ -500,7 +500,7 @@ abstract type CACLRLoader {
         for (_, job in jobs) {
             var results = job.result();
             for (_, nBuilding: node<CaclrBuilding> in results?) {
-                caclr_buildings_by_id.set(nBuilding->id, nBuilding);
+                nBuilding->indexing(nBuilding);
             }
             count = count + (results?.size() ?? 0);
         }
@@ -568,7 +568,6 @@ abstract type CACLRLoader {
                                         street: nStreet,
                                     }
                                 };
-                                nBuilding->indexing(nBuilding);
                                 result.add(nBuilding);
                                 record = nBuilding;
                                 info("New CaclrBuilding added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}");

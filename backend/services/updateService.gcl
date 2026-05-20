@@ -39,11 +39,11 @@ fn updateCACLR() {
         s->removeIsReconciling();
     }
 
-    var lastT = s->lastUpdate ?? time::min;
+    var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
     // Verify if reconciled Record is unmatched and newer than lastUpdate 
     var toPromote = Array<node<CaclrBuilding>> {};
     for (record: node<CaclrBuilding>, candidates in report->unlinked) {
-        if (candidates.size() == 0 && record->lastUpdate > lastT) {
+        if ((candidates.size() == 1 && candidates[0].mismatch == null) == false && record->lastUpdate > lastT) {
             toPromote.add(record);
         }
     }
