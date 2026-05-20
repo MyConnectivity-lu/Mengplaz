@@ -49,10 +49,11 @@ abstract type BDAddressLoader {
                 };
                 nMunicipality = node<BDAMunicipality> { municipality };
                 nMunicipality->indexing(nMunicipality);
+                info("Created new municipality: ${record.commune}");
             }
 
             var cityKey = record.localite.lowercase();
-            var nCity = nMunicipality->cities_by_name.get(cityKey);
+            var nCity = nMunicipality->cities_by_name?.get(cityKey);
             if (nCity == null) {
                 var city = BDACity {
                     name: record.localite,
@@ -61,10 +62,10 @@ abstract type BDAddressLoader {
                 };
                 nCity = node<BDACity> { city };
                 nCity->indexing(nCity);
+                info("Created new city: ${record.localite} (${record.commune})");
             }
 
-            var streetKey = record.rue.lowercase();
-            var nStreet = nCity->streets_by_name.get(streetKey);
+            var nStreet = bda_street_by_cacrid.get(record.id_caclr_rue);
             if (nStreet == null) {
                 var street = BDAStreet {
                     name: record.rue,
@@ -75,9 +76,10 @@ abstract type BDAddressLoader {
                 };
                 nStreet = node<BDAStreet> { street };
                 nStreet->indexing(nStreet);
+                info("Created new street: ${record.rue} (${record.localite})");
             }
 
-            var nAddress = nStreet->addresses_by_id.get(record.id_geoportail);
+            var nAddress = bda_address_by_geoportalid.get(record.id_geoportail);
             if (nAddress == null) {
                 var address = BDAddress {
                     number: record.numero,
@@ -91,6 +93,7 @@ abstract type BDAddressLoader {
                 };
                 nAddress = node<BDAddress> { address };
                 nAddress->indexing(nAddress);
+                info("Created new address: ${record.numero} ${record.rue}, ${record.code_postal} ${record.localite}");
             }
             total++;
         }

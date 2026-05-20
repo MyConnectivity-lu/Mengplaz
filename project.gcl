@@ -325,12 +325,10 @@ fn populateBdaIndexes() {
         if (nAddress->municipatlity->cities_by_name == null) {
             nAddress->municipatlity->cities_by_name = nodeIndex<String, node<BDACity>> {};
         }
-    }
 
-    for (_, nAddress in bda_address_by_geoportalid) {
         var cityKey = nAddress->city->name.lowercase();
-        if (nAddress->municipatlity->cities_by_name.get(cityKey) == null) {
-            nAddress->municipatlity->cities_by_name.set(cityKey, nAddress->city);
+        if (nAddress->municipatlity->cities_by_name?.get(cityKey) == null) {
+            nAddress->municipatlity->cities_by_name?.set(cityKey, nAddress->city);
             var cities = bda_cities_by_name.get(cityKey);
             if (cities == null) {
                 cities = Array<node<BDACity>> {};
@@ -341,9 +339,7 @@ fn populateBdaIndexes() {
             cities.add(nAddress->city);
             bda_cities_by_name.set(cityKey, cities);
         }
-    }
 
-    for (_, nAddress in bda_address_by_geoportalid) {
         var streetKey = nAddress->street->name.lowercase();
 
         if (nAddress->city->streets_by_name == null) {
@@ -370,11 +366,8 @@ fn populateBdaIndexes() {
                 nAddress->street->addresses_by_number = nodeIndex<String, node<BDAddress>> {};
             }
         }
-    }
-
-    for (_, nAddress in bda_address_by_geoportalid) {
-        nAddress->street->addresses_by_id.set(nAddress->id_geoportail, nAddress);
-        nAddress->street->addresses_by_number.set(nAddress->number, nAddress);
+        nAddress->street->addresses_by_id?.set(nAddress->id_geoportail, nAddress);
+        nAddress->street->addresses_by_number?.set(nAddress->number, nAddress);
     }
 
     info("BDA indexes populated");

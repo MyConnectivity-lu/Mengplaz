@@ -52,6 +52,7 @@ abstract type OSMLoader {
                             }
                         };
                         nCity->indexing(nCity);
+                        info("Created new city: ${parsed.city}");
                     }
 
                     var streetKey = parsed.street.lowercase();
@@ -66,22 +67,26 @@ abstract type OSMLoader {
                             }
                         };
                         nStreet->indexing(nStreet);
+                        info("Created new street: ${parsed.street} (${parsed.city})");
                     }
 
-                    var nAddr = node<OsmAddress> {
-                        OsmAddress {
-                            id: parsed.id,
-                            position: parsed.position,
-                            city: parsed.city,
-                            postcode: parsed.postcode,
-                            street: parsed.street,
-                            number: parsed.number,
-                            ref_caclr: parsed.ref_caclr,
-                            building: parsed.building,
-                            streetRef: nStreet,
-                        }
-                    };
-                    nAddr->indexing(nAddr);
+                    if (osm_by_id.get("${parsed.id}") == null) {
+                        var nAddr = node<OsmAddress> {
+                            OsmAddress {
+                                id: parsed.id,
+                                position: parsed.position,
+                                city: parsed.city,
+                                postcode: parsed.postcode,
+                                street: parsed.street,
+                                number: parsed.number,
+                                ref_caclr: parsed.ref_caclr,
+                                building: parsed.building,
+                                streetRef: nStreet,
+                            }
+                        };
+                        nAddr->indexing(nAddr);
+                        info("Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}");
+                    }
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
                     var addr = OsmPartialAddress::parse(elem);

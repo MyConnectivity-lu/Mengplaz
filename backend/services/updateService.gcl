@@ -71,3 +71,73 @@ fn updateCACLR() {
     s->lastUpdate == time::now();
     info("Caclr Update finished");
 }
+
+@permission("admin")
+@expose
+fn updateBDA() {
+    info("Started BDA Import");
+    BDAddressLoader::load();
+
+    // PostProcessing to handle new records
+
+    var s = sources_by_name.get(BDAddressSource::NAME);
+    if (s == null) {
+        return;
+    }
+    var report = s->reconciliationReport;
+    var toReconcile = Array<node<POIRecordProvider>> {};
+    for (_, nBuilding in bda_address_by_geoportalid) {
+        // neither linked to golden or in unlinked report index  ->  new record
+        if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
+            toReconcile.add(nBuilding);
+        }
+    }
+    info("Found ${toReconcile.size()} Records to reconcile");
+    // Reconcile newly created CALCR Records
+    if (s->isReconciling?.resolve() == false) {
+        try {
+            s->setIsReconciling();
+            DataSource::reconcile(s, null, toReconcile);
+        } catch (err) {
+            error(err);
+        }
+        s->removeIsReconciling();
+    }
+
+    info("BDA import finished");
+}
+
+@permission("admin")
+@expose
+fn updateOSM() {
+    info("Started OSM Import");
+    OSMLoader::load();
+
+    // PostProcessing to handle new records
+
+    var s = sources_by_name.get(OsmSource::NAME);
+    if (s == null) {
+        return;
+    }
+    var report = s->reconciliationReport;
+    var toReconcile = Array<node<POIRecordProvider>> {};
+    for (_, nBuilding in osm_by_id) {
+        // neither linked to golden or in unlinked report index  ->  new record
+        if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
+            toReconcile.add(nBuilding);
+        }
+    }
+    info("Found ${toReconcile.size()} Records to reconcile");
+    // Reconcile newly created CALCR Records
+    if (s->isReconciling?.resolve() == false) {
+        try {
+            s->setIsReconciling();
+            DataSource::reconcile(s, null, toReconcile);
+        } catch (err) {
+            error(err);
+        }
+        s->removeIsReconciling();
+    }
+
+    info("OSM import finished");
+}
