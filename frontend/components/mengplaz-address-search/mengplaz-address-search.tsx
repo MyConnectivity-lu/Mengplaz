@@ -17,6 +17,7 @@ export class MengplazAddressSearch extends HTMLElement {
   private searchAbort: AbortController | null = null;
   private _source: string | undefined = undefined;
   private _placeholder = 'Search address...';
+  private _disableNoCoords = false;
 
   constructor() {
     super();
@@ -44,6 +45,13 @@ export class MengplazAddressSearch extends HTMLElement {
   }
   get source(): string | undefined {
     return this._source;
+  }
+
+  set disableNoCoords(v: boolean) {
+    this._disableNoCoords = v;
+  }
+  get disableNoCoords(): boolean {
+    return this._disableNoCoords;
   }
 
   connectedCallback() {
@@ -110,19 +118,26 @@ export class MengplazAddressSearch extends HTMLElement {
       );
       return;
     }
-    const items = results.map((r) => (
-      <div className="address-search-item" onclick={() => this.onResultClick(r)}>
-        <sl-icon name="geo-alt"></sl-icon>
-        <div className="address-search-item-info">
-          <span className="address-search-item-title">
-            {r.record.number} {r.record.street}
-          </span>
-          <span className="address-search-item-sub">
-            L-{r.record.postcode} {r.record.locality} {r.record.commune}
-          </span>
+    const items = results.map((r) => {
+      const disabled = this._disableNoCoords && r.record.primaryLocation == null;
+      return (
+        <div
+          className={['address-search-item', disabled ? 'address-search-item-disabled' : 'a']}
+          title={disabled ? 'Cannot be selected on the map: this item has no coordinates associated.' : undefined}
+          onclick={disabled ? undefined : () => this.onResultClick(r)}
+        >
+          <sl-icon name={disabled ? 'exclamation-triangle' : 'geo-alt'}></sl-icon>
+          <div className="address-search-item-info">
+            <span className="address-search-item-title">
+              {r.record.number} {r.record.street}
+            </span>
+            <span className="address-search-item-sub">
+              L-{r.record.postcode} {r.record.locality} {r.record.commune}
+            </span>
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
     this.resultsContainer.replaceChildren(...items);
   }
 

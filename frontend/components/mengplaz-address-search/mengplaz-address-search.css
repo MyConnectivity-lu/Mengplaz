@@ -45,6 +45,20 @@ mengplaz-address-search sl-input::part(form-control) {
   transform: translateX(2px);
 }
 
+.address-search-item.address-search-item-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.address-search-item.address-search-item-disabled:hover {
+  background-color: var(--color-bg);
+  transform: none;
+}
+
+.address-search-item.address-search-item-disabled sl-icon {
+  color: var(--sl-color-warning-600, #d97706);
+}
+
 .address-search-item sl-icon {
   color: var(--tertiary);
   font-size: var(--sl-font-size-large);

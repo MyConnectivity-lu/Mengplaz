@@ -13,7 +13,7 @@ export class MapPage extends HTMLElement {
   constructor() {
     super();
     this.mapContainer = (<div style={{ height: '100%' }}></div>) as HTMLDivElement;
-    this.addressSearch = (<mengplaz-address-search />) as MengplazAddressSearch;
+    this.addressSearch = (<mengplaz-address-search disableNoCoords />) as MengplazAddressSearch;
     this.map = new maplibregl.Map({
       container: this.mapContainer,
       style: {
