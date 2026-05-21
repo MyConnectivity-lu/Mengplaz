@@ -82,11 +82,11 @@ abstract type DataSource {
                             numberScore: candidate.numberScore,
                             postcodeScore: candidate.postcodeScore,
                             streetScore: candidate.streetScore,
-                            geoScore: candidate.geoScore,
-                            overallScore: candidate.overallScore
+                            geoScore: candidate.realGeoScore,
+                            overallScore: candidate.realOverallScore
                         }
                     };
-                    if (candidate.overallScore != 1) {
+                    if (candidate.searchOverallScore != 1) {
                         var reason = MengplazMissmatch::COMPLEX_MISMATCH;
                         if (candidate.cityScore == 1) {
                             if (candidate.postcodeScore == 1) {
@@ -338,8 +338,10 @@ type CandidateMatch<T> {
     streetScore: float;
     numberScore: float;
     postcodeScore: float;
-    geoScore: float?;
-    overallScore: float;
+    searchGeoScore: float?;
+    realGeoScore: float?;
+    searchOverallScore: float;
+    realOverallScore: float;
     elem: T;
 }
 

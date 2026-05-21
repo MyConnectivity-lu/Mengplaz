@@ -153,12 +153,12 @@ type GoldenServices {
     static fn addCandidate(candidates: Array<CandidateMatch<node<POIRecordProvider>>>, candidate: CandidateMatch<node<POIRecordProvider>>, maxCandidates: int) {
         if (candidates.size() < maxCandidates) {
             candidates.add(candidate);
-        } else if (candidate.overallScore > candidates[candidates.size() - 1].overallScore) {
+        } else if (candidate.searchOverallScore > candidates[candidates.size() - 1].searchOverallScore) {
             candidates.set(candidates.size() - 1, candidate);
         } else {
             return;
         }
-        candidates.sort_by(CandidateMatch::overallScore, SortOrder::desc);
+        candidates.sort_by(CandidateMatch::searchOverallScore, SortOrder::desc);
     }
 
     /// Searches POIs for matches, populates candidates, and returns perfect matches.
@@ -177,6 +177,8 @@ type GoldenServices {
         if (nStreet != null) {
             collection = nStreet->pois_by_id;
         }
+        var defaultWeights = ScoringWeights::default();
+        var defGeoParams = GeoParameters::default();
         for (_, nBuilding in collection) {
             var dPostcode = GoldenServices::computePostcodeScore(item.postcode, nBuilding->postCode, params.postcodeMaxDistance);
             if (dPostcode < params.postcodeSimilarityThreshold) {
@@ -187,7 +189,8 @@ type GoldenServices {
             if (dNumber == 0.0) {
                 continue;
             }
-            var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, params.geoParams);
+            var searchGeoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, params.geoParams);
+            var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, defGeoParams);
 
             // Compute city/street scores: use provided values, or derive from the POI's street
             var cScore = cityScore ?? 0.0;
@@ -197,15 +200,18 @@ type GoldenServices {
                 sScore = GoldenServices::computeStreetScoreGlobal(item.street, nBuilding->street->name);
             }
 
-            var overallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, params.weights);
+            var searchOverallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, params.weights);
+            var overallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, defaultWeights);
 
             var candidate = CandidateMatch<node<POIRecordProvider>> {
                 cityScore: cScore,
                 streetScore: sScore,
                 numberScore: dNumber,
                 postcodeScore: dPostcode,
-                geoScore: geoScore,
-                overallScore: overallScore,
+                searchGeoScore: searchGeoScore,
+                realGeoScore: geoScore,
+                searchOverallScore: searchOverallScore,
+                realOverallScore: overallScore,
                 elem: nBuilding,
             };
             GoldenServices::addCandidate(candidates, candidate, params.maxCandidatesPerItem);
@@ -313,11 +319,14 @@ type GoldenServices {
 
         // Still no candidates - try geo-circle fallback
         if (candidates.size() == 0 && item.coordinates != null) {
+            var defWeights = ScoringWeights::default();
+            var defGeoParams = GeoParameters::default();
             var shape = GeoCircle { center: item.coordinates, radius: params.geoParams.maxDistance as float };
             for (candidateGeo, nCandidate in golden_pois_by_geo[shape.sw()..shape.ne()]) {
                 if (shape.contains(candidateGeo)) {
-                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, params.geoParams) ?? 0.0;
-                    if (geoScore > params.coordinatesSimilarityThreshold) {
+                    var searchGeoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, params.geoParams);
+                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, defGeoParams);
+                    if (searchGeoScore != null && searchGeoScore > params.coordinatesSimilarityThreshold) {
                         var cityScore = 0.0;
                         var streetScore = 0.0;
                         if (nCandidate->street != null) {
@@ -326,14 +335,17 @@ type GoldenServices {
                         }
                         var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
                         var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
-                        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+                        var searchOverallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+                        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, defWeights);
                         var candidate = CandidateMatch<node<POIRecordProvider>> {
                             cityScore: cityScore,
                             streetScore: streetScore,
                             numberScore: numberScore,
                             postcodeScore: postcodeScore,
-                            geoScore: geoScore,
-                            overallScore: overallScore,
+                            searchGeoScore: searchGeoScore,
+                            realGeoScore: geoScore,
+                            searchOverallScore: searchOverallScore,
+                            realOverallScore: overallScore,
                             elem: nCandidate,
                         };
                         GoldenServices::addCandidate(candidates, candidate, params.maxCandidatesPerItem);

@@ -223,7 +223,7 @@ export class ReconcilePage extends HTMLElement {
     this.municipalitySelect = new GuiSelect();
     this.municipalitySelect.placeholder = 'Filter by golden Municipalities';
     this.municipalitySelect.nullable = true;
-    this.municipalitySelect.addEventListener('gui-change', () => {
+    this.municipalitySelect.addEventListener('gui-input', () => {
       gc.api.getGoldenCities(this.municipalitySelect.value ?? null).then((d) => {
         this.citySelect.options = d.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
       });
@@ -293,13 +293,13 @@ export class ReconcilePage extends HTMLElement {
         if (matchingSource) {
           this.sourceSelect.value = matchingSource;
           this.addressSearch.source = matchingSource.name;
-          await this.updateLocalReconciliationReport();
         }
       }
 
-      if (!this.reconciliationReport) {
-        this.renderReport();
-      }
+      await this.updateLocalReconciliationReport();
+      // if (!this.reconciliationReport) {
+      //   this.renderReport();
+      // }
 
       // Start polling if the selected source is currently reconciling
       this.checkSourceLocked(sources);
