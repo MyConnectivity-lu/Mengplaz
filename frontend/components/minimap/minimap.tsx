@@ -80,7 +80,14 @@ export class MiniMap extends HTMLElement {
             content.style.fontSize = 'var(--sl-font-size-small, 12px)';
           }
           const tip = root?.querySelector('.maplibregl-popup-tip') as HTMLElement | null;
-          if (tip) tip.style.borderColor = 'var(--color-card-bg, #ffffff)';
+          if (tip && root) {
+            const bg = 'var(--color-card-bg, #ffffff)';
+            const cls = root.className;
+            if (cls.includes('anchor-top')) tip.style.borderBottomColor = bg;
+            else if (cls.includes('anchor-bottom')) tip.style.borderTopColor = bg;
+            else if (cls.includes('anchor-left')) tip.style.borderRightColor = bg;
+            else if (cls.includes('anchor-right')) tip.style.borderLeftColor = bg;
+          }
         });
         let marker: maplibregl.Marker;
         if (g.length === 1) {
