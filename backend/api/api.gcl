@@ -80,6 +80,7 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
                 ref: l.record,
                 id: l.record->getId(),
                 record: l.record->toFullRecord(),
+                matchScore: l.detailedScore?.resolve().overallScore
             });
     }
 
@@ -545,3 +546,7 @@ fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
 
     return r;
 }
+
+@expose
+@permission("public")
+fn publicStats() {}

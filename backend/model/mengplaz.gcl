@@ -185,6 +185,7 @@ type POIFullRecordRef {
     ref: node<POIRecordProvider>;
     id: String;
     record: any;
+    matchScore: float?;
 }
 
 @volatile

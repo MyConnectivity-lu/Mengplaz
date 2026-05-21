@@ -134,10 +134,9 @@ export class MengplazAddressCard extends HTMLElement {
             ''
           )}
         </div>
-        <address-content value={record} />
-
+        {/**@ts-ignore */}
+        <address-content value={record} score={this.value?.['matchScore']} />
         {this.showMap ? this.renderMap(record) : ''}
-
         {this.confirm}
       </div>,
     );
