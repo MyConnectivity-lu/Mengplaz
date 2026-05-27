@@ -38,6 +38,11 @@ export class MapPage extends HTMLElement {
       },
       center: gc.core.geo.fromLatLng(49.8, 6.12),
       zoom: 9,
+      // Lock panning to Luxembourg bounding box + ~100km margin (~0.9° lat, ~1.4° lng @50°N)
+      maxBounds: [
+        [4.336, 48.548],
+        [7.932, 51.083],
+      ],
     });
     this.map.on('load', async () => {
       this.map.resize();

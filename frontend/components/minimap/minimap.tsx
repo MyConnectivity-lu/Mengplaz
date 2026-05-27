@@ -39,6 +39,10 @@ export class MiniMap extends HTMLElement {
           },
         ],
       },
+      maxBounds: [
+        [4.336, 48.548],
+        [7.932, 51.083],
+      ],
       zoom: 16,
     };
   }
