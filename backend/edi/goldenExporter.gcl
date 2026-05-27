@@ -11,8 +11,8 @@ type LinkedRecordDTO {
 type QualityDTO {
     t: time;
     score: float;
-    id: String;
-    sourceName: String;
+    id: String?;
+    sourceName: String?;
     eventType: QualityEventType;
 }
 
@@ -106,20 +106,20 @@ type GoldenExporter {
             var linkedRecords = Array<LinkedRecordDTO> {};
             for (_, entry in nPOI->linkedRecords) {
                 linkedRecords.add(LinkedRecordDTO {
-                        sourceName: entry.record->getSourceName(),
-                        id: entry.record->getId(),
-                        score: entry.score
-                    });
+                    sourceName: entry.record->getSourceName(),
+                    id: entry.record->getId(),
+                    score: entry.score
+                });
             }
             var quality = Array<QualityDTO> {};
             for (t, entry in nPOI->quality) {
                 quality.add(QualityDTO {
-                        sourceName: entry.sourceRecord->getSourceName(),
-                        id: entry.sourceRecord->getId(),
-                        score: entry.score,
-                        eventType: entry.eventType,
-                        t: t
-                    });
+                    sourceName: entry.sourceRecord?->getSourceName(),
+                    id: entry.sourceRecord?->getId(),
+                    score: entry.score,
+                    eventType: entry.eventType,
+                    t: t
+                });
             }
 
             var d = GoldenPOIDTO {
@@ -215,4 +215,3 @@ type GoldenExporter {
         }
     }
 }
-
