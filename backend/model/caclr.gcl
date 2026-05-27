@@ -251,7 +251,7 @@ type CaclrBuilding extends POIRecordProvider {
                 lastUpdate: this.lastUpdate,
                 linkedRecords: Array<LinkedRecordEntry> {},
                 street: nGoldenStreet,
-                quality: nodeTime<QualityEvent> {}
+                quality: nodeTime<QualityEvent> {},
             }
         };
         nGoldenPOI->indexing(nGoldenPOI);
@@ -400,15 +400,13 @@ type CaclrToken {
         }
 
         var endpoint = "https://oauth.api.etat.lu/api/oauth/token";
-        var headers = Map<String, String> {
-            "Content-Type": "application/x-www-form-urlencoded"
-        };
+        var headers = Map<String, String> { "Content-Type": "application/x-www-form-urlencoded" };
 
         var params = Map<String, String> {
             "grant_type": "client_credentials",
             "client_id": clientId,
             "client_secret": clientSecret,
-            "scope": "resource.READ",  //resource.WRITE
+            "scope": "resource.READ",
         };
 
         var request = HttpRequest {
@@ -456,9 +454,9 @@ type CaclrSource extends DataSource {
         //Declare the source
         var source = sources_by_name.get(CaclrSource::NAME);
         if (source == null) {
-            var source = CaclrSource {
-                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() }
-            };
+            var source = CaclrSource { reconciliationReport: node<ReconciliationReport> {
+                ReconciliationReport::init()
+            } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
@@ -574,7 +572,13 @@ type CaclrSource extends DataSource {
         return streets;
     }
 
-    fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
+    fn findPoisInStreet(
+        ss: ScoredStreet,
+        houseNumber: String?,
+        postcode: String?,
+        max: int,
+        distanceThreshold: int
+    ): Array<ScoredPoi> {
         var results = Array<ScoredPoi> {};
         var nStreet = ss.street as node<CaclrStreet>;
         if (houseNumber == null) {

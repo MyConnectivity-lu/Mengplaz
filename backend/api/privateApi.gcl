@@ -54,7 +54,7 @@ type LinkParameters {
 
 @expose
 @permission("admin")
-fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIRecordProvider>, params: LinkParameters) {
+fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIRecordProvider>, params: LinkParameters?) {
     var ts = Traffic_Service::start(linkRecords);
 
     var source = sourceRecord->getSource();
@@ -78,7 +78,7 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
 
     // No candidate the source comes from a search, we need to calculate a score 
     if (foundCandidate == false) {
-        var params = SearchParameters::default();
+        var searchParams = SearchParameters::default();
         var item = sourceRecord->toSearchItem();
         var nCandidate = candidateRecord as node<GoldenPointOfInterest>;
         var cityScore = 0.0;
@@ -87,10 +87,10 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
             cityScore = GoldenServices::computeCityScore(item.city, nCandidate->street->city);
             streetScore = GoldenServices::computeStreetScore(item.street, nCandidate->street->name);
         }
-        var geoScore = GoldenServices::computeGeoScore(item.coordinates, nCandidate->primaryLocation, params.geoParams) ?? 0.0;
-        var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
+        var geoScore = GoldenServices::computeGeoScore(item.coordinates, nCandidate->primaryLocation, searchParams.geoParams) ?? 0.0;
+        var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, searchParams.postcodeMaxDistance);
         var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
-        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, searchParams.weights);
         reconScore = node<ReconciliationCandidateScore> {
             ReconciliationCandidateScore {
                 cityScore: cityScore,
@@ -129,13 +129,13 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
                 });
 
             // Handle aliases
-            if (params.addStreetAlias) {
+            if (params?.addStreetAlias == true) {
                 var street = sourceRecord->getStreet();
                 if (street != null) {
                     golden.addStreetAlias(street);
                 }
             }
-            if (params.addCityAlias) {
+            if (params?.addCityAlias == true) {
                 var city = sourceRecord->getCity();
                 if (city != null) {
                     golden.addCityAlias(city);
@@ -152,7 +152,7 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
         }
     }
 
-    if (params.updateSimilarStreetMismatch == true) {
+    if (params?.updateSimilarStreetMismatch == true) {
         var tmpMap = Map<node<POIRecordProvider>, ReconciliationCandidate> {};
         var sStreet = sourceRecord->getStreet();
         var gStreet = golden.getStreet();

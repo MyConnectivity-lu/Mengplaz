@@ -7,7 +7,7 @@ fn updateCACLR() {
     CACLRLoader::loadMunicipalities();
     CACLRLoader::loadCities();
     CACLRLoader::loadStreets();
-    CACLRLoader::loadBuildings();
+    var errored = CACLRLoader::loadBuildings();
 
     // Create New Golden Mun, City and Streets except Pois
     info("Filling Golden from fresh CACLR Import");
@@ -21,7 +21,7 @@ fn updateCACLR() {
     }
     var report = s->reconciliationReport;
     var toReconcile = Array<node<POIRecordProvider>> {};
-    for (id, nBuilding in caclr_buildings_by_id) {
+    for (_, nBuilding in caclr_buildings_by_id) {
         // neither linked to golden or in unlinked report index  ->  new record
         if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
             toReconcile.add(nBuilding);
@@ -30,20 +30,14 @@ fn updateCACLR() {
     info("Found ${toReconcile.size()} Records to reconcile");
     // Reconcile newly created CALCR Records
     if (s->isReconciling?.resolve() == false) {
-        try {
-            s->setIsReconciling();
-            DataSource::reconcile(s, null, toReconcile);
-        } catch (err) {
-            error(err);
-        }
-        s->removeIsReconciling();
+        DataSource::reconcile(s, null, toReconcile);
     }
 
     var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
-    // Verify if reconciled Record is unmatched and newer than lastUpdate 
+    // Verify if reconciled Record is unmatched and newer than lastUpdate
     var toPromote = Array<node<CaclrBuilding>> {};
     for (record: node<CaclrBuilding>, candidates in report->unlinked) {
-        if ((candidates.size() == 1 && candidates[0].mismatch == null) == false && record->lastUpdate > lastT) {
+        if (record->validityStartDate > lastT) {
             toPromote.add(record);
         }
     }
@@ -63,6 +57,7 @@ fn updateCACLR() {
     }
 
     //TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
+    // Don't execute if loadBuilding failed
 
     // for (_, nRecord in caclr_buildings_by_id) {
     //     if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {}
@@ -72,6 +67,8 @@ fn updateCACLR() {
     info("Caclr Update finished");
 }
 
+
+// This function shoud ideally be run once Caclr has finished to correctly update linked records
 @permission("admin")
 @expose
 fn updateBDA() {
@@ -96,13 +93,27 @@ fn updateBDA() {
     // Reconcile newly created CALCR Records
     if (s->isReconciling?.resolve() == false) {
         try {
-            s->setIsReconciling();
             DataSource::reconcile(s, null, toReconcile);
         } catch (err) {
             error(err);
         }
-        s->removeIsReconciling();
     }
+
+    // Loop all unlinked check if the caclr id is linked to a golden an automatically link
+    var toLink = Array<node<BDAddress>> {};
+    for (record: node<BDAddress>, _ in report->unlinked) {
+        var caclrRecord = caclr_buildings_by_id.get("${record->id_caclr}");
+        if (caclrRecord != null && caclrRecord->getLinkedGolden() != null) {
+            toLink.add(record);
+        }
+    }
+
+    for (_, value in toLink) {
+        var caclrRecord = caclr_buildings_by_id.get("${value->id_caclr}");
+        linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
+    }
+
+    info("Linked ${toLink.size()} Records");
 
     info("BDA import finished");
 }
