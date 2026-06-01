@@ -17,9 +17,9 @@ fn searchStreet(e: String): Array<StreetRecordRef> {
     for (_, i in searchResults limit 50) {
         //pprint(i);
         res.add(StreetRecordRef {
-                ref: i.elem,
-                record: i.elem->toRecord(),
-            });
+            ref: i.elem,
+            record: i.elem->toRecord(),
+        });
     }
     ts.end();
     return res;
@@ -38,10 +38,7 @@ fn getPois(): Array<POIFeatures> {
     var feats = Array<POIFeatures> {};
     feats.set_capacity(golden_pois_by_geo.size());
     for (key, value in golden_pois_by_geo) {
-        feats.add(POIFeatures {
-                coords: key,
-                number: "${value->number}${value->multipleCode}"
-            });
+        feats.add(POIFeatures { coords: key, number: "${value->number}${value->multipleCode}" });
     }
     ts.end();
     return feats;
@@ -77,11 +74,11 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
     var linked: Array<POIFullRecordRef> = Array<POIFullRecordRef> {};
     for (_, l in ref->linkedRecords) {
         linked.add(POIFullRecordRef {
-                ref: l.record,
-                id: l.record->getId(),
-                record: l.record->toFullRecord(),
-                matchScore: l.detailedScore?.resolve().overallScore
-            });
+            ref: l.record,
+            id: l.record->getId(),
+            record: l.record->toFullRecord(),
+            matchScore: l.detailedScore?.resolve().overallScore
+        });
     }
 
     ts.end();
@@ -151,10 +148,7 @@ fn getGoldenCities(municipality: String?): Array<GoldenIndex> {
         if (municipality != null && nCity->municipality->name != municipality) {
             continue;
         }
-        cities.add(GoldenIndex {
-                id: id,
-                name: nCity->name
-            });
+        cities.add(GoldenIndex { id: id, name: nCity->name });
     }
     cities.sort_by(GoldenIndex::name, SortOrder::asc);
     ts.end();
@@ -172,10 +166,7 @@ fn getGoldenMunicipalities(): Array<GoldenIndex> {
         if (id == "UNKNOWN") {
             continue;
         }
-        municipalities.add(GoldenIndex {
-                id: id,
-                name: nCity->name
-            });
+        municipalities.add(GoldenIndex { id: id, name: nCity->name });
     }
     municipalities.sort_by(GoldenIndex::name, SortOrder::asc);
     ts.end();
@@ -197,10 +188,7 @@ fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
         if (id == "UNKNOWN") {
             continue;
         }
-        streets.add(GoldenIndex {
-                id: id,
-                name: nStreet->name
-            });
+        streets.add(GoldenIndex { id: id, name: nStreet->name });
     }
     streets.sort_by(GoldenIndex::name, SortOrder::asc);
     ts.end();
@@ -220,9 +208,9 @@ fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
     var numbers = Array<GoldenIndex> {};
     for (id, nPOI in nStreet->pois_by_id) {
         numbers.add(GoldenIndex {
-                id: id,
-                name: "${nPOI->number} ${nPOI->multipleCode}",
-            });
+            id: id,
+            name: "${nPOI->number} ${nPOI->multipleCode}",
+        });
     }
     numbers.sort_by(GoldenIndex::name, SortOrder::asc);
     ts.end();
@@ -275,19 +263,13 @@ fn getGoldenRecordsGeoJson(): GeoJSON {
             externalIds.set(linkedRecord.record->getSource()->name(), linkedRecord.record->getId());
         }
 
-        features.add(
-            GeoJSONFeature {
-                type: "Feature",
-                geometry: GeoJSONGeometry { type: "Point", coordinates: Array<float> { coords.lat(), coords.lng() } },
-                properties: Map<String, any> { "goldenRecordId": nPOI->uid, "externalIds": externalIds }
-            }
-        );
+        features.add(GeoJSONFeature { type: "Feature", geometry: GeoJSONGeometry {
+            type: "Point",
+            coordinates: Array<float> { coords.lat(), coords.lng() }
+        }, properties: Map<String, any> { "goldenRecordId": nPOI->uid, "externalIds": externalIds } });
     }
     ts.end();
-    return GeoJSON {
-        type: "FeatureCollection",
-        features: features
-    };
+    return GeoJSON { type: "FeatureCollection", features: features };
 }
 
 @expose
@@ -319,10 +301,7 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
     var history = Array<GlobalQualityEntry> {};
 
     for (timestamp, avgQuality in source.qualityHistory[from..to]) {
-        history.add(GlobalQualityEntry {
-                timestamp: timestamp,
-                averageQuality: avgQuality * 100
-            });
+        history.add(GlobalQualityEntry { timestamp: timestamp, averageQuality: avgQuality * 100 });
     }
 
     var latest = source.qualityHistory.last();
@@ -335,25 +314,19 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
     var goldenRecords = Array<GoldenRecordScore> {};
     for (_, nGolden in golden_pois_by_id) {
         var quality = nGolden->quality.last();
-        goldenRecords.add(
-            GoldenRecordScore {
-                uid: nGolden->uid,
-                number: "${nGolden->number}${nGolden->multipleCode}",
-                street: nGolden->street?->name,
-                city: nGolden->street?->city->name,
-                postcode: nGolden->postCode,
-                linkedCount: nGolden->linkedRecords.size(),
-                quality: (quality?.score ?? 0.0)
-            }
-        );
+        goldenRecords.add(GoldenRecordScore {
+            uid: nGolden->uid,
+            number: "${nGolden->number}${nGolden->multipleCode}",
+            street: nGolden->street?->name,
+            city: nGolden->street?->city->name,
+            postcode: nGolden->postCode,
+            linkedCount: nGolden->linkedRecords.size(),
+            quality: (quality?.score ?? 0.0)
+        });
     }
 
     ts.end();
-    return GlobalQualityHistory {
-        current: currentValue,
-        history: history,
-        goldenRecords: goldenRecords
-    };
+    return GlobalQualityHistory { current: currentValue, history: history, goldenRecords: goldenRecords };
 }
 
 @expose
@@ -426,7 +399,7 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
         }
     }
 
-    // Search by streets in the relevant localities 
+    // Search by streets in the relevant localities
     var streetMap = Map<int, ScoredStreet> {};
     for (_, road in roads) {
         for (_, scopedCity in scopeByCity) {
@@ -483,9 +456,9 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     for (_, sp in scoredPois limit max) {
         pois.add(sp.poi);
         results.add(POIRecordRef {
-                ref: sp.poi,
-                record: sp.poi->toMengplazRecord(),
-            });
+            ref: sp.poi,
+            record: sp.poi->toMengplazRecord(),
+        });
     }
 
     var t = ts.end();
@@ -521,28 +494,26 @@ fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
     var bda = Array<LinkedRecordDetails<BDAddressFullRecord>> {};
 
     for (_, l in golden->linkedRecords) {
-        bda.add(LinkedRecordDetails<BDAddressFullRecord> {
-                record: l.record->toFullRecord() as BDAddressFullRecord,
+        var r = l.record.resolve();
+        if (r is BDAddress) {
+            bda.add(LinkedRecordDetails<BDAddressFullRecord> {
+                record: r.toFullRecord(),
                 score: l.detailedScore?.resolve()
             });
-
-        osm.add(LinkedRecordDetails<OSMFullRecord> {
-                record: l.record->toFullRecord() as OSMFullRecord,
+        } else if (r is OsmAddress) {
+            osm.add(LinkedRecordDetails<OSMFullRecord> {
+                record: l.record->toFullRecord(),
                 score: l.detailedScore?.resolve()
             });
-
-        caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
-                record: l.record->toFullRecord() as CaclrPOIFullRecord,
+        } else if (r is CaclrBuilding) {
+            caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
+                record: l.record->toFullRecord(),
                 score: l.detailedScore?.resolve()
             });
+        }
     }
 
-    var r = GoldenWithLinkedRecords {
-        golden: golden->toMengplazRecord(),
-        osm: osm,
-        bda: bda,
-        caclr: caclr
-    };
+    var r = GoldenWithLinkedRecords { golden: golden->toMengplazRecord(), osm: osm, bda: bda, caclr: caclr };
 
     return r;
 }

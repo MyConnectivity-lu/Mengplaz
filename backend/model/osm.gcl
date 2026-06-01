@@ -16,6 +16,7 @@ type OsmParsedAddress {
     number: String;
     ref_caclr: String?;
     building: String?;
+    kind: String?;
 }
 
 type OsmCity {
@@ -88,6 +89,7 @@ type OsmAddress extends POIRecordProvider {
     private number: String;
     private ref_caclr: String?;
     private building: String?;
+    private kind: String?;
 
     streetRef: node<OsmStreet>?;
 
@@ -129,7 +131,8 @@ type OsmAddress extends POIRecordProvider {
             street: street,
             number: tags.get("addr:housenumber") as String,
             ref_caclr: tags.get("ref:caclr"),
-            building: tags.get("building")
+            building: tags.get("building"),
+            kind: kind
         };
     }
 
@@ -266,9 +269,9 @@ type OsmSource extends DataSource {
         //Declare the source
         var source = sources_by_name.get(OsmSource::NAME);
         if (source == null) {
-            var source = OsmSource {
-                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() }
-            };
+            var source = OsmSource { reconciliationReport: node<ReconciliationReport> {
+                ReconciliationReport::init()
+            } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
@@ -359,7 +362,13 @@ type OsmSource extends DataSource {
         return streets;
     }
 
-    fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
+    fn findPoisInStreet(
+        ss: ScoredStreet,
+        houseNumber: String?,
+        postcode: String?,
+        max: int,
+        distanceThreshold: int
+    ): Array<ScoredPoi> {
         var results = Array<ScoredPoi> {};
         var nStreet = ss.street as node<OsmStreet>;
         if (houseNumber == null) {
