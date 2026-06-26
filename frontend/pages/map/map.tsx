@@ -102,40 +102,33 @@ export class MapPage extends HTMLElement {
         },
       });
       this.map.addLayer({
-        id: 'street-numbers-bg',
-        type: 'circle',
-        source: 'points',
-        minzoom: 17,
-        paint: {
-          'circle-radius': 14,
-          'circle-color': '#ffffff',
-          'circle-stroke-color': '#000000',
-          'circle-stroke-width': 1,
-        },
-      });
-      this.map.addLayer({
         id: 'street-numbers',
         type: 'symbol',
         source: 'points',
         minzoom: 17,
         layout: {
           'text-field': ['get', 'streetNumber'],
-          'text-size': 12,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 17, 10, 20, 16],
           'text-allow-overlap': true,
           'text-font': ['Noto Sans Regular'],
+        },
+        paint: {
+          'text-color': '#000000',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1.5,
         },
       });
 
       this.map.on('mouseenter', 'points', () => {
         this.map.getCanvas().style.cursor = 'pointer';
       });
-      this.map.on('mouseenter', 'street-numbers-bg', () => {
+      this.map.on('mouseenter', 'street-numbers', () => {
         this.map.getCanvas().style.cursor = 'pointer';
       });
       this.map.on('mouseleave', 'points', () => {
         this.map.getCanvas().style.cursor = '';
       });
-      this.map.on('mouseleave', 'street-numbers-bg', () => {
+      this.map.on('mouseleave', 'street-numbers', () => {
         this.map.getCanvas().style.cursor = '';
       });
       this.map.on('click', 'points', async (e: any) => {
@@ -148,7 +141,7 @@ export class MapPage extends HTMLElement {
           .addTo(this.map);
       });
 
-      this.map.on('click', 'street-numbers-bg', async (e: any) => {
+      this.map.on('click', 'street-numbers', async (e: any) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
         const coords = e.features[0].properties.coords;
 
