@@ -727,6 +727,57 @@ export class ReconcilePage extends HTMLElement {
     this.handleReconcile({ pois: [...ids] });
   }
 
+  private buildBatchLinkControl(): HTMLElement {
+    const scoreInput = (
+      <sl-input type="number" min={80} max={100} step={0.1} value="99" size="small" style={{ width: '12rem' }}>
+        <span slot="prefix">Global score ≥</span>
+      </sl-input>
+    ) as sl.SlInput;
+
+    const button = (
+      <sl-button
+        variant="primary"
+        onclick={() => {
+          let score = parseFloat(scoreInput.value);
+          if (isNaN(score)) score = 99;
+          if (score < 80) score = 80;
+          if (score > 100) score = 100;
+          scoreInput.value = String(score);
+          this.handleBatchLink(score);
+        }}
+      >
+        <sl-icon slot="prefix" name="link-45deg"></sl-icon>
+        Batch link
+      </sl-button>
+    ) as HTMLElement;
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sl-spacing-x-small)' }}>
+        {scoreInput}
+        {button}
+      </div>
+    ) as HTMLElement;
+  }
+
+  private handleBatchLink(globalScore: number) {
+    if (!this.reconciliationReport) return;
+    const source = this.reconciliationReport.source;
+    this.confirm.text = `Batch link all reconciled records with an overall score ≥ ${globalScore}% to their best Golden candidate?`;
+    this.confirm.showLinkParams = false;
+    this.confirm.show().then((result) => {
+      if (!result.confirmed) return;
+      gc.$.default
+        .call('privateApi::batchLinkByScore', [source, globalScore])
+        .then((count) => {
+          toast.notify({ message: `Batch linked ${count} record(s).`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+          this.updateLocalReconciliationReport();
+        })
+        .catch(() => {
+          toast.notify({ message: 'An error occurred while batch linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+        });
+    });
+  }
+
   private warnIfOsmWithMunicipality() {
     if (this.sourceSelect.value?.name === 'OSM' && this.municipalitySelect.value) {
       toast.notify({
@@ -853,6 +904,9 @@ export class ReconcilePage extends HTMLElement {
       pane.onNavigate = (index) => this.handleNavigate(config.key, index);
       pane.onIdSearch = (id) => this.handleIdSearch(id);
       pane.setBulkAction(config.bulkAction ? { ...config.bulkAction, handler: () => this.handleBulkAction(config.key) } : null);
+      if (config.key === 'Mismatched') {
+        pane.setExtraControl(this.buildBatchLinkControl());
+      }
       this.panes[config.key] = pane;
 
       panels.push((<sl-tab-panel name={config.key}>{pane}</sl-tab-panel>) as HTMLElement);

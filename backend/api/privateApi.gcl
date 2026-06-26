@@ -238,6 +238,49 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
     ts.end();
 }
 
+/// Batch links reconciled records to their best Golden candidate based on score rules.
+/// For now a single rule: link every unlinked record whose best candidate overall score
+/// is greater than or equal to `globalScore` (expressed on a 0-100 scale).
+/// `globalScore` cannot be lower than 80. Returns the number of records linked.
+@expose
+@permission("admin")
+fn batchLinkByScore(source: node<DataSource>, globalScore: float): int {
+    var ts = Traffic_Service::start(batchLinkByScore);
+
+    if (globalScore < 80.0) {
+        throw "globalScore cannot be lower than 80";
+    }
+    var threshold = globalScore / 100.0;
+
+    var report = source->reconciliationReport;
+
+    // Collect first to avoid mutating the unlinked map while iterating it.
+    var toLink = Map<node<POIRecordProvider>, node<POIRecordProvider>> {};
+    for (record, candidates in report->unlinked) {
+        var bestCandidate: node<POIRecordProvider>?;
+        var bestScore = 0.0;
+        for (_, candidate in candidates) {
+            var s = candidate.score?.overallScore;
+            if (s != null && s >= bestScore) {
+                bestScore = s;
+                bestCandidate = candidate.candidateRecord;
+            }
+        }
+        if (bestCandidate != null && bestScore >= threshold) {
+            toLink.set(record, bestCandidate);
+        }
+    }
+
+    var count = 0;
+    for (record, candidate in toLink) {
+        linkRecords(record, candidate, LinkParameters { addCityAlias: false, addStreetAlias: false });
+        count = count + 1;
+    }
+
+    ts.end();
+    return count;
+}
+
 @expose
 @permission("admin")
 fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
