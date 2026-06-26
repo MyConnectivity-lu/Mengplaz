@@ -97,7 +97,7 @@ type OsmAddress extends POIRecordProvider {
 
     static fn parse(elem: Map): OsmParsedAddress {
         var tags = elem.get("tags") as Map<String, String>;
-        var kind = elem.get("type");
+        var kind = elem.get("type") as String?;
         var street = tags.get("addr:street") ?? tags.get("addr:place");
         if (street == null) {
             throw valueOf(AddrErr::STREET_MISSING);
@@ -288,7 +288,7 @@ type OsmSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn search(req: SearchRequest): mengplaz::SearchResult {}
+    // fn search(req: SearchRequest): mengplaz::SearchResult {}
 
     fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return osm_by_id;

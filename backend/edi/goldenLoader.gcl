@@ -155,29 +155,26 @@ type GoldenLoader {
                 }
                 if (ref != null) {
                     ref->linkToGolden(nGoldenPOI);
-                    nGoldenPOI->linkedRecords.add(LinkedRecordEntry {
-                            record: ref,
-                            score: linkedRecord.score
-                        });
+                    nGoldenPOI->linkedRecords.add(LinkedRecordEntry { record: ref, score: linkedRecord.score });
                 }
             }
 
             for (_, value in l.quality?) {
                 var ref: node<POIRecordProvider>?;
-                if (value.sourceName == OsmSource::NAME) {
-                    ref = osm_by_id.get(value.id);
-                } else if (value.sourceName == CaclrSource::NAME) {
-                    ref = caclr_buildings_by_id.get(value.id);
-                } else if (value.sourceName == BDAddressSource::NAME) {
-                    ref = bda_address_by_geoportalid.get(value.id);
+                if (value.id != null) {
+                    if (value.sourceName == OsmSource::NAME) {
+                        ref = osm_by_id.get(value.id);
+                    } else if (value.sourceName == CaclrSource::NAME) {
+                        ref = caclr_buildings_by_id.get(value.id);
+                    } else if (value.sourceName == BDAddressSource::NAME) {
+                        ref = bda_address_by_geoportalid.get(value.id);
+                    }
                 }
-                if (ref != null) {
-                    nGoldenPOI->quality.setAt(value.t, QualityEvent {
-                            eventType: value.eventType,
-                            score: value.score,
-                            sourceRecord: ref
-                        });
-                }
+                nGoldenPOI->quality.setAt(value.t, QualityEvent {
+                    eventType: value.eventType,
+                    score: value.score,
+                    sourceRecord: ref
+                });
             }
 
             nGoldenPOI->indexing(nGoldenPOI);

@@ -501,13 +501,10 @@ fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
                 score: l.detailedScore?.resolve()
             });
         } else if (r is OsmAddress) {
-            osm.add(LinkedRecordDetails<OSMFullRecord> {
-                record: l.record->toFullRecord(),
-                score: l.detailedScore?.resolve()
-            });
+            osm.add(LinkedRecordDetails<OSMFullRecord> { record: r.toFullRecord(), score: l.detailedScore?.resolve() });
         } else if (r is CaclrBuilding) {
             caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
-                record: l.record->toFullRecord(),
+                record: r.toFullRecord(),
                 score: l.detailedScore?.resolve()
             });
         }

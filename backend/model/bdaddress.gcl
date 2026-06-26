@@ -221,9 +221,9 @@ type BDAddressSource extends DataSource {
         //Declare the source
         var source = sources_by_name.get(BDAddressSource::NAME);
         if (source == null) {
-            var source = BDAddressSource {
-                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() }
-            };
+            var source = BDAddressSource { reconciliationReport: node<ReconciliationReport> {
+                ReconciliationReport::init()
+            } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
@@ -240,7 +240,7 @@ type BDAddressSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn search(req: SearchRequest): mengplaz::SearchResult {}
+    // fn search(req: SearchRequest): mengplaz::SearchResult {}
 
     fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return bda_address_by_geoportalid;
@@ -345,7 +345,13 @@ type BDAddressSource extends DataSource {
         return streets;
     }
 
-    fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
+    fn findPoisInStreet(
+        ss: ScoredStreet,
+        houseNumber: String?,
+        postcode: String?,
+        max: int,
+        distanceThreshold: int
+    ): Array<ScoredPoi> {
         var results = Array<ScoredPoi> {};
         var nStreet = ss.street as node<BDAStreet>;
         if (houseNumber == null) {
