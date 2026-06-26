@@ -134,18 +134,18 @@ type GoldenIndex {
     name: String;
 }
 
-/// Returns all the cities in the Golden collection. Provides the cityId to be used with getGoldenStreetsByCityId
+/// Returns all the localities in the Golden collection. Provides the localityId to be used with getGoldenStreetsByLocalityId
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenLocalities(municipality: String?): Array<GoldenIndex> {
+fn getGoldenLocalities(communeId: String?): Array<GoldenIndex> {
     var ts = Traffic_Service::start(getGoldenLocalities);
     var cities = Array<GoldenIndex> {};
     for (id, nCity in golden_cities_by_id) {
         if (id == "UNKNOWN") {
             continue;
         }
-        if (municipality != null && nCity->municipality->name != municipality) {
+        if (communeId != null && nCity->municipality->name != communeId) {
             continue;
         }
         cities.add(GoldenIndex { id: id, name: nCity->name });
@@ -155,18 +155,18 @@ fn getGoldenLocalities(municipality: String?): Array<GoldenIndex> {
     return cities;
 }
 
-/// Returns all the cities in the Golden collection. Provides the cityId to be used with getGoldenStreetsByCityId
+/// Returns all the communes in the Golden collection. Provides the communeId to be used with getGoldenLocalities
 @expose
 @permission("public")
 @tag("openapi")
 fn getGoldenCommunes(): Array<GoldenIndex> {
     var ts = Traffic_Service::start(getGoldenCommunes);
     var municipalities = Array<GoldenIndex> {};
-    for (id, nCity in golden_cities_by_id) {
+    for (id, nCommune in golden_municipalities_by_id) {
         if (id == "UNKNOWN") {
             continue;
         }
-        municipalities.add(GoldenIndex { id: id, name: nCity->name });
+        municipalities.add(GoldenIndex { id: id, name: nCommune->name });
     }
     municipalities.sort_by(GoldenIndex::name, SortOrder::asc);
     ts.end();
