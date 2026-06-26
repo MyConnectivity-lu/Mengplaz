@@ -138,8 +138,8 @@ type GoldenIndex {
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenCities(municipality: String?): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenCities);
+fn getGoldenLocalities(municipality: String?): Array<GoldenIndex> {
+    var ts = Traffic_Service::start(getGoldenLocalities);
     var cities = Array<GoldenIndex> {};
     for (id, nCity in golden_cities_by_id) {
         if (id == "UNKNOWN") {
@@ -159,10 +159,10 @@ fn getGoldenCities(municipality: String?): Array<GoldenIndex> {
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenMunicipalities(): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenMunicipalities);
+fn getGoldenCommunes(): Array<GoldenIndex> {
+    var ts = Traffic_Service::start(getGoldenCommunes);
     var municipalities = Array<GoldenIndex> {};
-    for (id, nCity in golden_municipalities_by_id) {
+    for (id, nCity in golden_cities_by_id) {
         if (id == "UNKNOWN") {
             continue;
         }
@@ -177,11 +177,11 @@ fn getGoldenMunicipalities(): Array<GoldenIndex> {
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenStreetsByCityId(cityId: String): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenStreetsByCityId);
-    var nCity = golden_cities_by_id.get(cityId);
+fn getGoldenStreetsByLocalityId(localityId: String): Array<GoldenIndex> {
+    var ts = Traffic_Service::start(getGoldenStreetsByLocalityId);
+    var nCity = golden_cities_by_id.get(localityId);
     if (nCity == null) {
-        throw "City with id ${cityId} not found";
+        throw "City with id ${localityId} not found";
     }
     var streets = Array<GoldenIndex> {};
     for (id, nStreet in nCity->streets_by_id) {
