@@ -1,6 +1,6 @@
 import './address-field';
 
-const EXCLUDED_KEYS = ['goldenRef', 'sourceName'];
+const EXCLUDED_KEYS = ['goldenRef', 'sourceName', 'deprecated', 'lastSeenAt'];
 
 export class AddressContent extends HTMLElement {
   private _value?: gc.mengplaz.POIRecord | gc.mengplaz.SearchItem | gc.mengplaz.POIFullRecordRef;

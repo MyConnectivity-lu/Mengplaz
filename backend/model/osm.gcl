@@ -78,6 +78,9 @@ type OSMFullRecord {
 
     sourceName: String;
     goldenRef: node<GoldenPointOfInterest>?;
+
+    deprecated: bool?;
+    lastSeenAt: time?;
 }
 
 type OsmAddress extends POIRecordProvider {
@@ -92,6 +95,10 @@ type OsmAddress extends POIRecordProvider {
     private kind: String?;
 
     streetRef: node<OsmStreet>?;
+
+    lastSeenAt: time?;
+
+    deprecated: bool?;
 
     private goldenRef: node<GoldenPointOfInterest>?;
 
@@ -191,6 +198,8 @@ type OsmAddress extends POIRecordProvider {
             primaryLocation: this.position,
             sourceName: OsmSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
+            lastSeenAt: this.lastSeenAt,
         };
     }
 

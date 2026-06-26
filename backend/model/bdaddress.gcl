@@ -69,6 +69,9 @@ type BDAddressFullRecord {
 
     sourceName: String;
     goldenRef: node<GoldenPointOfInterest>?;
+
+    deprecated: bool?;
+    lastSeenAt: time?;
 }
 
 type BDAddress extends POIRecordProvider {
@@ -84,6 +87,10 @@ type BDAddress extends POIRecordProvider {
     private street: node<BDAStreet>;
 
     private goldenRef: node<GoldenPointOfInterest>?;
+
+    lastSeenAt: time?;
+
+    deprecated: bool?;
 
     fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
         this.goldenRef = nGolden;
@@ -141,6 +148,8 @@ type BDAddress extends POIRecordProvider {
             street: this.street->name,
             sourceName: BDAddressSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
+            lastSeenAt: this.lastSeenAt,
         };
     }
 

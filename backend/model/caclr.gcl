@@ -188,6 +188,9 @@ type CaclrPOIFullRecord {
 
     sourceName: String;
     goldenRef: node<GoldenPointOfInterest>?;
+
+    deprecated: bool?;
+    lastSeenAt: time?;
 }
 
 type CaclrBuilding extends POIRecordProvider {
@@ -211,6 +214,8 @@ type CaclrBuilding extends POIRecordProvider {
     private goldenRef: node<GoldenPointOfInterest>?;
 
     lastSeenAt: time?;
+
+    deprecated: bool?;
 
     fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
         this.goldenRef = nGolden;
@@ -259,7 +264,7 @@ type CaclrBuilding extends POIRecordProvider {
         return nGoldenPOI;
     }
 
-    fn toFullRecord(): any {
+    fn toFullRecord(): CaclrPOIFullRecord {
         var record = CaclrPOIFullRecord {
             id: this.id,
             number: this.number,
@@ -276,7 +281,9 @@ type CaclrBuilding extends POIRecordProvider {
             lastUpdate: this.lastUpdate,
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,
-            primaryLocation: this.position
+            primaryLocation: this.position,
+            deprecated: this.deprecated,
+            lastSeenAt: this.lastSeenAt
         };
 
         if (this.street != null) {

@@ -4,7 +4,7 @@ type OsmOverpassResponse {
 }
 
 abstract type OSMLoader {
-    static fn load() {
+    static fn load(): bool {
         var endpoint = "http://overpass-api.de/api/interpreter";
         var request = "[out:\"json\"][timeout:300]; 
                                 area[\"ISO3166-1\"=\"LU\"][\"admin_level\"=\"2\"]->.a; 
@@ -69,9 +69,9 @@ abstract type OSMLoader {
                         nStreet->indexing(nStreet);
                         info("Created new street: ${parsed.street} (${parsed.city})");
                     }
-
-                    if (osm_by_id.get("${parsed.id}") == null) {
-                        var nAddr = node<OsmAddress> {
+                    var nAddr = osm_by_id.get("${parsed.id}");
+                    if (nAddr == null) {
+                        nAddr = node<OsmAddress> {
                             OsmAddress {
                                 id: parsed.id,
                                 position: parsed.position,
@@ -85,8 +85,11 @@ abstract type OSMLoader {
                             }
                         };
                         nAddr->indexing(nAddr);
-                        info("Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}");
+                        info(
+                            "Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}"
+                        );
                     }
+                    nAddr->lastSeenAt = time::now();
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
                     var addr = OsmPartialAddress::parse(elem);
@@ -101,9 +104,10 @@ abstract type OSMLoader {
             info("Parsed ${(osm_by_id).size()} addresses.");
             info("Parsed ${(osm_partial_by_id).size()} partial addresses.");
             info("Issues ${issues}.");
+            return true;
         } else {
             error(response);
+            return false;
         }
     }
 }
-

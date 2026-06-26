@@ -36,7 +36,7 @@ fn updateCACLR() {
     var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
     // Verify if reconciled Record is unmatched and newer than lastUpdate
     var toPromote = Array<node<CaclrBuilding>> {};
-    for (record: node<CaclrBuilding>, candidates in report->unlinked) {
+    for (record: node<CaclrBuilding>, _ in report->unlinked) {
         if (record->validityStartDate > lastT) {
             toPromote.add(record);
         }
@@ -58,10 +58,16 @@ fn updateCACLR() {
 
     //TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
     // Don't execute if loadBuilding failed
-
-    // for (_, nRecord in caclr_buildings_by_id) {
-    //     if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {}
-    // }
+    var c = 0;
+    if (errored == false) {
+        for (_, nRecord in caclr_buildings_by_id) {
+            if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
+                nRecord->deprecated = true;
+                c++;
+            }
+        }
+        info("${c} Addresses marked as deprecated");
+    }
 
     s->lastUpdate == time::now();
     info("Caclr Update finished");
@@ -81,6 +87,7 @@ fn updateBDA() {
     if (s == null) {
         return;
     }
+    var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
     var report = s->reconciliationReport;
     var toReconcile = Array<node<POIRecordProvider>> {};
     for (_, nBuilding in bda_address_by_geoportalid) {
@@ -99,7 +106,7 @@ fn updateBDA() {
         }
     }
 
-    // Loop all unlinked check if the caclr id is linked to a golden an automatically link
+    // Loop all unlinked check if the caclr id is linked to a golden and automatically link
     var toLink = Array<node<BDAddress>> {};
     for (record: node<BDAddress>, _ in report->unlinked) {
         var caclrRecord = caclr_buildings_by_id.get("${record->id_caclr}");
@@ -110,10 +117,22 @@ fn updateBDA() {
 
     for (_, value in toLink) {
         var caclrRecord = caclr_buildings_by_id.get("${value->id_caclr}");
-        linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
+        if (caclrRecord != null) {
+            linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
+        }
     }
-
     info("Linked ${toLink.size()} Records");
+
+    var c = 0;
+    for (_, nRecord in bda_address_by_geoportalid) {
+        if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
+            nRecord->deprecated = true;
+            c++;
+        }
+    }
+    info("${c} Addresses marked as deprecated");
+
+    s->lastUpdate == time::now();
 
     info("BDA import finished");
 }
@@ -122,7 +141,7 @@ fn updateBDA() {
 @expose
 fn updateOSM() {
     info("Started OSM Import");
-    OSMLoader::load();
+    var errored = OSMLoader::load();
 
     // PostProcessing to handle new records
 
@@ -130,6 +149,8 @@ fn updateOSM() {
     if (s == null) {
         return;
     }
+    var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
+
     var report = s->reconciliationReport;
     var toReconcile = Array<node<POIRecordProvider>> {};
     for (_, nBuilding in osm_by_id) {
@@ -149,6 +170,19 @@ fn updateOSM() {
         }
         s->removeIsReconciling();
     }
+
+    if (errored == false) {
+        var c = 0;
+        for (_, nRecord in osm_by_id) {
+            if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
+                nRecord->deprecated = true;
+                c++;
+            }
+        }
+        info("${c} Addresses marked as deprecated");
+    }
+
+    s->lastUpdate == time::now();
 
     info("OSM import finished");
 }

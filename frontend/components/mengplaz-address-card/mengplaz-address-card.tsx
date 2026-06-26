@@ -86,6 +86,15 @@ export class MengplazAddressCard extends HTMLElement {
           ) : (
             ''
           )}
+          {record?.deprecated === true ? (
+            <sl-tooltip content={`This address doesn't exist anymore in this source, Last seen: ${this.formatLastSeen(record?.lastSeenAt)}`}>
+              <sl-tag variant="warning" size="small">
+                Deprecated
+              </sl-tag>
+            </sl-tooltip>
+          ) : (
+            ''
+          )}
           <div style={{ flexGrow: '1' }} />
           {this.showGoTo === true && record?.sourceName == 'Golden' ? (
             <sl-button
@@ -140,6 +149,13 @@ export class MengplazAddressCard extends HTMLElement {
         {this.confirm}
       </div>,
     );
+  }
+
+  private formatLastSeen(lastSeenAt: unknown): string {
+    if (lastSeenAt instanceof gc.time) {
+      return lastSeenAt.toDate().toLocaleString('fr');
+    }
+    return '2025-12-15';
   }
 
   private getSourceUrl(record: unknown): string | null {
