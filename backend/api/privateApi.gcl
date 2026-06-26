@@ -239,12 +239,15 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
 }
 
 /// Batch links reconciled records to their best Golden candidate based on score rules.
-/// For now a single rule: link every unlinked record whose best candidate overall score
-/// is greater than or equal to `globalScore` (expressed on a 0-100 scale).
+/// All scores are expressed on a 0-100 scale.
+///  - links every unlinked record whose best candidate overall score is >= `globalScore`;
+///  - each optional per-field score (`geoScore`, `cityScore`, `streetScore`, `numberScore`,
+///    `postcodeScore`), when provided, adds a further constraint: the best candidate's matching
+///    field score must be >= the given value. Pass null to ignore that field.
 /// `globalScore` cannot be lower than 80. Returns the number of records linked.
 @expose
 @permission("admin")
-fn batchLinkByScore(source: node<DataSource>, globalScore: float): int {
+fn batchLinkByScore(source: node<DataSource>, globalScore: float, geoScore: float?, cityScore: float?, streetScore: float?, numberScore: float?, postcodeScore: float?): int {
     var ts = Traffic_Service::start(batchLinkByScore);
 
     if (globalScore < 80.0) {
@@ -257,17 +260,37 @@ fn batchLinkByScore(source: node<DataSource>, globalScore: float): int {
     // Collect first to avoid mutating the unlinked map while iterating it.
     var toLink = Map<node<POIRecordProvider>, node<POIRecordProvider>> {};
     for (record, candidates in report->unlinked) {
-        var bestCandidate: node<POIRecordProvider>?;
+        var bestCandidate: ReconciliationCandidate?;
         var bestScore = 0.0;
         for (_, candidate in candidates) {
             var s = candidate.score?.overallScore;
             if (s != null && s >= bestScore) {
                 bestScore = s;
-                bestCandidate = candidate.candidateRecord;
+                bestCandidate = candidate;
             }
         }
         if (bestCandidate != null && bestScore >= threshold) {
-            toLink.set(record, bestCandidate);
+            var sc = bestCandidate.score;
+            var ok = true;
+            if (ok && geoScore != null) {
+                var g = sc?.geoScore;
+                ok = g != null && g >= geoScore / 100.0;
+            }
+            if (ok && cityScore != null) {
+                ok = sc != null && sc.cityScore >= cityScore / 100.0;
+            }
+            if (ok && streetScore != null) {
+                ok = sc != null && sc.streetScore >= streetScore / 100.0;
+            }
+            if (ok && numberScore != null) {
+                ok = sc != null && sc.numberScore >= numberScore / 100.0;
+            }
+            if (ok && postcodeScore != null) {
+                ok = sc != null && sc.postcodeScore >= postcodeScore / 100.0;
+            }
+            if (ok) {
+                toLink.set(record, bestCandidate.candidateRecord);
+            }
         }
     }
 

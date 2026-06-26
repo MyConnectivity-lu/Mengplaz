@@ -9,6 +9,8 @@ import { MengplazPromotionDialog } from '~/components/mengplaz-promotion-dialog/
 import '~/components/mengplaz-promotion-dialog/mengplaz-promotion-dialog';
 import { SearchParametersDialog } from '~/components/search-parameters-dialog/search-parameters-dialog';
 import '~/components/search-parameters-dialog/search-parameters-dialog';
+import { BatchLinkDialog } from '~/components/batch-link-dialog/batch-link-dialog';
+import '~/components/batch-link-dialog/batch-link-dialog';
 import { AddressSelectEvent, MengplazAddressSearch } from '~/components/mengplaz-address-search/mengplaz-address-search';
 import '~/components/mengplaz-address-search/mengplaz-address-search';
 import { getQueryParam } from '~/common/utils';
@@ -172,6 +174,7 @@ export class ReconcilePage extends HTMLElement {
   private confirm: MengplazConfirmDialog;
   private promote: MengplazPromotionDialog;
   private searchParamsDialog: SearchParametersDialog;
+  private batchLinkDialog: BatchLinkDialog;
   private addressSearch: MengplazAddressSearch;
   private searchParams: gc.mengplaz.SearchParameters = new gc.mengplaz.SearchParameters(
     0.7,
@@ -235,6 +238,7 @@ export class ReconcilePage extends HTMLElement {
     this.confirm = (<mengplaz-confirm-dialog />) as MengplazConfirmDialog;
     this.promote = (<mengplaz-promotion-dialog />) as MengplazPromotionDialog;
     this.searchParamsDialog = (<search-parameters-dialog />) as SearchParametersDialog;
+    this.batchLinkDialog = (<batch-link-dialog />) as BatchLinkDialog;
     this.addressSearch = (<mengplaz-address-search />) as MengplazAddressSearch;
     this.addressSearch.placeholder = 'Search address in source...';
     this.addressSearch.addEventListener('address-select', (e: Event) => {
@@ -728,54 +732,36 @@ export class ReconcilePage extends HTMLElement {
   }
 
   private buildBatchLinkControl(): HTMLElement {
-    const scoreInput = (
-      <sl-input type="number" min={80} max={100} step={0.1} value="99" size="small" style={{ width: '12rem' }}>
-        <span slot="prefix">Global score ≥</span>
-      </sl-input>
-    ) as sl.SlInput;
-
-    const button = (
-      <sl-button
-        variant="primary"
-        onclick={() => {
-          let score = parseFloat(scoreInput.value);
-          if (isNaN(score)) score = 99;
-          if (score < 80) score = 80;
-          if (score > 100) score = 100;
-          scoreInput.value = String(score);
-          this.handleBatchLink(score);
-        }}
-      >
+    return (
+      <sl-button variant="primary" onclick={() => this.handleBatchLink()}>
         <sl-icon slot="prefix" name="link-45deg"></sl-icon>
         Batch link
       </sl-button>
     ) as HTMLElement;
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sl-spacing-x-small)' }}>
-        {scoreInput}
-        {button}
-      </div>
-    ) as HTMLElement;
   }
 
-  private handleBatchLink(globalScore: number) {
+  private async handleBatchLink() {
     if (!this.reconciliationReport) return;
     const source = this.reconciliationReport.source;
-    this.confirm.text = `Batch link all reconciled records with an overall score ≥ ${globalScore}% to their best Golden candidate?`;
-    this.confirm.showLinkParams = false;
-    this.confirm.show().then((result) => {
-      if (!result.confirmed) return;
-      gc.$.default
-        .call('privateApi::batchLinkByScore', [source, globalScore])
-        .then((count) => {
-          toast.notify({ message: `Batch linked ${count} record(s).`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
-          this.updateLocalReconciliationReport();
-        })
-        .catch(() => {
-          toast.notify({ message: 'An error occurred while batch linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
-        });
-    });
+
+    const params = await this.batchLinkDialog.show();
+    if (params == null) return;
+
+    try {
+      const count = await gc.$.default.call('privateApi::batchLinkByScore', [
+        source,
+        params.globalScore,
+        params.geoScore,
+        params.cityScore,
+        params.streetScore,
+        params.numberScore,
+        params.postcodeScore,
+      ]);
+      toast.notify({ message: `Batch linked ${count} record(s).`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+      this.updateLocalReconciliationReport();
+    } catch (_) {
+      toast.notify({ message: 'An error occurred while batch linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+    }
   }
 
   private warnIfOsmWithMunicipality() {
@@ -858,6 +844,7 @@ export class ReconcilePage extends HTMLElement {
         {this.confirm}
         {this.promote}
         {this.searchParamsDialog}
+        {this.batchLinkDialog}
       </div>,
     );
   }

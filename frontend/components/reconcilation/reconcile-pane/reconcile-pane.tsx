@@ -257,8 +257,10 @@ export class ReconcilePane extends HTMLElement {
     const controls = (
       <div className="reconcile-pane-controls">
         {this.pagination}
-        {this.bulkActionButton}
-        {this.extraControl}
+        <div className="reconcile-pane-actions">
+          {this.bulkActionButton}
+          {this.extraControl}
+        </div>
       </div>
     );
 
