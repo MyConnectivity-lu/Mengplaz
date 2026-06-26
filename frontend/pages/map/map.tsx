@@ -5,50 +5,88 @@ import '../../components/mengplaz-address-search/mengplaz-address-search';
 import { AddressSelectEvent, MengplazAddressSearch } from '../../components/mengplaz-address-search/mengplaz-address-search';
 import './map.css';
 
+// Geoportail Luxembourg vector basemap (native maplibre v8 style: sprite, glyphs &
+// sources all hosted by geoportail). Alternatives: 'topomap', 'topomap_gray'.
+const GEOPORTAIL_STYLE = 'https://vectortiles.geoportail.lu/styles/roadmap/style.json';
+
+// Official orthophoto 2025 (geocatalogue uuid c0aefcaa-5cc6-40ed-84cd-695f9f5b9eed),
+// served as WMTS raster tiles (CORS-enabled, EPSG:3857). Subdomains wmts1-4 load-balance.
+const ORTHO_TILES = [1, 2, 3, 4].map(
+  (i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`,
+);
+
+// Single credit shown in the map (data + basemap + ortho all come from geoportail).
+const ATTRIBUTION = '<a href="https://www.geoportail.lu" target="_blank" rel="noopener">© geoportail.lu</a>';
+
 export class MapPage extends HTMLElement {
-  private map: maplibregl.Map;
+  private map!: maplibregl.Map;
   private mapContainer: HTMLDivElement;
   private addressSearch: MengplazAddressSearch;
+  private basemapSelect: HTMLElement;
 
   constructor() {
     super();
     this.mapContainer = (<div style={{ height: '100%' }}></div>) as HTMLDivElement;
     this.addressSearch = (<mengplaz-address-search disableNoCoords />) as MengplazAddressSearch;
+    this.basemapSelect = (
+      <sl-select size="medium" value="vector" hoist onsl-change={(e: Event) => this.setBasemap((e.target as any).value)}>
+        <sl-option value="vector">Geoportail Carte</sl-option>
+        <sl-option value="ortho">Geoportail Orthophoto 2025</sl-option>
+        <sl-option value="osm">OpenStreetMap</sl-option>
+      </sl-select>
+    ) as HTMLElement;
+  }
+
+  // Switch the active basemap: 'vector' (geoportail style), 'osm' raster, or 'ortho' raster.
+  // The two raster layers sit above the vector style and below the POI layers; showing one
+  // opaque raster effectively replaces the basemap.
+  private setBasemap(value: string) {
+    if (!this.map?.getLayer('osm')) return;
+    this.map.setLayoutProperty('osm', 'visibility', value === 'osm' ? 'visible' : 'none');
+    this.map.setLayoutProperty('ortho', 'visibility', value === 'ortho' ? 'visible' : 'none');
+  }
+
+  connectedCallback() {
+    this.render();
+    this.initMap();
+    this.addressSearch.addEventListener('address-select', (e: Event) => {
+      this.flyToRecord((e as CustomEvent<AddressSelectEvent>).detail.record);
+    });
+  }
+
+  private async initMap() {
+
+
     this.map = new maplibregl.Map({
       container: this.mapContainer,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors',
-            maxzoom: 19,
-          },
-        },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm',
-          },
-        ],
-        glyphs: './font/{fontstack}/{range}.pbf',
-      },
+      style: GEOPORTAIL_STYLE,
       center: gc.core.geo.fromLatLng(49.8, 6.12),
       zoom: 9,
+      attributionControl: { compact: true, customAttribution: ATTRIBUTION },
       // Lock panning to Luxembourg bounding box + ~100km margin (~0.9° lat, ~1.4° lng @50°N)
       maxBounds: [
         [4.336, 48.548],
         [7.932, 51.083],
       ],
     });
+
     this.map.on('load', async () => {
       this.map.resize();
 
-      // m.on('zoomend', () => this.updatePOIs());
-      // m.on('dragend', () => this.updatePOIs());
+      // Alternate basemaps as raster layers, above the vector style but below the POI
+      // layers. Both hidden by default (vector basemap shown); the select toggles them.
+      this.map.addSource('osm', {
+        type: 'raster',
+        tiles: ['a', 'b', 'c'].map((s) => `https://${s}.tile.openstreetmap.org/{z}/{x}/{y}.png`),
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      });
+      this.map.addLayer({ id: 'osm', type: 'raster', source: 'osm', layout: { visibility: 'none' } });
+
+      this.map.addSource('ortho', { type: 'raster', tiles: ORTHO_TILES, tileSize: 256, maxzoom: 19 });
+      this.map.addLayer({ id: 'ortho', type: 'raster', source: 'ortho', layout: { visibility: 'none' } });
+
       this.map.addSource('points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       this.map.addLayer({
         id: 'points',
@@ -134,12 +172,6 @@ export class MapPage extends HTMLElement {
   }
   //5.9759064903482795
   //6.276111602783203
-  connectedCallback() {
-    this.render();
-    this.addressSearch.addEventListener('address-select', (e: Event) => {
-      this.flyToRecord((e as CustomEvent<AddressSelectEvent>).detail.record);
-    });
-  }
 
   private flyToRecord(r: gc.mengplaz.POIRecordRef) {
     const loc = r.record.primaryLocation;
@@ -154,7 +186,7 @@ export class MapPage extends HTMLElement {
 
   disconnectedCallback() {
     // Solves a leak inside maplibre
-    (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
+    (this.map?.getSource('points') as maplibregl.GeoJSONSource | undefined)?.setData({
       type: 'FeatureCollection',
       features: [],
     });
@@ -186,6 +218,7 @@ export class MapPage extends HTMLElement {
     this.replaceChildren(
       <>
         <div className="map-search-panel">{this.addressSearch}</div>
+        <div className="map-layer-control">{this.basemapSelect}</div>
         <div style={{ maxWidth: '300px', position: 'fixed', top: 'var(--sl-spacing-large)', right: 'var(--sl-spacing-large)', zIndex: '999' }}>
           <sl-alert variant="primary" open closable id="map-loading-alert">
             <sl-icon slot="icon" name="info-circle"></sl-icon>
