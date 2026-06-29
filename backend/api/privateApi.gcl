@@ -14,33 +14,33 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
         geoScore = 1.0;
     }
     var reconScore = node<ReconciliationCandidateScore> {
-        ReconciliationCandidateScore { cityScore: 1.0, geoScore: geoScore, numberScore: 1.0, overallScore: 1.0, postcodeScore: 1.0, streetScore: 1.0 }
+        ReconciliationCandidateScore {
+            cityScore: 1.0,
+            geoScore: geoScore,
+            numberScore: 1.0,
+            overallScore: 1.0,
+            postcodeScore: 1.0,
+            streetScore: 1.0
+        }
     };
 
-    nGolden->linkedRecords.add(LinkedRecordEntry {
-            record: sourceRecord,
-            score: 1.0,
-            detailedScore: reconScore
-        });
+    nGolden->linkedRecords.add(LinkedRecordEntry { record: sourceRecord, score: 1.0, detailedScore: reconScore });
 
     // Record quality event
     var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
     nGolden->quality.setAt(time::now(), QualityEvent {
-            score: newQuality,
-            sourceRecord: sourceRecord,
-            eventType: QualityEventType::link
-        });
+        score: newQuality,
+        sourceRecord: sourceRecord,
+        eventType: QualityEventType::link
+    });
 
     var source = sourceRecord->getSource();
     source->reconciliationReport->unlinked.remove(sourceRecord);
 
-    source->reconciliationReport->linked.set(
-        sourceRecord,
-        ReconciliationCandidate {
-            candidateRecord: nGolden,
-            detailedScore: reconScore
-        }
-    );
+    source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate {
+        candidateRecord: nGolden,
+        detailedScore: reconScore
+    });
 
     ts.end();
 }
@@ -54,7 +54,11 @@ type LinkParameters {
 
 @expose
 @permission("admin")
-fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIRecordProvider>, params: LinkParameters?) {
+fn linkRecords(
+    sourceRecord: node<POIRecordProvider>,
+    candidateRecord: node<POIRecordProvider>,
+    params: LinkParameters?
+) {
     var ts = Traffic_Service::start(linkRecords);
 
     var source = sourceRecord->getSource();
@@ -76,7 +80,7 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
         }
     }
 
-    // No candidate the source comes from a search, we need to calculate a score 
+    // No candidate the source comes from a search, we need to calculate a score
     if (foundCandidate == false) {
         var searchParams = SearchParameters::default();
         var item = sourceRecord->toSearchItem();
@@ -87,10 +91,31 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
             cityScore = GoldenServices::computeCityScore(item.city, nCandidate->street->city);
             streetScore = GoldenServices::computeStreetScore(item.street, nCandidate->street->name);
         }
-        var geoScore = GoldenServices::computeGeoScore(item.coordinates, nCandidate->primaryLocation, searchParams.geoParams) ?? 0.0;
-        var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, searchParams.postcodeMaxDistance);
-        var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
-        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, searchParams.weights);
+        var geoScore = GoldenServices::computeGeoScore(
+            item.coordinates,
+            nCandidate->primaryLocation,
+            searchParams.geoParams
+        )
+            ?? 0.0;
+        var postcodeScore = GoldenServices::computePostcodeScore(
+            item.postcode,
+            nCandidate->postCode,
+            searchParams.postcodeMaxDistance
+        );
+        var numberScore = GoldenServices::computeNumberScore(
+            item.number,
+            item.multipleCode,
+            nCandidate->number,
+            nCandidate->multipleCode
+        );
+        var overallScore = GoldenServices::computeOverallScore(
+            cityScore,
+            streetScore,
+            numberScore,
+            postcodeScore,
+            geoScore,
+            searchParams.weights
+        );
         reconScore = node<ReconciliationCandidateScore> {
             ReconciliationCandidateScore {
                 cityScore: cityScore,
@@ -102,7 +127,10 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
             }
         };
         score = overallScore;
-        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate { candidateRecord: candidateRecord, detailedScore: reconScore });
+        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate {
+            candidateRecord: candidateRecord,
+            detailedScore: reconScore
+        });
     }
 
     source->reconciliationReport->unlinked.remove(sourceRecord);
@@ -123,10 +151,10 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
         if (!found) {
             // Add to linkedRecords with score
             golden.linkedRecords.add(LinkedRecordEntry {
-                    record: sourceRecord,
-                    score: score,
-                    detailedScore: reconScore
-                });
+                record: sourceRecord,
+                score: score,
+                detailedScore: reconScore
+            });
 
             // Handle aliases
             if (params?.addStreetAlias == true) {
@@ -145,10 +173,10 @@ fn linkRecords(sourceRecord: node<POIRecordProvider>, candidateRecord: node<POIR
             // Record quality event
             var newQuality = GoldenServices::computeQuality(golden.linkedRecords);
             golden.quality.setAt(time::now(), QualityEvent {
-                    score: newQuality,
-                    sourceRecord: sourceRecord,
-                    eventType: QualityEventType::link
-                });
+                score: newQuality,
+                sourceRecord: sourceRecord,
+                eventType: QualityEventType::link
+            });
         }
     }
 
@@ -182,7 +210,7 @@ fn unlinkRecord(sourceRecord: node<POIRecordProvider>) {
 
     var nGolden = sourceRecord->getLinkedGolden();
     if (nGolden != null) {
-        //TODO Should we remove Remove aliases ? we need to track if the linked record added the alias 
+        //TODO Should we remove Remove aliases ? we need to track if the linked record added the alias
         // var sourceData = sourceRecord->toMengplazRecord();
         // var street = sourceData.street;
         // if (street != null) {
@@ -204,10 +232,10 @@ fn unlinkRecord(sourceRecord: node<POIRecordProvider>) {
         // Record quality event
         var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
         nGolden->quality.setAt(time::now(), QualityEvent {
-                score: newQuality,
-                sourceRecord: sourceRecord,
-                eventType: QualityEventType::unlink
-            });
+            score: newQuality,
+            sourceRecord: sourceRecord,
+            eventType: QualityEventType::unlink
+        });
     }
 
     sourceRecord->unlinkGolden();
@@ -232,7 +260,10 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
         var candidates = report->unlinked.get(sourceRecord);
         if (candidates?.size() == 1) {
             // TODO? We assume that since this function only gets called if 100% match no need to link aliases
-            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters { addCityAlias: false, addStreetAlias: false });
+            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters {
+                addCityAlias: false,
+                addStreetAlias: false
+            });
         }
     }
     ts.end();
@@ -247,7 +278,15 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
 /// `globalScore` cannot be lower than 80. Returns the number of records linked.
 @expose
 @permission("admin")
-fn batchLinkByScore(source: node<DataSource>, globalScore: float, geoScore: float?, cityScore: float?, streetScore: float?, numberScore: float?, postcodeScore: float?): int {
+fn batchLinkByScore(
+    source: node<DataSource>,
+    globalScore: float,
+    geoScore: float?,
+    cityScore: float?,
+    streetScore: float?,
+    numberScore: float?,
+    postcodeScore: float?
+): int {
     var ts = Traffic_Service::start(batchLinkByScore);
 
     if (globalScore < 80.0) {
@@ -421,6 +460,7 @@ fn getReconciliationReport(source: node<DataSource>, city: String?, municipality
     if (report == null) {
         throw "Report not Found";
     }
+
     var fullMatch = Array<String> {};
     var multipleMatch = Array<String> {};
     var partialMatch = Array<ReconciliationReportMatchView> {};
@@ -440,9 +480,9 @@ fn getReconciliationReport(source: node<DataSource>, city: String?, municipality
             multipleMatch.add(record->getId());
         } else {
             partialMatch.add(ReconciliationReportMatchView {
-                    id: record->getId(),
-                    score: candidates[0].score?.overallScore
-                });
+                id: record->getId(),
+                score: candidates[0].score?.overallScore
+            });
         }
     }
     partialMatch.sort_by(ReconciliationReportMatchView::score, SortOrder::desc);

@@ -17,7 +17,7 @@ export class IndexPage extends HTMLElement {
   }
 
   private async getCities() {
-    const cities = await gc.api.getGoldenCities(null);
+    const cities = await gc.api.getGoldenLocalities(null);
     this.replaceChildren(
       <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
         <h3 className={'content-title'}> Index</h3>
@@ -33,7 +33,7 @@ export class IndexPage extends HTMLElement {
     );
   }
   private async getStreets(id: string) {
-    const streets = await gc.api.getGoldenStreetsByCityId(id);
+    const streets = await gc.api.getGoldenStreetsByLocalityId(id);
     this.replaceChildren(
       <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
         <h3 className={'content-title'}> Index</h3>

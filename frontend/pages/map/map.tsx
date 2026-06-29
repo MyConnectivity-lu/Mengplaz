@@ -113,9 +113,9 @@ export class MapPage extends HTMLElement {
           'text-font': ['Noto Sans Regular'],
         },
         paint: {
-          'text-color': '#000000',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1.5,
+          'text-color': '#ff18a4',
+          'text-halo-color': '#fff',
+          'text-halo-width': 1,
         },
       });
 

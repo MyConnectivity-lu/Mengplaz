@@ -29,7 +29,7 @@ export class MengplazPromotionDialog extends HTMLElement {
   connectedCallback() {
     this.render();
     this.citySelect.addEventListener('gui-input', async () => {
-      const streets = await gc.getGoldenStreetsByCityId(this.citySelect.value.id);
+      const streets = await gc.getGoldenStreetsByLocalityId(this.citySelect.value.id);
       this.streetSelect.options = streets.map((s) => ({ value: s, text: s.name, selected: s.name === this._value?.record.street }));
       this.fillAddressInfo();
     });
@@ -50,14 +50,14 @@ export class MengplazPromotionDialog extends HTMLElement {
   async render() {
     if (!this._value) return;
     if (!this._cities) {
-      this._cities = await gc.getGoldenCities(null);
+      this._cities = await gc.getGoldenLocalities(null);
       this.citySelect.options = this._cities.map((c) => ({ value: c, text: c.name }));
     }
 
     const cityIdx = this._cities.findIndex((c) => c.name === this._value?.record.city);
     if (cityIdx != -1) {
       this.citySelect.value = this._cities[cityIdx];
-      const streets = await gc.getGoldenStreetsByCityId(this.citySelect.value.id);
+      const streets = await gc.getGoldenStreetsByLocalityId(this.citySelect.value.id);
       this.streetSelect.options = streets.map((s) => ({ value: s, text: s.name, selected: s.name === this._value?.record.street }));
       this.fillAddressInfo();
     }

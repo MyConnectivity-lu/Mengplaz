@@ -227,7 +227,7 @@ export class ReconcilePage extends HTMLElement {
     this.municipalitySelect.placeholder = 'Filter by golden Municipalities';
     this.municipalitySelect.nullable = true;
     this.municipalitySelect.addEventListener('gui-input', () => {
-      gc.api.getGoldenCities(this.municipalitySelect.value ?? null).then((d) => {
+      gc.api.getGoldenLocalities(this.municipalitySelect.value ?? null).then((d) => {
         this.citySelect.options = d.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
       });
       this.warnIfOsmWithMunicipality();
@@ -267,8 +267,8 @@ export class ReconcilePage extends HTMLElement {
 
       const [sources, cities, municipalities] = await Promise.all([
         gc.privateApi.getSources(),
-        gc.api.getGoldenCities(urlMuni),
-        gc.api.getGoldenMunicipalities(),
+        gc.api.getGoldenLocalities(urlMuni),
+        gc.api.getGoldenCommunes(),
       ]);
       const filteredSources = sources.filter((v) => v.name !== 'Golden');
       this.sourceSelect.options = filteredSources.map((s) => ({ value: s, text: s.name }) as GuiOption);

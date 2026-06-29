@@ -12,14 +12,15 @@ interface OptionalScoreConfig {
   def: number;
   min: number;
   max: number;
+  enabled: boolean;
 }
 
 const OPTIONAL_SCORES: OptionalScoreConfig[] = [
-  { key: 'geoScore', label: 'Geo score', def: 99, min: 90, max: 100 },
-  { key: 'cityScore', label: 'City score', def: 95, min: 0, max: 100 },
-  { key: 'streetScore', label: 'Street score', def: 95, min: 0, max: 100 },
-  { key: 'numberScore', label: 'Number score', def: 90, min: 0, max: 100 },
-  { key: 'postcodeScore', label: 'Postcode score', def: 95, min: 0, max: 100 },
+  { key: 'geoScore', label: 'Geo score', def: 98, min: 90, max: 100 ,enabled : true},
+  { key: 'cityScore', label: 'City score', def: 95, min: 0, max: 100,enabled : false },
+  { key: 'streetScore', label: 'Street score', def: 95, min: 0, max: 100,enabled : false },
+  { key: 'numberScore', label: 'Number score', def: 99, min: 0, max: 100,enabled : true },
+  { key: 'postcodeScore', label: 'Postcode score', def: 99, min: 0, max: 100,enabled : true },
 ];
 
 export interface BatchLinkParams {
@@ -90,11 +91,11 @@ export class BatchLinkDialog extends HTMLElement {
         max={cfg.max}
         step={0.1}
         value={String(cfg.def)}
-        disabled
+        disabled={!cfg.enabled}
       />
     ) as sl.SlInput;
 
-    const checkbox = (<sl-checkbox>Require a minimum {cfg.label.toLowerCase()}</sl-checkbox>) as sl.SlCheckbox;
+    const checkbox = (<sl-checkbox checked={cfg.enabled}>Require a minimum {cfg.label.toLowerCase()}</sl-checkbox>) as sl.SlCheckbox;
     checkbox.addEventListener('sl-change', () => {
       input.disabled = !checkbox.checked;
     });
