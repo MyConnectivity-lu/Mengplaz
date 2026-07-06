@@ -98,3 +98,35 @@ fn loadCaclr() {
         error("CACLR Failed : ${err.message}");
     }
 }
+
+
+@expose
+fn tmp_up() {
+    var s = sources_by_name.get(CaclrSource::NAME);
+    if (s == null) {
+        return;
+    }
+    var report = s->reconciliationReport;
+    var lastT = time::parse("2026-01-01", null); // Date of the last manual import
+
+    var toPromote = Array<node<CaclrBuilding>> {};
+    for (record: node<CaclrBuilding>, _ in report->unlinked) {
+        if (record->lastUpdate > lastT) {
+            toPromote.add(record);
+        }
+    }
+    info("Found ${toPromote.size()} Records to promote");
+
+    for (_, record in toPromote) {
+        try {
+            if (record->street != null) {
+                var streetIdx = record->street->goldenStreet?.resolve().id;
+                if (streetIdx != null) {
+                    promoteRecord(record, streetIdx);
+                }
+            }
+        } catch (err) {
+            error("Failed promoting ${record->id}  \n ${err}");
+        }
+    }
+}
