@@ -37,7 +37,7 @@ fn updateCACLR() {
     // Verify if reconciled Record is unmatched and newer than lastUpdate
     var toPromote = Array<node<CaclrBuilding>> {};
     for (record: node<CaclrBuilding>, _ in report->unlinked) {
-        if (record->validityStartDate > lastT) {
+        if (record->validityStartDate > lastT || record->lastUpdate > lastT) {
             toPromote.add(record);
         }
     }
