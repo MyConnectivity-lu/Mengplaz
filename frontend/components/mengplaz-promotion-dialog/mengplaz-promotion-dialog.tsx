@@ -16,7 +16,7 @@ export class MengplazPromotionDialog extends HTMLElement {
   constructor() {
     super();
     this.dialog = (<sl-dialog label="Promote Record" />) as sl.SlDialog;
-    this.citySelect = (<gui-select label="Choose a City" required />) as GuiSelect;
+    this.citySelect = (<gui-select label="Choose a Locality" required />) as GuiSelect;
     this.streetSelect = (<gui-select label="Choose a Street" required />) as GuiSelect;
     this.info = (<address-content />) as AddressContent;
   }

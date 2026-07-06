@@ -100,7 +100,7 @@ export class RecordComparisonView extends HTMLElement {
             <div className="score-breakdown">
               {this.renderScoreRow('Number', this._candidate.numberScore)}
               {this.renderScoreRow('Street', this._candidate.streetScore)}
-              {this.renderScoreRow('City', this._candidate.cityScore)}
+              {this.renderScoreRow('Locality', this._candidate.cityScore)}
               {this.renderScoreRow('Postcode', this._candidate.postcodeScore)}
               {this._candidate.geoScore != null ? this.renderScoreRow('Geo', this._candidate.geoScore) : ''}
             </div>

@@ -17,7 +17,7 @@ interface OptionalScoreConfig {
 
 const OPTIONAL_SCORES: OptionalScoreConfig[] = [
   { key: 'geoScore', label: 'Geo score', def: 98, min: 90, max: 100 ,enabled : true},
-  { key: 'cityScore', label: 'City score', def: 95, min: 0, max: 100,enabled : false },
+  { key: 'cityScore', label: 'Locality score', def: 95, min: 0, max: 100,enabled : false },
   { key: 'streetScore', label: 'Street score', def: 95, min: 0, max: 100,enabled : false },
   { key: 'numberScore', label: 'Number score', def: 99, min: 0, max: 100,enabled : true },
   { key: 'postcodeScore', label: 'Postcode score', def: 99, min: 0, max: 100,enabled : true },
