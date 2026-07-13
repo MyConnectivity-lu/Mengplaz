@@ -24,6 +24,7 @@ fn main() {
 
     Scheduler::add(updateCACLR, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
     Scheduler::add(updateBDA, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
+    Scheduler::add(updateOSM, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions { immediate: false });
 }
 
 fn bootstrap() {
@@ -101,32 +102,4 @@ fn loadCaclr() {
 
 
 @expose
-fn tmp_up() {
-    var s = sources_by_name.get(CaclrSource::NAME);
-    if (s == null) {
-        return;
-    }
-    var report = s->reconciliationReport;
-    var lastT = time::parse("2026-01-01", null); // Date of the last manual import
-
-    var toPromote = Array<node<CaclrBuilding>> {};
-    for (record: node<CaclrBuilding>, _ in report->unlinked) {
-        if (record->lastUpdate > lastT) {
-            toPromote.add(record);
-        }
-    }
-    info("Found ${toPromote.size()} Records to promote");
-
-    for (_, record in toPromote) {
-        try {
-            if (record->street != null) {
-                var streetIdx = record->street->goldenStreet?.resolve().id;
-                if (streetIdx != null) {
-                    promoteRecord(record, streetIdx);
-                }
-            }
-        } catch (err) {
-            error("Failed promoting ${record->id}  \n ${err}");
-        }
-    }
-}
+fn tmp_up() {}

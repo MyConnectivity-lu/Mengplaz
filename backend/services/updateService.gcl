@@ -141,7 +141,10 @@ fn updateBDA() {
 @expose
 fn updateOSM() {
     info("Started OSM Import");
-    var errored = OSMLoader::load();
+    var success = OSMLoader::load();
+    if (success == false) {
+        return;
+    }
 
     // PostProcessing to handle new records
 
@@ -163,24 +166,37 @@ fn updateOSM() {
     // Reconcile newly created CALCR Records
     if (s->isReconciling?.resolve() == false) {
         try {
-            s->setIsReconciling();
             DataSource::reconcile(s, null, toReconcile);
         } catch (err) {
             error(err);
         }
-        s->removeIsReconciling();
     }
 
-    if (errored == false) {
-        var c = 0;
-        for (_, nRecord in osm_by_id) {
-            if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
-                nRecord->deprecated = true;
-                c++;
-            }
+    // Loop all unlinked check if the caclr id is linked to a golden and automatically link
+    var toLink = Array<node<OsmAddress>> {};
+    for (record: node<OsmAddress>, _ in report->unlinked) {
+        var caclrRecord = caclr_buildings_by_id.get("${record->ref_caclr}");
+        if (caclrRecord != null && caclrRecord->getLinkedGolden() != null) {
+            toLink.add(record);
         }
-        info("${c} Addresses marked as deprecated");
     }
+
+    for (_, value in toLink) {
+        var caclrRecord = caclr_buildings_by_id.get("${value->ref_caclr}");
+        if (caclrRecord != null) {
+            linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
+        }
+    }
+    info("Linked ${toLink.size()} Records");
+
+    var c = 0;
+    for (_, nRecord in osm_by_id) {
+        if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
+            nRecord->deprecated = true;
+            c++;
+        }
+    }
+    info("${c} Addresses marked as deprecated");
 
     s->lastUpdate == time::now();
 
