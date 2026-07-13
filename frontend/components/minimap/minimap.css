@@ -10,6 +10,14 @@
   width: 100%;
 }
 
+.minimap-layer-control {
+  position: absolute;
+  top: var(--sl-spacing-small);
+  left: var(--sl-spacing-small);
+  z-index: 10;
+  width: 150px;
+}
+
 .minimap-distance-label {
   position: absolute;
   top: 50%;

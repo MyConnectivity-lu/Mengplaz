@@ -6,6 +6,12 @@ import './minimap.css';
 const CANDIDATE_COLOR = '#10069f';
 const MASTER_COLOR = '#ff18a4';
 
+// Official orthophoto 2025, served as WMTS raster tiles (CORS-enabled, EPSG:3857).
+// Subdomains wmts1-4 load-balance. Same source as the full map page.
+const ORTHO_TILES = [1, 2, 3, 4].map(
+  (i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`,
+);
+
 export class MiniMap extends HTMLElement {
   golden?: gc.geo;
   source?: gc.geo | null;
@@ -13,6 +19,7 @@ export class MiniMap extends HTMLElement {
   locations?: Map<string, gc.geo>;
 
   private map: GuiMap;
+  private mlMap?: maplibregl.Map;
   private markers: maplibregl.Marker[] = [];
 
   constructor() {
@@ -30,12 +37,25 @@ export class MiniMap extends HTMLElement {
             attribution: '&copy; OpenStreetMap Contributors',
             maxzoom: 19,
           },
+          ortho: {
+            type: 'raster',
+            tiles: ORTHO_TILES,
+            tileSize: 256,
+            maxzoom: 19,
+          },
         },
+        // Ortho on top of osm; the select toggles visibility. Ortho visible by default.
         layers: [
           {
             id: 'osm',
             type: 'raster',
             source: 'osm',
+            layout: { visibility: 'none' },
+          },
+          {
+            id: 'ortho',
+            type: 'raster',
+            source: 'ortho',
           },
         ],
       },
@@ -47,10 +67,19 @@ export class MiniMap extends HTMLElement {
     };
   }
 
+  // Toggle basemap raster layers: 'ortho' (default) or 'osm'.
+  private setBasemap(value: string) {
+    const m = this.mlMap;
+    if (!m?.getLayer('osm')) return;
+    m.setLayoutProperty('osm', 'visibility', value === 'osm' ? 'visible' : 'none');
+    m.setLayoutProperty('ortho', 'visibility', value === 'ortho' ? 'visible' : 'none');
+  }
+
   connectedCallback() {
     this.render();
     this.map.style.height = '200px';
     this.map.ready.then((m) => {
+      this.mlMap = m as unknown as maplibregl.Map;
       type Point = { label: string; geo: gc.geo; color: string };
       const points: Point[] = [];
       if (this.golden) points.push({ label: 'Golden', geo: this.golden, color: MASTER_COLOR });
@@ -182,9 +211,19 @@ export class MiniMap extends HTMLElement {
       </div>
     );
 
+    const layerSelect = (
+      <div className="minimap-layer-control">
+        <sl-select size="small" value="ortho" hoist onsl-change={(e: Event) => this.setBasemap((e.target as any).value)}>
+          <sl-option value="ortho">Orthophoto</sl-option>
+          <sl-option value="osm">OpenStreetMap</sl-option>
+        </sl-select>
+      </div>
+    );
+
     const content = (
       <div className="minimap-container">
         <div className="minimap-map-wrapper"></div>
+        {layerSelect}
         {distanceLabel}
         {legend}
       </div>
