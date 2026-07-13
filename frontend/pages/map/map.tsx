@@ -15,6 +15,14 @@ const ORTHO_TILES = [1, 2, 3, 4].map(
   (i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`,
 );
 
+// Transparent WMS overlay (geoportail public_map_layers, layer 351) drawn on top of the
+// ortho basemap. Served as WMS 1.3.0 GetMap; maplibre expands {bbox-epsg-3857} per tile.
+const ORTHO_OVERLAY_TILES = [
+  'https://wms.geoportail.lu/public_map_layers/service?REQUEST=GetMap&SERVICE=WMS&VERSION=1.3.0' +
+    '&FORMAT=image%2Fpng&STYLES=&TRANSPARENT=TRUE&LAYERS=351&WIDTH=256&HEIGHT=256' +
+    '&CRS=EPSG%3A3857&BBOX={bbox-epsg-3857}',
+];
+
 // Single credit shown in the map (data + basemap + ortho all come from geoportail).
 const ATTRIBUTION = '<a href="https://www.geoportail.lu" target="_blank" rel="noopener">© geoportail.lu</a>';
 
@@ -44,6 +52,7 @@ export class MapPage extends HTMLElement {
     if (!this.map?.getLayer('osm')) return;
     this.map.setLayoutProperty('osm', 'visibility', value === 'osm' ? 'visible' : 'none');
     this.map.setLayoutProperty('ortho', 'visibility', value === 'ortho' ? 'visible' : 'none');
+    this.map.setLayoutProperty('ortho-overlay', 'visibility', value === 'ortho' ? 'visible' : 'none');
   }
 
   connectedCallback() {
@@ -86,6 +95,9 @@ export class MapPage extends HTMLElement {
 
       this.map.addSource('ortho', { type: 'raster', tiles: ORTHO_TILES, tileSize: 256, maxzoom: 19 });
       this.map.addLayer({ id: 'ortho', type: 'raster', source: 'ortho', layout: { visibility: 'none' } });
+
+      this.map.addSource('ortho-overlay', { type: 'raster', tiles: ORTHO_OVERLAY_TILES, tileSize: 256 });
+      this.map.addLayer({ id: 'ortho-overlay', type: 'raster', source: 'ortho-overlay', layout: { visibility: 'none' } });
 
       this.map.addSource('points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       this.map.addLayer({
