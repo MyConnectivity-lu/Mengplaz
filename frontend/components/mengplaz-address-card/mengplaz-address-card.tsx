@@ -167,8 +167,9 @@ export class MengplazAddressCard extends HTMLElement {
     switch (sourceName) {
       case 'OSM': {
         const id = (record as any).id;
+        const kind = (record as gc.OSMFullRecord).kind
         if (id != null && id !== '') {
-          return `https://www.openstreetmap.org/node/${id}`;
+          return `https://www.openstreetmap.org/${kind || "node"}/${id}`;
         }
         return null;
       }

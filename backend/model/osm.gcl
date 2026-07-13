@@ -66,6 +66,7 @@ type OsmPartialAddress {
     }
 }
 
+
 @volatile
 type OSMFullRecord {
     id: String;
@@ -81,6 +82,9 @@ type OSMFullRecord {
 
     deprecated: bool?;
     lastSeenAt: time?;
+
+    id_caclr: String?;
+    kind: String?;
 }
 
 type OsmAddress extends POIRecordProvider {
@@ -92,7 +96,7 @@ type OsmAddress extends POIRecordProvider {
     private number: String;
     private ref_caclr: String?;
     private building: String?;
-    private kind: String?;
+    kind: String?;
 
     streetRef: node<OsmStreet>?;
 
@@ -200,6 +204,8 @@ type OsmAddress extends POIRecordProvider {
             goldenRef: this.goldenRef,
             deprecated: this.deprecated,
             lastSeenAt: this.lastSeenAt,
+            id_caclr: this.ref_caclr,
+            kind: this.kind
         };
     }
 

@@ -82,12 +82,16 @@ abstract type OSMLoader {
                                 ref_caclr: parsed.ref_caclr,
                                 building: parsed.building,
                                 streetRef: nStreet,
+                                kind: parsed.kind
                             }
                         };
                         nAddr->indexing(nAddr);
                         info(
                             "Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}"
                         );
+                    }
+                    if (nAddr->kind == null && parsed.kind != null) {
+                        nAddr->kind = parsed.kind;
                     }
                     nAddr->lastSeenAt = time::now();
                 } catch (e) {
@@ -98,12 +102,12 @@ abstract type OSMLoader {
                     if (addr.position != null) {
                         osm_partial_by_geo.set(addr.position, nAddr);
                     }
-                    //warn("Could not parse: ${elem}\n${e}");
+                    warn("Could not parse: ${elem}\n${e}");
                 }
             }
             info("Parsed ${(osm_by_id).size()} addresses.");
             info("Parsed ${(osm_partial_by_id).size()} partial addresses.");
-            info("Issues ${issues}.");
+            // info("Issues ${issues}.");
             return true;
         } else {
             error(response);
