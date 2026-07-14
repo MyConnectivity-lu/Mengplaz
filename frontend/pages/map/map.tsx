@@ -23,8 +23,10 @@ const ORTHO_OVERLAY_TILES = [
     '&CRS=EPSG%3A3857&BBOX={bbox-epsg-3857}',
 ];
 
-// Single credit shown in the map (data + basemap + ortho all come from geoportail).
-const ATTRIBUTION = '<a href="https://www.geoportail.lu" target="_blank" rel="noopener">© geoportail.lu</a>';
+// Credit for the geoportail basemap, orthophoto and cadastral layers (all served by the
+// Administration du cadastre et de la topographie via geoportail.lu).
+const ATTRIBUTION =
+  '&copy; <a href="https://www.geoportail.lu" target="_blank" rel="noopener">geoportail.lu</a> / Administration du cadastre et de la topographie';
 
 export class MapPage extends HTMLElement {
   private map!: maplibregl.Map;
@@ -40,17 +42,15 @@ export class MapPage extends HTMLElement {
       <sl-select size="medium" value="vector" hoist onsl-change={(e: Event) => this.setBasemap((e.target as any).value)}>
         <sl-option value="vector">Geoportail Carte</sl-option>
         <sl-option value="ortho">Geoportail Orthophoto 2025</sl-option>
-        <sl-option value="osm">OpenStreetMap</sl-option>
       </sl-select>
     ) as HTMLElement;
   }
 
-  // Switch the active basemap: 'vector' (geoportail style), 'osm' raster, or 'ortho' raster.
-  // The two raster layers sit above the vector style and below the POI layers; showing one
-  // opaque raster effectively replaces the basemap.
+  // Switch the active basemap: 'vector' (geoportail style) or 'ortho' raster.
+  // The ortho raster layer sits above the vector style and below the POI layers; showing
+  // the opaque raster effectively replaces the basemap.
   private setBasemap(value: string) {
-    if (!this.map?.getLayer('osm')) return;
-    this.map.setLayoutProperty('osm', 'visibility', value === 'osm' ? 'visible' : 'none');
+    if (!this.map?.getLayer('ortho')) return;
     this.map.setLayoutProperty('ortho', 'visibility', value === 'ortho' ? 'visible' : 'none');
     this.map.setLayoutProperty('ortho-overlay', 'visibility', value === 'ortho' ? 'visible' : 'none');
   }
@@ -82,17 +82,8 @@ export class MapPage extends HTMLElement {
     this.map.on('load', async () => {
       this.map.resize();
 
-      // Alternate basemaps as raster layers, above the vector style but below the POI
-      // layers. Both hidden by default (vector basemap shown); the select toggles them.
-      this.map.addSource('osm', {
-        type: 'raster',
-        tiles: ['a', 'b', 'c'].map((s) => `https://${s}.tile.openstreetmap.org/{z}/{x}/{y}.png`),
-        tileSize: 256,
-        maxzoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
-      });
-      this.map.addLayer({ id: 'osm', type: 'raster', source: 'osm', layout: { visibility: 'none' } });
-
+      // Alternate ortho basemap as a raster layer, above the vector style but below the POI
+      // layers. Hidden by default (vector basemap shown); the select toggles it.
       this.map.addSource('ortho', { type: 'raster', tiles: ORTHO_TILES, tileSize: 256, maxzoom: 19 });
       this.map.addLayer({ id: 'ortho', type: 'raster', source: 'ortho', layout: { visibility: 'none' } });
 

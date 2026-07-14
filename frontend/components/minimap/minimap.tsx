@@ -20,6 +20,11 @@ const ORTHO_OVERLAY_TILES = [
     '&CRS=EPSG%3A3857&BBOX={bbox-epsg-3857}',
 ];
 
+// Credit for the geoportail orthophoto and cadastral layers (Administration du cadastre
+// et de la topographie via geoportail.lu).
+const GEOPORTAIL_ATTRIBUTION =
+  '&copy; <a href="https://www.geoportail.lu" target="_blank" rel="noopener">geoportail.lu</a> / Administration du cadastre et de la topographie';
+
 export class MiniMap extends HTMLElement {
   golden?: gc.geo;
   source?: gc.geo | null;
@@ -27,44 +32,31 @@ export class MiniMap extends HTMLElement {
   locations?: Map<string, gc.geo>;
 
   private map: GuiMap;
-  private mlMap?: maplibregl.Map;
   private markers: maplibregl.Marker[] = [];
 
   constructor() {
     super();
     this.map = document.createElement('gui-map');
     this.map.options = {
-      attributionControl: false,
+      attributionControl: { compact: true },
       style: {
         version: 8,
         sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors',
-            maxzoom: 19,
-          },
           ortho: {
             type: 'raster',
             tiles: ORTHO_TILES,
             tileSize: 256,
             maxzoom: 19,
+            attribution: GEOPORTAIL_ATTRIBUTION,
           },
           'ortho-overlay': {
             type: 'raster',
             tiles: ORTHO_OVERLAY_TILES,
             tileSize: 256,
+            attribution: GEOPORTAIL_ATTRIBUTION,
           },
         },
-        // Ortho on top of osm; the select toggles visibility. Ortho visible by default.
         layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm',
-            layout: { visibility: 'none' },
-          },
           {
             id: 'ortho',
             type: 'raster',
@@ -85,20 +77,10 @@ export class MiniMap extends HTMLElement {
     };
   }
 
-  // Toggle basemap raster layers: 'ortho' (default) or 'osm'.
-  private setBasemap(value: string) {
-    const m = this.mlMap;
-    if (!m?.getLayer('osm')) return;
-    m.setLayoutProperty('osm', 'visibility', value === 'osm' ? 'visible' : 'none');
-    m.setLayoutProperty('ortho', 'visibility', value === 'ortho' ? 'visible' : 'none');
-    m.setLayoutProperty('ortho-overlay', 'visibility', value === 'ortho' ? 'visible' : 'none');
-  }
-
   connectedCallback() {
     this.render();
     this.map.style.height = '200px';
     this.map.ready.then((m) => {
-      this.mlMap = m as unknown as maplibregl.Map;
       type Point = { label: string; geo: gc.geo; color: string };
       const points: Point[] = [];
       if (this.golden) points.push({ label: 'Golden', geo: this.golden, color: MASTER_COLOR });
@@ -230,19 +212,9 @@ export class MiniMap extends HTMLElement {
       </div>
     );
 
-    const layerSelect = (
-      <div className="minimap-layer-control">
-        <sl-select size="small" value="ortho" hoist onsl-change={(e: Event) => this.setBasemap((e.target as any).value)}>
-          <sl-option value="ortho">Orthophoto</sl-option>
-          <sl-option value="osm">OpenStreetMap</sl-option>
-        </sl-select>
-      </div>
-    );
-
     const content = (
       <div className="minimap-container">
         <div className="minimap-map-wrapper"></div>
-        {layerSelect}
         {distanceLabel}
         {legend}
       </div>
