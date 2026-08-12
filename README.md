@@ -88,9 +88,18 @@ Show your appreciation to those who have contributed to the project.
 
 ## License
 ## **📜 License**
-MengPlaz is licensed under the **[MIT License](https://opensource.org/licenses/MIT)**.
 
-> For the full license text, see the [`LICENSE`](LICENSE) file in the project root.
+### Source code
+The MengPlaz **source code** (everything under `backend/` and `frontend/`) is licensed under the **[MIT License](https://opensource.org/licenses/MIT)**.
+
+> For the full license text, see the [`LICENSE`](LICENSE) file in the project root. The MIT License covers the software only, not the data it processes.
+
+### Data & attribution
+The address data is built in part from **[OpenStreetMap](https://www.openstreetmap.org/copyright)** (imported via [`backend/edi/osmLoader.gcl`](backend/edi/osmLoader.gcl)), which is licensed under the **[Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/)**. Any use of the data must credit:
+
+> Address data © OpenStreetMap contributors, licensed under the ODbL.
+
+This credit is surfaced in the map UI (attribution control), via the public `attribution` API endpoint, and per-record via source links. Other sources (CACLR, geoportail layers) are CC0.
 
 ## Project status
 **🚀 Actively Maintained**

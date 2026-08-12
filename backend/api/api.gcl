@@ -272,12 +272,38 @@ fn getGoldenRecordsGeoJson(): GeoJSON {
     return GeoJSON { type: "FeatureCollection", features: features };
 }
 
+@volatile
+type DataAttribution {
+    /// Required notice for the data served by this API.
+    notice: String;
+    /// Per-source credit lines.
+    sources: Array<String>;
+}
+
+/// Attribution notice for the data exposed by this API.
+///
+/// The address data is derived in part from OpenStreetMap and is therefore subject to the
+/// ODbL (Open Database License). This notice satisfies the ODbL attribution requirement for
+/// data conveyed via the API.
+@expose
+@permission("public")
+@tag("openapi")
+fn attribution(): DataAttribution {
+    return DataAttribution {
+        notice: "Address data © OpenStreetMap contributors, licensed under the ODbL (https://opendatacommons.org/licenses/odbl/1-0/). See https://www.openstreetmap.org/copyright.",
+        sources: Array<String> {
+            "OpenStreetMap contributors — ODbL (https://www.openstreetmap.org/copyright)",
+            "CACLR — Administration du cadastre et de la topographie (CC0)",
+        },
+    };
+}
+
 @expose
 @permission("public")
 fn openapi() {
     var ts = Traffic_Service::start(openapi);
     var oa = OpenApi::v3();
-    oa.info.title = "MengPlaz";
+    oa.info.title = "MengPlaz — Address data © OpenStreetMap contributors (ODbL), see /attribution";
     oa.info.version = Runtime::info().program_version ?? "";
     ts.end();
     return oa;

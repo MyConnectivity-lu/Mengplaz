@@ -28,6 +28,12 @@ const ORTHO_OVERLAY_TILES = [
 const ATTRIBUTION =
   '&copy; <a href="https://www.geoportail.lu" target="_blank" rel="noopener">geoportail.lu</a> / Administration du cadastre et de la topographie';
 
+// Required ODbL attribution: the address points displayed are derived in part from
+// OpenStreetMap data (see backend/edi/osmLoader.gcl). Shown even though the map tiles are
+// not OSM, because the *data* on the map is OSM-derived.
+const OSM_DATA_ATTRIBUTION =
+  'Address data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL)';
+
 export class MapPage extends HTMLElement {
   private map!: maplibregl.Map;
   private mapContainer: HTMLDivElement;
@@ -71,7 +77,7 @@ export class MapPage extends HTMLElement {
       style: GEOPORTAIL_STYLE,
       center: gc.core.geo.fromLatLng(49.8, 6.12),
       zoom: 9,
-      attributionControl: { compact: true, customAttribution: ATTRIBUTION },
+      attributionControl: { compact: true, customAttribution: [ATTRIBUTION, OSM_DATA_ATTRIBUTION] },
       // Lock panning to Luxembourg bounding box + ~100km margin (~0.9° lat, ~1.4° lng @50°N)
       maxBounds: [
         [4.336, 48.548],

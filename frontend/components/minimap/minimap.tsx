@@ -25,6 +25,10 @@ const ORTHO_OVERLAY_TILES = [
 const GEOPORTAIL_ATTRIBUTION =
   '&copy; <a href="https://www.geoportail.lu" target="_blank" rel="noopener">geoportail.lu</a> / Administration du cadastre et de la topographie';
 
+// Required ODbL attribution: plotted locations may be derived from OpenStreetMap data.
+const OSM_DATA_ATTRIBUTION =
+  'Address data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL)';
+
 export class MiniMap extends HTMLElement {
   golden?: gc.geo;
   source?: gc.geo | null;
@@ -38,7 +42,7 @@ export class MiniMap extends HTMLElement {
     super();
     this.map = document.createElement('gui-map');
     this.map.options = {
-      attributionControl: { compact: true },
+      attributionControl: { compact: true, customAttribution: OSM_DATA_ATTRIBUTION },
       style: {
         version: 8,
         sources: {
