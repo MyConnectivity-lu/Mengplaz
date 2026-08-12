@@ -12,7 +12,7 @@ fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
-    Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
+    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
     Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, PeriodicOptions { immediate: false });
 
     Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 20 }, PeriodicOptions { immediate: false });
@@ -37,14 +37,14 @@ fn bootstrap() {
     GoldenSource::init();
 
     try {
-        GoldenLoader::loadAll();
+        BackupImporter::importAll();
     } catch (err) {
-        error("Load From Dumped Data Failed : ${err.message}");
+        error("Restore From Backup Failed : ${err.message}");
     }
 }
 
 fn dump() {
-    GoldenExporter::exportAll();
+    BackupExporter::exportAll();
 }
 
 private fn createAdmin() {
@@ -101,5 +101,3 @@ fn loadCaclr() {
 }
 
 
-@expose
-fn tmp_up() {}
