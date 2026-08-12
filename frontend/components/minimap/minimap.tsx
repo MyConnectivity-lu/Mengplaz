@@ -85,6 +85,10 @@ export class MiniMap extends HTMLElement {
     this.render();
     this.map.style.height = '200px';
     this.map.ready.then((m) => {
+      // Collapse the attribution box to the compact "i" button, like the main map.
+      const attc = (m as any)._controls?.find((c: unknown) => c instanceof maplibregl.AttributionControl);
+      attc?._updateCompactMinimize?.();
+
       type Point = { label: string; geo: gc.geo; color: string };
       const points: Point[] = [];
       if (this.golden) points.push({ label: 'Golden', geo: this.golden, color: MASTER_COLOR });

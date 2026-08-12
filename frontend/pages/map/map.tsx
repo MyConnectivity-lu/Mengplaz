@@ -144,7 +144,7 @@ export class MapPage extends HTMLElement {
         const coordinates = e.features[0].geometry.coordinates.slice();
         const coords = e.features[0].properties.coords;
         const record = await gc.api.getPoisByGeo(gc.geo.create(BigInt(coords)));
-        new maplibregl.Popup()
+        new maplibregl.Popup({ anchor: 'right' })
           .setLngLat(coordinates)
           .setDOMContent(<mengplaz-address-card value={record ?? undefined} showGoTo />)
           .addTo(this.map);
@@ -156,7 +156,7 @@ export class MapPage extends HTMLElement {
 
         const record = await gc.api.getPoisByGeo(gc.geo.create(BigInt(coords)));
 
-        new maplibregl.Popup()
+        new maplibregl.Popup({ anchor: 'right' })
           .setLngLat(coordinates)
           .setDOMContent(<mengplaz-address-card value={record ?? undefined} showGoTo />)
           .addTo(this.map);
@@ -179,7 +179,7 @@ export class MapPage extends HTMLElement {
     const loc = r.record.primaryLocation;
     if (loc != null) {
       this.map.flyTo({ center: [loc.lng, loc.lat], zoom: 18 });
-      new maplibregl.Popup()
+      new maplibregl.Popup({ anchor: 'right' })
         .setLngLat([loc.lng, loc.lat])
         .setDOMContent(<mengplaz-address-card value={r} showGoTo />)
         .addTo(this.map);
