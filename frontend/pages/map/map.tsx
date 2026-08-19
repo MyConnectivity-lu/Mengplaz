@@ -1,3 +1,4 @@
+import '../../common/maplibre-worker';
 import { AttributionControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import * as maplibregl from 'maplibre-gl';

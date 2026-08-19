@@ -1,3 +1,4 @@
+import '../../common/maplibre-worker';
 import { GuiMap } from '@greycat/web';
 import * as maplibregl from 'maplibre-gl';
 import { calculateDistance, colorForKey, formatDistance } from '~/common/utils';
