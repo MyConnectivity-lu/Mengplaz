@@ -27,7 +27,7 @@ export class CompletionMessage extends HTMLElement {
         <h3>All Records Reviewed</h3>
         <p>All records in "{this._category}" have been reviewed.</p>
         <p>Switch to another tab to continue reviewing.</p>
-      </div>
+      </div>,
     );
   }
 }

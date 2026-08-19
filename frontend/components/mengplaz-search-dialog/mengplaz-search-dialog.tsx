@@ -1,4 +1,4 @@
-import { sl } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 import './mengplaz-search-dialog.css';
 
 export interface SearchSelectEvent {
@@ -42,14 +42,14 @@ export class MengplazSearchDialog extends HTMLElement {
 
     this.searchInput.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
-        this.performSearch();
+        void this.performSearch();
       }
     });
   }
 
   show(): Promise<gc.mengplaz.POIRecordRef | undefined> {
     this.reset();
-    this.dialog.show();
+    void this.dialog.show();
     return new Promise((resolve) => {
       const handleHide = () => {
         this.dialog.removeEventListener('sl-after-hide', handleHide);
@@ -108,7 +108,7 @@ export class MengplazSearchDialog extends HTMLElement {
       composed: true,
     });
     this.dispatchEvent(event);
-    this.dialog.hide();
+    void this.dialog.hide();
   }
 
   private goBack() {

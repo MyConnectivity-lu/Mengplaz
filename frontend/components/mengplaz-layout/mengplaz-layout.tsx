@@ -4,13 +4,13 @@ import '../../pages/reconcile/reconcile';
 import '../../pages/index/index';
 import '../../pages/quality-history/quality-history';
 import '../../components/mengplaz-comparator/mengplaz-comparator';
-import { sl } from '@greycat/web';
+import * as sl from '@shoelace-style/shoelace';
 import './mengplaz-layout.css';
 import { applyTheme, getQueryParam, setupTheme } from '../../common/utils';
 
 export class MengplazLayout extends HTMLElement {
   private main: HTMLElement;
-  private user?: gc.runtime.User;
+  private user?: gc.runtime.Identity;
   private runtimeInfo?: gc.RuntimeInfo;
 
   constructor() {
@@ -19,7 +19,7 @@ export class MengplazLayout extends HTMLElement {
   }
 
   connectedCallback() {
-    this.render();
+    void this.render();
   }
 
   disconnectedCallback() {}
@@ -117,7 +117,7 @@ export class MengplazLayout extends HTMLElement {
     this._navigationHandler();
     const currentPage = getQueryParam('page') ?? 'map';
     this.changePage(currentPage);
-    this.user = await gc.User.me();
+    this.user = await gc.runtime.Identity.current();
     this.runtimeInfo = await gc.appInfo();
 
     let rootLayout = (
@@ -229,13 +229,14 @@ export class MengplazLayout extends HTMLElement {
   }
 
   private _navigationHandler() {
-    const { pushState, replaceState } = history;
+    const pushState = history.pushState.bind(history);
+    const replaceState = history.replaceState.bind(history);
     history.pushState = (...args) => {
-      pushState.apply(history, args);
+      pushState(...args);
       this._pageHandler();
     };
-    history.replaceState = function (...args) {
-      replaceState.apply(this, args);
+    history.replaceState = (...args) => {
+      replaceState(...args);
     };
 
     addEventListener('popstate', () => {

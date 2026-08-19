@@ -1,4 +1,5 @@
-import { GuiSelect, GuiOption, sl, toast } from '@greycat/web';
+import { GuiSelect, GuiOption, toast } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 
 import '../../components/reconcilation/reconcile-pane/reconcile-pane';
 import { ReconcilePane } from '../../components/reconcilation/reconcile-pane/reconcile-pane';
@@ -213,25 +214,25 @@ export class ReconcilePage extends HTMLElement {
       }
       this.addressSearch.source = this.sourceSelect.value?.name;
       this.warnIfOsmWithMunicipality();
-      this.updateLocalReconciliationReport();
+      void this.updateLocalReconciliationReport();
     });
 
     this.citySelect = new GuiSelect();
     this.citySelect.placeholder = 'Filter by golden cities';
     this.citySelect.nullable = true;
     this.citySelect.addEventListener('gui-change', () => {
-      this.updateLocalReconciliationReport();
+      void this.updateLocalReconciliationReport();
     });
 
     this.municipalitySelect = new GuiSelect();
     this.municipalitySelect.placeholder = 'Filter by golden Municipalities';
     this.municipalitySelect.nullable = true;
     this.municipalitySelect.addEventListener('gui-input', () => {
-      gc.api.getGoldenLocalities(this.municipalitySelect.value ?? null).then((d) => {
+      void gc.api.getGoldenLocalities(this.municipalitySelect.value ?? null).then((d) => {
         this.citySelect.options = d.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
       });
       this.warnIfOsmWithMunicipality();
-      this.updateLocalReconciliationReport();
+      void this.updateLocalReconciliationReport();
     });
 
     this.reconcileButton = (<sl-button onclick={() => this.reconcile()}>Reconcile</sl-button>) as sl.SlButton;
@@ -257,7 +258,7 @@ export class ReconcilePage extends HTMLElement {
       this.handlePromote((e as CustomEvent<RequestPromoteEvent>).detail);
     });
     this.addEventListener('request-reconcile', (e: Event) => {
-      this.handleReconcile((e as CustomEvent<RequestReconcileEvent>).detail);
+      void this.handleReconcile((e as CustomEvent<RequestReconcileEvent>).detail);
     });
 
     this.renderShell();
@@ -431,7 +432,7 @@ export class ReconcilePage extends HTMLElement {
       }
 
       // Wait for sl-tab-group's Lit render to complete before calling show()
-      this.tabGroup.updateComplete.then(() => {
+      void this.tabGroup.updateComplete.then(() => {
         this.tabGroup?.show(initialTab!);
       });
     }
@@ -505,7 +506,7 @@ export class ReconcilePage extends HTMLElement {
       this.panes[result.config.key]!.currentIndex = result.index;
       this.updateUrlState(result.config.key, id);
     } else {
-      toast.notify({ message: `Record "${id}" not found`, variant: 'warning', duration: 3000, icon: 'exclamation-triangle' });
+      void toast.notify({ message: `Record "${id}" not found`, variant: 'warning', duration: 3000, icon: 'exclamation-triangle' });
     }
   }
 
@@ -523,11 +524,11 @@ export class ReconcilePage extends HTMLElement {
   private handleLink(detail: RequestLinkEvent) {
     this.confirm.text = 'Are you sure you want to link this record to the Golden record?';
     this.confirm.showLinkParams = true;
-    this.confirm.show().then((result) => {
+    void this.confirm.show().then((result) => {
       if (result.confirmed) {
         gc.linkRecords(detail.sourceRecord, detail.goldenCandidate, result.params)
           .then(() => {
-            toast.notify({ message: 'Records linked!', variant: 'primary', duration: 3000, icon: 'check2-circle' });
+            void toast.notify({ message: 'Records linked!', variant: 'primary', duration: 3000, icon: 'check2-circle' });
             if (!this.reconciliationReport) return;
             if (result.params.updateSimilarStreetMismatch) {
               this.reloadWithState(this.currentTab, this.sourceSelect.value.name);
@@ -562,7 +563,7 @@ export class ReconcilePage extends HTMLElement {
             }
           })
           .catch(() => {
-            toast.notify({ message: 'An error occurred while linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+            void toast.notify({ message: 'An error occurred while linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
           });
       }
     });
@@ -571,11 +572,11 @@ export class ReconcilePage extends HTMLElement {
   private handlePromote(detail: RequestPromoteEvent) {
     if (!detail.sourceRecord) return;
     this.promote.value = detail.sourceRecord;
-    this.promote.show().then((res) => {
+    void this.promote.show().then((res) => {
       if (res && detail.sourceRecord.ref) {
         gc.promoteRecord(detail.sourceRecord.ref, res)
           .then(() => {
-            toast.notify({ message: 'Record Promoted', variant: 'primary', duration: 3000, icon: 'check2-circle' });
+            void toast.notify({ message: 'Record Promoted', variant: 'primary', duration: 3000, icon: 'check2-circle' });
             if (!this.reconciliationReport) return;
 
             const sourceTab = this.currentTab;
@@ -605,7 +606,12 @@ export class ReconcilePage extends HTMLElement {
             }
           })
           .catch(() => {
-            toast.notify({ message: 'An error occurred while promoting record.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+            void toast.notify({
+              message: 'An error occurred while promoting record.',
+              variant: 'danger',
+              duration: 3000,
+              icon: 'exclamation-circle',
+            });
           });
       }
     });
@@ -624,13 +630,14 @@ export class ReconcilePage extends HTMLElement {
       await gc.lockDatasource(this.sourceSelect.value.name);
 
       if (isBulk) {
-        await gc.$.default.spawn('privateApi::reconcilePOIs', [this.sourceSelect.value.name, detail.pois, this.searchParams]);
+        await gc.privateApi.reconcilePOIs.spawn(this.sourceSelect.value.name, detail.pois, this.searchParams);
 
         // Full page reload for bulk reconcile
         this.reloadWithState(this.currentTab, detail.sourceRecordId);
       } else {
-        await gc.$.default.spawnAwait('privateApi::reconcilePOIs', [this.sourceSelect.value.name, detail.pois, this.searchParams]);
-        toast.notify({ message: `Reconciled ${detail.pois.length} record(s)`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+        // typed equivalent of `spawnAwait`: spawn the task, then await its completion
+        await gc.$.default.await(await gc.privateApi.reconcilePOIs.spawn(this.sourceSelect.value.name, detail.pois, this.searchParams));
+        void toast.notify({ message: `Reconciled ${detail.pois.length} record(s)`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
 
         // Single record: find its new tab and navigate there
         const recordId = detail.pois[0];
@@ -659,7 +666,7 @@ export class ReconcilePage extends HTMLElement {
         }
       }
     } catch (_) {
-      toast.notify({ message: 'An error occurred while reconciling records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+      void toast.notify({ message: 'An error occurred while reconciling records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
     }
   }
 
@@ -683,12 +690,12 @@ export class ReconcilePage extends HTMLElement {
     if (!this.reconciliationReport) return;
     this.confirm.text = 'Are you sure you want to merge all linked records positions into their GoldenRecords?';
     this.confirm.showLinkParams = false;
-    this.confirm.show().then((result) => {
+    void this.confirm.show().then((result) => {
       if (result.confirmed) {
-        gc.$.default
-          .call('privateApi::mergePositionsToGolden', [this.reconciliationReport!.source, this.reconciliationReport!.linked])
+        gc.privateApi
+          .mergePositionsToGolden(this.reconciliationReport!.source, this.reconciliationReport!.linked)
           .then(() => {
-            toast.notify({ message: 'Positions added to linked Golden Records.', variant: 'primary', duration: 3000, icon: 'check2-circle' });
+            void toast.notify({ message: 'Positions added to linked Golden Records.', variant: 'primary', duration: 3000, icon: 'check2-circle' });
             // Refresh current pane by re-triggering load
             const pane = this.panes['Linked'];
             if (pane) {
@@ -697,7 +704,12 @@ export class ReconcilePage extends HTMLElement {
             }
           })
           .catch(() => {
-            toast.notify({ message: 'An error occurred while merging positions.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+            void toast.notify({
+              message: 'An error occurred while merging positions.',
+              variant: 'danger',
+              duration: 3000,
+              icon: 'exclamation-circle',
+            });
           });
       }
     });
@@ -707,16 +719,16 @@ export class ReconcilePage extends HTMLElement {
     if (!this.reconciliationReport) return;
     this.confirm.text = `Are you sure you want to link ${this.reconciliationReport.fullMatch.length} items to their matched Golden record?`;
     this.confirm.showLinkParams = false;
-    this.confirm.show().then((result) => {
+    void this.confirm.show().then((result) => {
       if (result.confirmed) {
-        gc.$.default
-          .call('privateApi::linkAllFullMatched', [this.reconciliationReport!.source, this.reconciliationReport!.fullMatch])
+        gc.privateApi
+          .linkAllFullMatched(this.reconciliationReport!.source, this.reconciliationReport!.fullMatch)
           .then(() => {
-            toast.notify({ message: 'All matched records linked.', variant: 'primary', duration: 3000, icon: 'check2-circle' });
+            void toast.notify({ message: 'All matched records linked.', variant: 'primary', duration: 3000, icon: 'check2-circle' });
             this.reloadWithState('Linked');
           })
           .catch(() => {
-            toast.notify({ message: 'An error occurred while linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+            void toast.notify({ message: 'An error occurred while linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
           });
       }
     });
@@ -728,7 +740,7 @@ export class ReconcilePage extends HTMLElement {
     if (!config) return;
     const ids = config.getRecordIds(this.reconciliationReport);
     if (ids.length === 0) return;
-    this.handleReconcile({ pois: [...ids] });
+    void this.handleReconcile({ pois: [...ids] });
   }
 
   private buildBatchLinkControl(): HTMLElement {
@@ -748,7 +760,7 @@ export class ReconcilePage extends HTMLElement {
     if (params == null) return;
 
     try {
-      const count = await gc.$.default.call('privateApi::batchLinkByScore', [
+      const count = await gc.privateApi.batchLinkByScore(
         source,
         params.globalScore,
         params.geoScore,
@@ -756,17 +768,17 @@ export class ReconcilePage extends HTMLElement {
         params.streetScore,
         params.numberScore,
         params.postcodeScore,
-      ]);
-      toast.notify({ message: `Batch linked ${count} record(s).`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
-      this.updateLocalReconciliationReport();
+      );
+      void toast.notify({ message: `Batch linked ${count} record(s).`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+      void this.updateLocalReconciliationReport();
     } catch (_) {
-      toast.notify({ message: 'An error occurred while batch linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+      void toast.notify({ message: 'An error occurred while batch linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
     }
   }
 
   private warnIfOsmWithMunicipality() {
     if (this.sourceSelect.value?.name === 'OSM' && this.municipalitySelect.value) {
-      toast.notify({
+      void toast.notify({
         message: 'OSM source has no municipalities, only cities. Municipality filter will return no results.',
         variant: 'warning',
         duration: 5000,
@@ -791,8 +803,8 @@ export class ReconcilePage extends HTMLElement {
           this.reconciliationReport = undefined;
           this.renderReport();
         }
-      } catch (e) {
-        toast.notify({
+      } catch (_) {
+        void toast.notify({
           message: 'An error occurred while generating reconciliation report.',
           duration: 3000,
           icon: 'check2-circle',
@@ -812,10 +824,10 @@ export class ReconcilePage extends HTMLElement {
     this.searchParams = result;
     try {
       await gc.lockDatasource(this.sourceSelect.value.name);
-      gc.$.default.spawn('privateApi::reconcile', [this.sourceSelect.value.name, this.searchParams]);
+      void gc.privateApi.reconcile.spawn(this.sourceSelect.value.name, this.searchParams);
       this.startReconcilePolling();
     } catch (_) {
-      toast.notify({
+      void toast.notify({
         message: 'An error occurred while starting reconciliation.',
         duration: 3000,
         icon: 'exclamation-circle',

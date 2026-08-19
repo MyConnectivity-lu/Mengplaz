@@ -122,7 +122,7 @@ type GoldenSource extends DataSource {
         return streets;
     }
 
-    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+    fn findStreetsByName(road: String, _max: int, distanceThreshold: int): Array<ScoredStreet> {
         var streets = Array<ScoredStreet> {};
         var exact = golden_streets_by_name.get(road);
         if (exact != null) {
@@ -334,12 +334,10 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     quality: nodeTime<QualityEvent>;
 
-    @permission("admin")
-    fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
+    fn linkToGolden(_nGolden: node<GoldenPointOfInterest>) {
         //NOOP
     }
 
-    @permission("admin")
     fn unlinkGolden() {
         //NOOP
     }
@@ -352,7 +350,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return this.toMengplazRecord();
     }
 
-    fn promoteToGolden(record: node<POIRecordProvider>) {
+    fn promoteToGolden(_record: node<POIRecordProvider>) {
         throw "Record is already Golden, it can't be promoted";
     }
 
@@ -388,7 +386,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return this.uid;
     }
 
-    fn toSearchItem() {};
+    fn toSearchItem() {}
 
     fn getSourceName(): String {
         return GoldenSource::NAME;

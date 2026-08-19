@@ -54,9 +54,9 @@ export class MengplazAddressCard extends HTMLElement {
   private unlinkClicked() {
     this.confirm.text = 'Are you sure you want to unlink this record ?';
     this.confirm.showLinkParams = false;
-    this.confirm.show().then((result) => {
+    void this.confirm.show().then((result) => {
       if (result.confirmed) {
-        gc.unlinkRecord(this._value!.ref).then(() => {
+        void gc.unlinkRecord(this._value!.ref).then(() => {
           this.dispatchEvent(new CustomEvent('update', { bubbles: true }));
         });
       }
@@ -65,9 +65,9 @@ export class MengplazAddressCard extends HTMLElement {
   private linkClicked() {
     this.confirm.text = 'Are you sure you want to link this item to the Golden record ?';
     this.confirm.showLinkParams = true;
-    this.confirm.show().then((result) => {
+    void this.confirm.show().then((result) => {
       if (result.confirmed) {
-        gc.linkRecords(this.showLink!, this._value!.ref, result.params);
+        void gc.linkRecords(this.showLink!, this._value!.ref, result.params);
       }
     });
   }
@@ -167,9 +167,9 @@ export class MengplazAddressCard extends HTMLElement {
     switch (sourceName) {
       case 'OSM': {
         const id = (record as any).id;
-        const kind = (record as gc.OSMFullRecord).kind
+        const kind = (record as gc.OSMFullRecord).kind;
         if (id != null && id !== '') {
-          return `https://www.openstreetmap.org/${kind || "node"}/${id}`;
+          return `https://www.openstreetmap.org/${kind || 'node'}/${id}`;
         }
         return null;
       }

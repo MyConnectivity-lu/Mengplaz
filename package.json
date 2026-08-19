@@ -1,24 +1,24 @@
 {
   "name": "@myconnectivity/mengplaz",
-  "private": true,
   "version": "1.1.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vp dev",
     "gen": "greycat codegen",
-    "build": "tsc && vite build",
-    "fmt": "prettier --write \"frontend/**/*.{js,jsx,ts,tsx}\"",
-    "lint": "oxlint ./frontend --max-warnings=0"
+    "build": "vp build",
+    "check": "vp check",
+    "fmt": "vp fmt",
+    "lint": "vp lint"
   },
   "dependencies": {
-    "@greycat/web": "https://get.greycat.io/files/sdk/web/stable/7.6/7.6.12-stable.tgz",
-    "maplibre-gl": "5.10.0"
+    "@greycat/web": "https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz",
+    "@shoelace-style/shoelace": "2.20.1",
+    "maplibre-gl": "6.4.1"
   },
   "devDependencies": {
-    "oxlint": "1.24.0",
-    "prettier": "3.6.2",
-    "typescript": "5.9.3",
-    "vite": "7.3.1"
+    "@types/node": "^26.1.1",
+    "vite-plus": "^0.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

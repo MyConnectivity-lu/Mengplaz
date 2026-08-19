@@ -243,7 +243,7 @@ type CaclrBuilding extends POIRecordProvider {
             newUID = GoldenServices::generateUID();
         } while (golden_pois_by_id.get(newUID) != null);
 
-        var ref = caclr_buildings_by_id.get(this.id)!!;
+        var _ref = caclr_buildings_by_id.get(this.id)!!;
 
         var nGoldenPOI = node<GoldenPointOfInterest> {
             GoldenPointOfInterest {
@@ -557,7 +557,7 @@ type CaclrSource extends DataSource {
         return streets;
     }
 
-    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+    fn findStreetsByName(road: String, _max: int, distanceThreshold: int): Array<ScoredStreet> {
         var streets = Array<ScoredStreet> {};
         var exact = caclr_streets_by_name.get(road);
         if (exact != null) {

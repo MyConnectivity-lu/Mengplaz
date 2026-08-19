@@ -455,7 +455,7 @@ type ReconciliationReportView {
 @expose
 @permission("admin")
 fn getReconciliationReport(source: node<DataSource>, city: String?, municipality: String?): ReconciliationReportView? {
-    var ts = Traffic_Service::start(getReconciliationReport).end();
+    var _ts = Traffic_Service::start(getReconciliationReport).end();
     var report = source->getReconciliationReport();
     if (report == null) {
         throw "Report not Found";
@@ -487,7 +487,7 @@ fn getReconciliationReport(source: node<DataSource>, city: String?, municipality
     }
     partialMatch.sort_by(ReconciliationReportMatchView::score, SortOrder::desc);
     var linked = Array<String> {};
-    for (key, value in report.linked) {
+    for (key, _ in report.linked) {
         if (municipality != null && key->getMunicipality() != municipality) {
             continue;
         }

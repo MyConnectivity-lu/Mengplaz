@@ -1,12 +1,10 @@
 @include("backend");
 
-@library("std", "7.8.175-stable");
-@library("explorer", "7.8.19-stable");
-@library("postal");
+@library("std", "8.1.150-stable");
+@library("explorer", "8.1.4-stable");
 
-@role("public", "files", "api");
+@role("public", "api");
 
-@format_line_width(180);
 
 fn main() {
     createAdmin();
@@ -49,22 +47,11 @@ fn dump() {
 
 private fn createAdmin() {
     var admLogin = System::getEnv("MENGPLAZ_ADMIN_LOGIN");
-    if (admLogin != null && User::getByName(admLogin) == null) {
-        var user = User {
-            id: 0,
-            name: admLogin,
-            full_name: "Administrator",
-            email: "admin@mengplaz.lu",
-            activated: true,
-            role: "admin",
-            external: false
-        };
-
-        var id = SecurityEntity::set(user); // for updates: get user and set again (name is the key)
-        if (id == null) {
-            throw "Unexpected error: user could not be created in Greycat";
-        } else {
-            User::setPassword(user.name, System::getEnv("MENGPLAZ_ADMIN_PASS") as String);
+    if (admLogin != null && Identity::get_by_name(admLogin) == null) {
+        // create is idempotent on the name: it returns the existing identity untouched
+        var user = Identity::create(admLogin, "admin");
+        if (!Identity::set_password(user.name, System::getEnv("MENGPLAZ_ADMIN_PASS") as String)) {
+            throw "Unexpected error: password could not be set for user '${user.name}'";
         }
         info("MengPlaz Admin user created.");
     }
@@ -99,5 +86,3 @@ fn loadCaclr() {
         error("CACLR Failed : ${err.message}");
     }
 }
-
-

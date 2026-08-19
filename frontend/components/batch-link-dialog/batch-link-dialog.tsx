@@ -1,4 +1,4 @@
-import { sl } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 
 const DEFAULT_SCORE = 99;
 const MIN_SCORE = 80;
@@ -16,11 +16,11 @@ interface OptionalScoreConfig {
 }
 
 const OPTIONAL_SCORES: OptionalScoreConfig[] = [
-  { key: 'geoScore', label: 'Geo score', def: 98, min: 90, max: 100 ,enabled : true},
-  { key: 'cityScore', label: 'Locality score', def: 95, min: 0, max: 100,enabled : false },
-  { key: 'streetScore', label: 'Street score', def: 95, min: 0, max: 100,enabled : false },
-  { key: 'numberScore', label: 'Number score', def: 99, min: 0, max: 100,enabled : true },
-  { key: 'postcodeScore', label: 'Postcode score', def: 99, min: 0, max: 100,enabled : true },
+  { key: 'geoScore', label: 'Geo score', def: 98, min: 90, max: 100, enabled: true },
+  { key: 'cityScore', label: 'Locality score', def: 95, min: 0, max: 100, enabled: false },
+  { key: 'streetScore', label: 'Street score', def: 95, min: 0, max: 100, enabled: false },
+  { key: 'numberScore', label: 'Number score', def: 99, min: 0, max: 100, enabled: true },
+  { key: 'postcodeScore', label: 'Postcode score', def: 99, min: 0, max: 100, enabled: true },
 ];
 
 export interface BatchLinkParams {
@@ -52,7 +52,7 @@ export class BatchLinkDialog extends HTMLElement {
     return new Promise<BatchLinkParams | null>((resolve) => {
       this.resolve = resolve;
       this.render();
-      this.dialog.show();
+      void this.dialog.show();
     });
   }
 
@@ -131,8 +131,8 @@ export class BatchLinkDialog extends HTMLElement {
       <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sl-spacing-large)' }}>
           <p style={{ color: 'var(--sl-color-neutral-500)', margin: '0' }}>
-            Reviews all reconciled records and links those whose best Golden candidate has an overall score greater than or equal to the value below. Enable any
-            additional score to further restrict which records get linked.
+            Reviews all reconciled records and links those whose best Golden candidate has an overall score greater than or equal to the value below.
+            Enable any additional score to further restrict which records get linked.
           </p>
           {this.scoreInput}
           {OPTIONAL_SCORES.map((cfg) => this.buildOptionalRow(cfg))}
@@ -142,7 +142,7 @@ export class BatchLinkDialog extends HTMLElement {
           variant="primary"
           onclick={() => {
             const score = this.getResult();
-            this.dialog.hide();
+            void this.dialog.hide();
             this.resolve?.(score);
           }}
         >
@@ -153,7 +153,7 @@ export class BatchLinkDialog extends HTMLElement {
           slot="footer"
           variant="default"
           onclick={() => {
-            this.dialog.hide();
+            void this.dialog.hide();
             this.resolve?.(null);
           }}
         >

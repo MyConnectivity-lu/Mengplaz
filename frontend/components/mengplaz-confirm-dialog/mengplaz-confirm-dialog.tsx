@@ -1,4 +1,4 @@
-import { sl } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 
 export interface LinkDialogResult {
   confirmed: boolean;
@@ -38,14 +38,18 @@ export class MengplazConfirmDialog extends HTMLElement {
   show(): Promise<LinkDialogResult> {
     return new Promise<LinkDialogResult>((resolve, _reject) => {
       this.resolve = resolve;
-      this.dialog.show();
+      void this.dialog.show();
     });
   }
 
   private getResult(confirmed: boolean): LinkDialogResult {
     return {
       confirmed,
-      params: new gc.privateApi.LinkParameters(this.addCityAliasCheckbox?.checked ?? false, this.addStreetAliasCheckbox?.checked ?? false, this.updateSimilarStreetMismatch?.checked ??false),
+      params: new gc.privateApi.LinkParameters(
+        this.addCityAliasCheckbox?.checked ?? false,
+        this.addStreetAliasCheckbox?.checked ?? false,
+        this.updateSimilarStreetMismatch?.checked ?? false,
+      ),
     };
   }
 
@@ -78,7 +82,7 @@ export class MengplazConfirmDialog extends HTMLElement {
           slot="footer"
           variant="warning"
           onclick={() => {
-            this.dialog.hide();
+            void this.dialog.hide();
             this.resolve?.(this.getResult(true));
           }}
         >
@@ -88,7 +92,7 @@ export class MengplazConfirmDialog extends HTMLElement {
           slot="footer"
           variant="default"
           onclick={() => {
-            this.dialog.hide();
+            void this.dialog.hide();
             this.resolve?.(this.getResult(false));
           }}
         >

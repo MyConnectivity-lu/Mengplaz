@@ -2,7 +2,7 @@ mengplaz-address-card {
   /* max-width: 450px; */
 }
 
-.map-container{
+.map-container {
   height: 200px;
   border-radius: var(--sl-border-radius-small);
   overflow: hidden;

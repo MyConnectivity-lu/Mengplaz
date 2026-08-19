@@ -1,5 +1,5 @@
 import { GuiMap } from '@greycat/web';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { calculateDistance, colorForKey, formatDistance } from '~/common/utils';
 import './minimap.css';
 
@@ -8,9 +8,7 @@ const MASTER_COLOR = '#ff18a4';
 
 // Official orthophoto 2025, served as WMTS raster tiles (CORS-enabled, EPSG:3857).
 // Subdomains wmts1-4 load-balance. Same source as the full map page.
-const ORTHO_TILES = [1, 2, 3, 4].map(
-  (i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`,
-);
+const ORTHO_TILES = [1, 2, 3, 4].map((i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`);
 
 // Transparent WMS overlay (geoportail public_map_layers, layer 351) drawn on top of ortho.
 // WMS 1.3.0 GetMap; maplibre expands {bbox-epsg-3857} per tile.
@@ -84,7 +82,7 @@ export class MiniMap extends HTMLElement {
   connectedCallback() {
     this.render();
     this.map.style.height = '200px';
-    this.map.ready.then((m) => {
+    void this.map.ready.then((m) => {
       // Collapse the attribution box to the compact "i" button, like the main map.
       const attc = (m as any)._controls?.find((c: unknown) => c instanceof maplibregl.AttributionControl);
       attc?._updateCompactMinimize?.();

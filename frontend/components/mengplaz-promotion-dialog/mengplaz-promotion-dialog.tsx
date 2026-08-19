@@ -1,4 +1,5 @@
-import { GuiSelect, sl } from '@greycat/web';
+import { GuiSelect } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 import '../address-field/address-content';
 import { AddressContent } from '../address-field/address-content';
 
@@ -23,11 +24,11 @@ export class MengplazPromotionDialog extends HTMLElement {
 
   set value(v: gc.mengplaz.POIFullRecordRef) {
     this._value = v;
-    this.render();
+    void this.render();
   }
 
   connectedCallback() {
-    this.render();
+    void this.render();
     this.citySelect.addEventListener('gui-input', async () => {
       const streets = await gc.getGoldenStreetsByLocalityId(this.citySelect.value.id);
       this.streetSelect.options = streets.map((s) => ({ value: s, text: s.name, selected: s.name === this._value?.record.street }));
@@ -43,7 +44,7 @@ export class MengplazPromotionDialog extends HTMLElement {
   show(): Promise<string | undefined> {
     return new Promise<string | undefined>((resolve, _reject) => {
       this.resolve = resolve;
-      this.dialog.show();
+      void this.dialog.show();
     });
   }
 
@@ -77,7 +78,7 @@ export class MengplazPromotionDialog extends HTMLElement {
             slot="footer"
             variant="warning"
             onclick={() => {
-              this.dialog.hide();
+              void this.dialog.hide();
               this.resolve?.(this.streetSelect.value.id);
             }}
           >
@@ -87,7 +88,7 @@ export class MengplazPromotionDialog extends HTMLElement {
             slot="footer"
             variant="default"
             onclick={() => {
-              this.dialog.hide();
+              void this.dialog.hide();
               this.resolve?.(undefined);
             }}
           >

@@ -13,10 +13,10 @@ export class MengplazComparator extends HTMLElement {
 
   connectedCallback() {
     this.userIsAdmin = gc.$.default.hasPermission('admin');
-    this.update();
+    void this.update();
     this.addEventListener('update', (e) => {
       e.stopPropagation();
-      this.update();
+      void this.update();
     });
   }
 
@@ -25,7 +25,7 @@ export class MengplazComparator extends HTMLElement {
   private async update() {
     const ref = getQueryParam('guid');
     if (ref != null) {
-      gc.api.getGoldenRecordDetails(ref).then((details) => {
+      void gc.api.getGoldenRecordDetails(ref).then((details) => {
         this.details = details;
         this.render();
       });
@@ -55,8 +55,12 @@ export class MengplazComparator extends HTMLElement {
                   return <mengplaz-address-card value={records[0]} showUnlink={this.userIsAdmin} />;
                 }
                 let idx = 0;
-                const card = (<mengplaz-address-card value={records[0]} showUnlink={this.userIsAdmin} />) as HTMLElementTagNameMap['mengplaz-address-card'];
-                const counter = (<span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--sl-color-neutral-700)' }}>1 / {records.length}</span>) as HTMLSpanElement;
+                const card = (
+                  <mengplaz-address-card value={records[0]} showUnlink={this.userIsAdmin} />
+                ) as HTMLElementTagNameMap['mengplaz-address-card'];
+                const counter = (
+                  <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--sl-color-neutral-700)' }}>1 / {records.length}</span>
+                ) as HTMLSpanElement;
                 const go = (delta: number) => {
                   idx = (idx + delta + records.length) % records.length;
                   card.value = records[idx];

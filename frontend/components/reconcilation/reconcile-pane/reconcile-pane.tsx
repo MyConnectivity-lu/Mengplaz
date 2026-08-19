@@ -61,7 +61,7 @@ export class ReconcilePane extends HTMLElement {
     this.pagination.index = this._currentIndex;
     this.updateVisibility();
     if (this._active) {
-      this.loadCurrentRecord();
+      void this.loadCurrentRecord();
     }
   }
 
@@ -73,7 +73,7 @@ export class ReconcilePane extends HTMLElement {
     this._currentIndex = val;
     this.pagination.index = val;
     if (this._active) {
-      this.loadCurrentRecord();
+      void this.loadCurrentRecord();
     }
   }
 
@@ -85,7 +85,7 @@ export class ReconcilePane extends HTMLElement {
     const prev = this._active;
     this._active = val;
     if (val && !prev) {
-      this.loadCurrentRecord();
+      void this.loadCurrentRecord();
     }
   }
 
@@ -126,7 +126,7 @@ export class ReconcilePane extends HTMLElement {
     // Wire pagination callbacks
     this.pagination.onNavigate = (index) => {
       this._currentIndex = index;
-      this.loadCurrentRecord();
+      void this.loadCurrentRecord();
       this.onNavigate?.(index);
     };
     this.pagination.onIdSearch = (id) => {
@@ -196,7 +196,7 @@ export class ReconcilePane extends HTMLElement {
     e.stopPropagation();
     const detail = (e as CustomEvent<SearchCandidateEvent>).detail;
     this.currentSourceRecord = detail.sourceRecord;
-    this.searchDialog.show();
+    void this.searchDialog.show();
   };
 
   private _handleSearchSelect = (e: Event) => {
@@ -228,7 +228,7 @@ export class ReconcilePane extends HTMLElement {
       const data = await this.loadData(this._source, id);
       this.dashboard.comparisonData = data;
     } catch (_) {
-      toast.notify({
+      void toast.notify({
         message: 'Failed to load record data.',
         variant: 'danger',
         duration: 3000,

@@ -1,4 +1,4 @@
-import { sl } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 
 const DEFAULT_WEIGHTS = () => new gc.mengplaz.ScoringWeights(4.0, 3.0, 3.0, 1.0, 3.0);
 const DEFAULT_GEO_PARAMS = () => new gc.mengplaz.GeoParameters(0, 1000);
@@ -54,7 +54,7 @@ export class SearchParametersDialog extends HTMLElement {
     return new Promise<gc.mengplaz.SearchParameters | null>((resolve) => {
       this.resolve = resolve;
       this.render();
-      this.dialog.show();
+      void this.dialog.show();
     });
   }
 
@@ -67,10 +67,7 @@ export class SearchParametersDialog extends HTMLElement {
       parseFloat(this.geoWeightInput?.value ?? '3.0'),
     );
 
-    const geoParams = new gc.mengplaz.GeoParameters(
-      parseInt(this.minDistanceInput?.value ?? '0'),
-      parseInt(this.maxDistanceInput?.value ?? '1000'),
-    );
+    const geoParams = new gc.mengplaz.GeoParameters(parseInt(this.minDistanceInput?.value ?? '0'), parseInt(this.maxDistanceInput?.value ?? '1000'));
 
     return new gc.mengplaz.SearchParameters(
       parseFloat(this.citySimilarityInput?.value ?? '0.7'),
@@ -105,7 +102,14 @@ export class SearchParametersDialog extends HTMLElement {
     ) as sl.SlInput;
 
     this.coordinatesSimilarityInput = (
-      <sl-input label="Coordinates Threshold" type="number" min={0} max={1} step={0.1} value={this._value.coordinatesSimilarityThreshold.toString()} />
+      <sl-input
+        label="Coordinates Threshold"
+        type="number"
+        min={0}
+        max={1}
+        step={0.1}
+        value={this._value.coordinatesSimilarityThreshold.toString()}
+      />
     ) as sl.SlInput;
 
     this.maxCandidatesInput = (
@@ -146,16 +150,17 @@ export class SearchParametersDialog extends HTMLElement {
       <sl-input label="Max Distance (m)" type="number" min={0} max={10000} step={100} value={this._value.geoParams.maxDistance.toString()} />
     ) as sl.SlInput;
 
-    this.deepSearchCheckbox = (
-      <sl-checkbox checked={this._value.deepSearch}>Deep search (global POI fallback, slow)</sl-checkbox>
-    ) as sl.SlCheckbox;
+    this.deepSearchCheckbox = (<sl-checkbox checked={this._value.deepSearch}>Deep search (global POI fallback, slow)</sl-checkbox>) as sl.SlCheckbox;
 
     this.dialog.replaceChildren(
       <>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sl-spacing-large)' }}>
           <p style={{ color: 'var(--sl-color-neutral-500)' }}>
             Learn more about the reconcile logic{' '}
-            <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Reconcile-Logic" target="_blank" rel="noopener noreferrer">here</a>.
+            <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Reconcile-Logic" target="_blank" rel="noopener noreferrer">
+              here
+            </a>
+            .
           </p>
           <div>
             <h4 style={{ margin: '0 0 var(--sl-spacing-small) 0', color: 'var(--secondary)' }}>Similarity Thresholds</h4>
@@ -185,9 +190,7 @@ export class SearchParametersDialog extends HTMLElement {
               {this.maxDistanceInput}
             </div>
           </div>
-          <div>
-            {this.deepSearchCheckbox}
-          </div>
+          <div>{this.deepSearchCheckbox}</div>
         </div>
         <sl-button
           slot="footer"
@@ -203,7 +206,7 @@ export class SearchParametersDialog extends HTMLElement {
           variant="primary"
           onclick={() => {
             this._value = this.getResult();
-            this.dialog.hide();
+            void this.dialog.hide();
             this.resolve?.(this._value);
           }}
         >
@@ -213,7 +216,7 @@ export class SearchParametersDialog extends HTMLElement {
           slot="footer"
           variant="default"
           onclick={() => {
-            this.dialog.hide();
+            void this.dialog.hide();
             this.resolve?.(null);
           }}
         >

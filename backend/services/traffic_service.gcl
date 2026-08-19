@@ -16,7 +16,7 @@ type Traffic_Service {
 
     fn end(): duration {
         var traffic = Traffic {
-            user: User::current(),
+            user: Identity::current_id(),
             executionTime: time::now() - this.start
         };
         this.endPoint->traffic.setAt(this.start, traffic);

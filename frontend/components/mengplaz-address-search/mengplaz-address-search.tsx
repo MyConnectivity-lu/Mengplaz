@@ -1,4 +1,4 @@
-import { sl } from '@greycat/web';
+import type * as sl from '@shoelace-style/shoelace';
 import './mengplaz-address-search.css';
 
 const SEARCH_MIN_LENGTH = 3;

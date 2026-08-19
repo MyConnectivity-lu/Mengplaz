@@ -59,10 +59,12 @@ export class AddressField extends HTMLElement {
       return;
     }
     const val = this.renderValue(this._value);
+    // `renderValue` can return an element; only primitives make a useful tooltip
+    const title = typeof val === 'string' || typeof val === 'number' ? String(val) : undefined;
     this.replaceChildren(
       <div className="field">
         <div className="field-key">{displayLabel}</div>
-        <div className="field-value" title={val.toString()}>
+        <div className="field-value" title={title}>
           {val}
         </div>
       </div>,

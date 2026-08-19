@@ -1,6 +1,6 @@
 import { AttributionControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import '../../components/mengplaz-address-search/mengplaz-address-search';
 import { AddressSelectEvent, MengplazAddressSearch } from '../../components/mengplaz-address-search/mengplaz-address-search';
 import './map.css';
@@ -11,9 +11,7 @@ const GEOPORTAIL_STYLE = 'https://vectortiles.geoportail.lu/styles/roadmap/style
 
 // Official orthophoto 2025 (geocatalogue uuid c0aefcaa-5cc6-40ed-84cd-695f9f5b9eed),
 // served as WMTS raster tiles (CORS-enabled, EPSG:3857). Subdomains wmts1-4 load-balance.
-const ORTHO_TILES = [1, 2, 3, 4].map(
-  (i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`,
-);
+const ORTHO_TILES = [1, 2, 3, 4].map((i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`);
 
 // Transparent WMS overlay (geoportail public_map_layers, layer 351) drawn on top of the
 // ortho basemap. Served as WMS 1.3.0 GetMap; maplibre expands {bbox-epsg-3857} per tile.
@@ -63,15 +61,13 @@ export class MapPage extends HTMLElement {
 
   connectedCallback() {
     this.render();
-    this.initMap();
+    void this.initMap();
     this.addressSearch.addEventListener('address-select', (e: Event) => {
       this.flyToRecord((e as CustomEvent<AddressSelectEvent>).detail.record);
     });
   }
 
   private async initMap() {
-
-
     this.map = new maplibregl.Map({
       container: this.mapContainer,
       style: GEOPORTAIL_STYLE,
@@ -169,7 +165,7 @@ export class MapPage extends HTMLElement {
         }
       });
 
-      this.updatePOIs();
+      void this.updatePOIs();
     });
   }
   //5.9759064903482795
@@ -188,7 +184,7 @@ export class MapPage extends HTMLElement {
 
   disconnectedCallback() {
     // Solves a leak inside maplibre
-    (this.map?.getSource('points') as maplibregl.GeoJSONSource | undefined)?.setData({
+    void (this.map?.getSource('points') as maplibregl.GeoJSONSource | undefined)?.setData({
       type: 'FeatureCollection',
       features: [],
     });
@@ -210,7 +206,7 @@ export class MapPage extends HTMLElement {
       }));
       (window as any)._gc_pois = features;
     }
-    (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
+    void (this.map.getSource('points') as maplibregl.GeoJSONSource).setData({
       type: 'FeatureCollection',
       features: features,
     });

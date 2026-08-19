@@ -35,13 +35,13 @@ export class QualityHistoryPage extends HTMLElement {
       { index: 3, header: 'Locality' },
       { index: 4, header: 'Postcode' },
       { index: 5, header: 'Linked Records' },
-      { index: 6, header: 'Quality (%)', value : ({value}) =>  `${value * 100} %` },
+      { index: 6, header: 'Quality (%)', value: ({ value }) => `${value * 100} %` },
     ];
   }
 
   connectedCallback() {
     this.render();
-    this.loadData();
+    void this.loadData();
   }
 
   disconnectedCallback() {}
@@ -105,7 +105,10 @@ export class QualityHistoryPage extends HTMLElement {
         <h3 className="content-title">Quality Dashboard</h3>
         <p className="quality-info">
           For a detailed explanation of how quality is calculated, see the{' '}
-          <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Golden-Record-Quality" target="_blank">Quality Documentation</a>.
+          <a href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Golden-Record-Quality" target="_blank">
+            Quality Documentation
+          </a>
+          .
         </p>
         {this.loadingIndicator}
         {this.contentContainer}

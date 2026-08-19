@@ -203,21 +203,7 @@ abstract type CACLRLoader {
         nDummyMunicipality->cities_by_id.set(nDummyCity->id, nDummyCity);
         caclr_cities_by_id.set(nDummyCity->id, nDummyCity);
 
-        var nDummyStreet = node<CaclrStreet> {
-            CaclrStreet {
-                name: "UNKNOWN",
-                id: "UNKNOWN",
-                nameUpperCase: "UNKNOWN",
-                keyWord: "UNKNOWN",
-                administrativeStatus: CaclrAdminStatus::OFFICIAL,
-                isPlace: false,
-                aliases: Array<Alias> {},
-                validityStartDate: 0_time,
-                lastUpdate: 0_time,
-                city: nDummyCity,
-                buildings_by_id: nodeIndex<String, node<CaclrBuilding>> {},
-            }
-        };
+        
         nDummyMunicipality->cities_by_id.set(nDummyCity->id, nDummyCity);
         caclr_cities_by_id.set(nDummyCity->id, nDummyCity);
 
@@ -487,7 +473,7 @@ abstract type CACLRLoader {
 
         for (cityId, _ in caclr_cities_by_id) {
             if (cityId != "UNKNOWN") {
-                (jobs[parseNumber(cityId) % 5].arguments[0] as Array<String>).add(cityId);
+                (jobs[parseNumber(cityId) % 5].arguments?[0] as Array<String>).add(cityId);
             }
         }
 

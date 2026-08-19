@@ -13,7 +13,7 @@ export class IndexPage extends HTMLElement {
   disconnectedCallback() {}
 
   render() {
-    this.getCities();
+    void this.getCities();
   }
 
   private async getCities() {

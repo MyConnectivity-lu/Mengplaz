@@ -378,7 +378,7 @@ type GoldenServices {
                 info("New GoldenConstituency added: code=${nGoldenConstituency->code} name=${nGoldenConstituency->name}");
             }
 
-            for (cantonId, nCanton in nConstituency->cantons_by_id) {
+            for (_, nCanton in nConstituency->cantons_by_id) {
                 var nGoldenCanton = nCanton->goldenCanton;
                 if (nGoldenCanton == null) {
                     var newCantonUID: String;
@@ -402,7 +402,7 @@ type GoldenServices {
                     info("New GoldenCanton added: id=${nGoldenCanton->id} name=${nGoldenCanton->name}");
                 }
 
-                for (municipalityId, nMunicipality in nCanton->municipalities_by_id) {
+                for (_, nMunicipality in nCanton->municipalities_by_id) {
                     var nGoldenMunicipality = nMunicipality->goldenMunicipality;
                     if (nGoldenMunicipality == null) {
                         var newMunicipalityUID: String;
@@ -425,7 +425,7 @@ type GoldenServices {
                         info("New GoldenMunicipality added: id=${nGoldenMunicipality->id} name=${nGoldenMunicipality->name}");
                     }
 
-                    for (cityId, nCity in nMunicipality->cities_by_id) {
+                    for (_, nCity in nMunicipality->cities_by_id) {
                         var nGoldenCity = nCity->goldenCity;
                         if (nGoldenCity == null) {
                             var newCityUID: String;
@@ -452,7 +452,7 @@ type GoldenServices {
                             info("New GoldenCity added: id=${nGoldenCity->id} name=${nGoldenCity->name}");
                         }
 
-                        for (streetId, nStreet in nCity->streets_by_id) {
+                        for (_, nStreet in nCity->streets_by_id) {
                             var nGoldenStreet = nStreet->goldenStreet;
                             if (nGoldenStreet == null) {
                                 var newStreetUID: String;
@@ -508,7 +508,7 @@ type GoldenServices {
 
     static fn createBbackup() {
         var writer = GcbWriter<GoldenConstituency> { path: "./backups/${time::now()}.gcb" };
-        for (k, v in golden_constituency_by_code) {
+        for (_, v in golden_constituency_by_code) {
             writer.write(*v);
         }
         writer.flush();

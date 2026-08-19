@@ -355,7 +355,7 @@ type OsmSource extends DataSource {
         return streets;
     }
 
-    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+    fn findStreetsByName(road: String, _max: int, distanceThreshold: int): Array<ScoredStreet> {
         var streets = Array<ScoredStreet> {};
         var exact = osm_streets_by_name.get(road);
         if (exact != null) {
