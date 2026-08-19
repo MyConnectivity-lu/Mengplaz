@@ -1,0 +1,18 @@
+map-page{
+  position: relative;
+}
+.map-search-panel {
+  position: fixed;
+  width: 500px;
+  max-width: calc(100vw - 2 * var(--sl-spacing-large));
+  z-index: 10;
+  margin: var(--sl-spacing-small);
+}
+
+.map-layer-control {
+  position: absolute;
+  bottom: var(--sl-spacing-small);
+  left: var(--sl-spacing-small);
+  z-index: 10;
+  width: 250px;
+}

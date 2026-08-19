@@ -89,15 +89,20 @@ type GoldenServices {
     static fn searchCity(cityName: String, threshold: float): Array<Match<node<GoldenCity>>> {
         var citiesMatches = Array<Match<node<GoldenCity>>> {};
         for (_, nCity in golden_cities_by_id) {
+            var hit: node<GoldenCity>?;
             var d = GoldenServices::computeCityNameScore(cityName, nCity->name);
             if (d >= threshold) {
-                citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
-            } 
+                hit = nCity;
+            }
             for (_, alias in nCity->nameAliases) {
-                var d = GoldenServices::computeCityNameScore(cityName, alias.value);
-                if (d >= threshold) {
-                    citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: nCity });
+                var d2 = GoldenServices::computeCityNameScore(cityName, alias.value);
+                if (d >= threshold && d2 > d) {
+                    hit = nCity;
+                    d = d2;
                 }
+            }
+            if (hit != null) {
+                citiesMatches.add(Match<node<GoldenCity>> { score: d, elem: hit });
             }
         }
         citiesMatches.sort_by(Match::score, SortOrder::desc);
@@ -115,25 +120,30 @@ type GoldenServices {
         }
         for (_, nStreet in collection) {
             var d: float;
+            var hit: node<GoldenStreet>?;
             if (nCity == null) {
                 d = GoldenServices::computeStreetScoreGlobal(streetName, nStreet->name);
             } else {
                 d = GoldenServices::computeStreetScore(streetName, nStreet->name);
             }
             if (d >= threshold) {
-                streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
-            } 
+                hit = nStreet;
+            }
             for (_, alias in nStreet->nameAliases) {
+                var d2: float;
                 if (nCity == null) {
-                    d = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
+                    d2 = GoldenServices::computeStreetScoreGlobal(streetName, alias.value);
                 } else {
-                    d = GoldenServices::computeStreetScore(streetName, alias.value);
+                    d2 = GoldenServices::computeStreetScore(streetName, alias.value);
                 }
-                if (d >= threshold) {
-                    streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: nStreet });
+                if (d2 >= threshold && d2 > d) {
+                    hit = nStreet;
+                    d = d2;
                 }
             }
-            
+            if (hit != null) {
+                streetsMatches.add(Match<node<GoldenStreet>> { score: d, elem: hit });
+            }
         }
         streetsMatches.sort_by(Match::score, SortOrder::desc);
         return streetsMatches;
@@ -143,12 +153,12 @@ type GoldenServices {
     static fn addCandidate(candidates: Array<CandidateMatch<node<POIRecordProvider>>>, candidate: CandidateMatch<node<POIRecordProvider>>, maxCandidates: int) {
         if (candidates.size() < maxCandidates) {
             candidates.add(candidate);
-        } else if (candidate.overallScore > candidates[candidates.size() - 1].overallScore) {
+        } else if (candidate.searchOverallScore > candidates[candidates.size() - 1].searchOverallScore) {
             candidates.set(candidates.size() - 1, candidate);
         } else {
             return;
         }
-        candidates.sort_by(CandidateMatch::overallScore, SortOrder::desc);
+        candidates.sort_by(CandidateMatch::searchOverallScore, SortOrder::desc);
     }
 
     /// Searches POIs for matches, populates candidates, and returns perfect matches.
@@ -167,6 +177,8 @@ type GoldenServices {
         if (nStreet != null) {
             collection = nStreet->pois_by_id;
         }
+        var defaultWeights = ScoringWeights::default();
+        var defGeoParams = GeoParameters::default();
         for (_, nBuilding in collection) {
             var dPostcode = GoldenServices::computePostcodeScore(item.postcode, nBuilding->postCode, params.postcodeMaxDistance);
             if (dPostcode < params.postcodeSimilarityThreshold) {
@@ -177,7 +189,8 @@ type GoldenServices {
             if (dNumber == 0.0) {
                 continue;
             }
-            var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, params.geoParams);
+            var searchGeoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, params.geoParams);
+            var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, defGeoParams);
 
             // Compute city/street scores: use provided values, or derive from the POI's street
             var cScore = cityScore ?? 0.0;
@@ -187,15 +200,18 @@ type GoldenServices {
                 sScore = GoldenServices::computeStreetScoreGlobal(item.street, nBuilding->street->name);
             }
 
-            var overallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, params.weights);
+            var searchOverallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, params.weights);
+            var overallScore = GoldenServices::computeOverallScore(cScore, sScore, dNumber, dPostcode, geoScore, defaultWeights);
 
             var candidate = CandidateMatch<node<POIRecordProvider>> {
                 cityScore: cScore,
                 streetScore: sScore,
                 numberScore: dNumber,
                 postcodeScore: dPostcode,
-                geoScore: geoScore,
-                overallScore: overallScore,
+                searchGeoScore: searchGeoScore,
+                realGeoScore: geoScore,
+                searchOverallScore: searchOverallScore,
+                realOverallScore: overallScore,
                 elem: nBuilding,
             };
             GoldenServices::addCandidate(candidates, candidate, params.maxCandidatesPerItem);
@@ -211,7 +227,7 @@ type GoldenServices {
         for (_, nRecord in req.items) {
             try {
                 results.add(GoldenServices::searchItem(nRecord, req.params));
-            } catch (err){
+            } catch (err) {
                 error(err);
             }
         }
@@ -227,11 +243,31 @@ type GoldenServices {
         params: SearchParameters,
         candidates: Array<CandidateMatch<node<POIRecordProvider>>>
     ): mengplaz::SearchResult? {
-        var streetsMatches = GoldenServices::searchStreet(
-            item.street,
-            params.streetSimilarityThreshold,
-            nCity
-        );
+        var bestByStreetId = Map<node<GoldenStreet>, Match<node<GoldenStreet>>> {};
+        var sourceNames = Array<String> { item.street };
+        if (item.streetAliases != null) {
+            for (_, alias in item.streetAliases) {
+                sourceNames.add(alias.value.lowercase());
+            }
+        }
+        for (_, sourceName in sourceNames) {
+            var matches = GoldenServices::searchStreet(
+                sourceName,
+                params.streetSimilarityThreshold,
+                nCity
+            );
+            for (_, m in matches) {
+                var existing = bestByStreetId.get(m.elem);
+                if (existing == null || m.score > existing.score) {
+                    bestByStreetId.set(m.elem, m);
+                }
+            }
+        }
+        var streetsMatches = Array<Match<node<GoldenStreet>>> {};
+        for (_, m in bestByStreetId) {
+            streetsMatches.add(m);
+        }
+        streetsMatches.sort_by(Match::score, SortOrder::desc);
         var perfectMatchCandidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
         for (_, streetMatch in streetsMatches) {
             var cityScore = GoldenServices::computeCityScore(item.city, streetMatch.elem->city);
@@ -248,7 +284,6 @@ type GoldenServices {
         }
         return null;
     }
-    //086C00272002724_3768_13
 
     static fn searchItem(nRecord: node<POIRecordProvider>, params: SearchParameters): mengplaz::SearchResult {
         var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
@@ -284,11 +319,14 @@ type GoldenServices {
 
         // Still no candidates - try geo-circle fallback
         if (candidates.size() == 0 && item.coordinates != null) {
+            var defWeights = ScoringWeights::default();
+            var defGeoParams = GeoParameters::default();
             var shape = GeoCircle { center: item.coordinates, radius: params.geoParams.maxDistance as float };
             for (candidateGeo, nCandidate in golden_pois_by_geo[shape.sw()..shape.ne()]) {
                 if (shape.contains(candidateGeo)) {
-                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, params.geoParams) ?? 0.0;
-                    if (geoScore > params.coordinatesSimilarityThreshold) {
+                    var searchGeoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, params.geoParams);
+                    var geoScore = GoldenServices::computeGeoScore(item.coordinates, candidateGeo, defGeoParams);
+                    if (searchGeoScore != null && searchGeoScore > params.coordinatesSimilarityThreshold) {
                         var cityScore = 0.0;
                         var streetScore = 0.0;
                         if (nCandidate->street != null) {
@@ -297,14 +335,17 @@ type GoldenServices {
                         }
                         var postcodeScore = GoldenServices::computePostcodeScore(item.postcode, nCandidate->postCode, params.postcodeMaxDistance);
                         var numberScore = GoldenServices::computeNumberScore(item.number, item.multipleCode, nCandidate->number, nCandidate->multipleCode);
-                        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+                        var searchOverallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, params.weights);
+                        var overallScore = GoldenServices::computeOverallScore(cityScore, streetScore, numberScore, postcodeScore, geoScore, defWeights);
                         var candidate = CandidateMatch<node<POIRecordProvider>> {
                             cityScore: cityScore,
                             streetScore: streetScore,
                             numberScore: numberScore,
                             postcodeScore: postcodeScore,
-                            geoScore: geoScore,
-                            overallScore: overallScore,
+                            searchGeoScore: searchGeoScore,
+                            realGeoScore: geoScore,
+                            searchOverallScore: searchOverallScore,
+                            realOverallScore: overallScore,
                             elem: nCandidate,
                         };
                         GoldenServices::addCandidate(candidates, candidate, params.maxCandidatesPerItem);
@@ -321,116 +362,143 @@ type GoldenServices {
 
     static fn fillFromCaclr() {
         for (constCode, nConstituency in caclr_consistuency_by_code) {
-            var nGoldenConstituency = node<GoldenConstituency> {
-                GoldenConstituency {
-                    code: nConstituency->code,
-                    name: nConstituency->name,
-                    nameAliases: Array<Alias> {},
-                    cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
-                }
-            };
-            golden_constituency_by_code.set(constCode, nGoldenConstituency);
-
-            for (cantonId, nCanton in nConstituency->cantons_by_id) {
-                var newCantonUID: String;
-                do {
-                    newCantonUID = GoldenServices::generateUID();
-                } while (golden_cantons_by_id.get(newCantonUID) != null);
-                var nGoldenCanton = node<GoldenCanton> {
-                    GoldenCanton {
-                        id: newCantonUID,
-                        name: nCanton->name,
+            var nGoldenConstituency = nConstituency->goldenConstituency;
+            if (nGoldenConstituency == null) {
+                nGoldenConstituency = node<GoldenConstituency> {
+                    GoldenConstituency {
+                        code: nConstituency->code,
+                        name: nConstituency->name,
                         nameAliases: Array<Alias> {},
-                        lastUpdate: nCanton->lastUpdate,
-                        constituency: nGoldenConstituency,
-                        municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
+                        cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
                     }
                 };
-                nGoldenConstituency->cantons_by_id.set(newCantonUID, nGoldenCanton);
-                golden_cantons_by_id.set(newCantonUID, nGoldenCanton);
+                golden_constituency_by_code.set(constCode, nGoldenConstituency);
+                nConstituency->goldenConstituency = nGoldenConstituency;
+                nGoldenConstituency->caclrConstituency = nConstituency;
+                info("New GoldenConstituency added: code=${nGoldenConstituency->code} name=${nGoldenConstituency->name}");
+            }
 
-                for (municipalityId, nMunicipality in nCanton->municipalities_by_id) {
-                    var newMunicipalityUID: String;
+            for (cantonId, nCanton in nConstituency->cantons_by_id) {
+                var nGoldenCanton = nCanton->goldenCanton;
+                if (nGoldenCanton == null) {
+                    var newCantonUID: String;
                     do {
-                        newMunicipalityUID = GoldenServices::generateUID();
-                    } while (golden_municipalities_by_id.get(newMunicipalityUID) != null);
-                    var nGoldenMunicipality = node<GoldenMunicipality> {
-                        GoldenMunicipality {
-                            id: newMunicipalityUID,
-                            name: nMunicipality->name,
+                        newCantonUID = GoldenServices::generateUID();
+                    } while (golden_cantons_by_id.get(newCantonUID) != null);
+                    nGoldenCanton = node<GoldenCanton> {
+                        GoldenCanton {
+                            id: newCantonUID,
+                            name: nCanton->name,
                             nameAliases: Array<Alias> {},
-                            lastUpdate: nMunicipality->lastUpdate,
-                            canton: nGoldenCanton,
-                            cities_by_id: nodeIndex<String, node<GoldenCity>> {},
+                            lastUpdate: nCanton->lastUpdate,
+                            constituency: nGoldenConstituency,
+                            municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
                         }
                     };
-                    nGoldenCanton->municipalities_by_id.set(newMunicipalityUID, nGoldenMunicipality);
-                    golden_municipalities_by_id.set(newMunicipalityUID, nGoldenMunicipality);
+                    nGoldenConstituency->cantons_by_id.set(newCantonUID, nGoldenCanton);
+                    golden_cantons_by_id.set(newCantonUID, nGoldenCanton);
+                    nCanton->goldenCanton = nGoldenCanton;
+                    nGoldenCanton->caclrCanton = nCanton;
+                    info("New GoldenCanton added: id=${nGoldenCanton->id} name=${nGoldenCanton->name}");
+                }
 
-                    for (cityId, nCity in nMunicipality->cities_by_id) {
-                        var newCityUID: String;
+                for (municipalityId, nMunicipality in nCanton->municipalities_by_id) {
+                    var nGoldenMunicipality = nMunicipality->goldenMunicipality;
+                    if (nGoldenMunicipality == null) {
+                        var newMunicipalityUID: String;
                         do {
-                            newCityUID = GoldenServices::generateUID();
-                        } while (golden_municipalities_by_id.get(newCityUID) != null);
-                        var nGoldenCity = node<GoldenCity> {
-                            GoldenCity {
-                                id: newCityUID,
-                                name: nCity->name,
+                            newMunicipalityUID = GoldenServices::generateUID();
+                        } while (golden_municipalities_by_id.get(newMunicipalityUID) != null);
+                        nGoldenMunicipality = node<GoldenMunicipality> {
+                            GoldenMunicipality {
+                                id: newMunicipalityUID,
+                                name: nMunicipality->name,
                                 nameAliases: Array<Alias> {},
-                                lastUpdate: nCity->lastUpdate,
-                                municipality: nGoldenMunicipality,
-                                streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
+                                lastUpdate: nMunicipality->lastUpdate,
+                                canton: nGoldenCanton,
+                                cities_by_id: nodeIndex<String, node<GoldenCity>> {},
                             }
                         };
-                        for (_, alias in nCity->aliases) {
-                            nGoldenCity->nameAliases.add(clone(alias));
-                        }
-                        nGoldenMunicipality->cities_by_id.set(newCityUID, nGoldenCity);
-                        golden_cities_by_id.set(newCityUID, nGoldenCity);
+                        nGoldenMunicipality->indexing(nGoldenMunicipality);
+                        nMunicipality->goldenMunicipality = nGoldenMunicipality;
+                        nGoldenMunicipality->caclrMunicipality = nMunicipality;
+                        info("New GoldenMunicipality added: id=${nGoldenMunicipality->id} name=${nGoldenMunicipality->name}");
+                    }
 
-                        for (streetId, nStreet in nCity->streets_by_id) {
-                            var newStreetUID: String;
+                    for (cityId, nCity in nMunicipality->cities_by_id) {
+                        var nGoldenCity = nCity->goldenCity;
+                        if (nGoldenCity == null) {
+                            var newCityUID: String;
                             do {
-                                newStreetUID = GoldenServices::generateUID();
-                            } while (golden_municipalities_by_id.get(newStreetUID) != null);
-                            var nGoldenStreet = node<GoldenStreet> {
-                                GoldenStreet {
-                                    id: newStreetUID,
-                                    name: nStreet->name,
+                                newCityUID = GoldenServices::generateUID();
+                            } while (golden_municipalities_by_id.get(newCityUID) != null);
+                            nGoldenCity = node<GoldenCity> {
+                                GoldenCity {
+                                    id: newCityUID,
+                                    name: nCity->name,
                                     nameAliases: Array<Alias> {},
-                                    lastUpdate: nStreet->lastUpdate,
-                                    city: nGoldenCity,
-                                    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+                                    lastUpdate: nCity->lastUpdate,
+                                    municipality: nGoldenMunicipality,
+                                    streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
                                 }
                             };
-                            for (_, alias in nStreet->aliases) {
-                                nGoldenStreet->nameAliases.add(clone(alias));
+                            for (_, alias in nCity->aliases) {
+                                nGoldenCity->nameAliases.add(clone(alias));
                             }
-                            nGoldenCity->streets_by_id.set(newStreetUID, nGoldenStreet);
-                            golden_streets_by_id.set(newStreetUID, nGoldenStreet);
+                            nGoldenMunicipality->cities_by_id.set(newCityUID, nGoldenCity);
+                            nGoldenCity->indexing(nGoldenCity);
+                            nCity->goldenCity = nGoldenCity;
+                            nGoldenCity->caclrCity = nCity;
+                            info("New GoldenCity added: id=${nGoldenCity->id} name=${nGoldenCity->name}");
+                        }
 
-                            for (buildingId, nBuilding in nStreet->buildings_by_id) {
-                                var newUID: String;
+                        for (streetId, nStreet in nCity->streets_by_id) {
+                            var nGoldenStreet = nStreet->goldenStreet;
+                            if (nGoldenStreet == null) {
+                                var newStreetUID: String;
                                 do {
-                                    newUID = GoldenServices::generateUID();
-                                } while (golden_pois_by_id.get(newUID) != null);
-
-                                var nGoldenPOI = node<GoldenPointOfInterest> {
-                                    GoldenPointOfInterest {
-                                        uid: newUID,
-                                        number: nBuilding->number,
-                                        multipleCode: nBuilding->multipleCode,
-                                        postCode: nBuilding->postalCode,
-                                        secondaryLocations: Map<String, geo> {},
-                                        lastUpdate: nBuilding->lastUpdate,
-                                        street: nGoldenStreet,
-                                        linkedRecords: Array<LinkedRecordEntry> {},
-                                        quality: nodeTime<QualityEvent> {}
+                                    newStreetUID = GoldenServices::generateUID();
+                                } while (golden_municipalities_by_id.get(newStreetUID) != null);
+                                nGoldenStreet = node<GoldenStreet> {
+                                    GoldenStreet {
+                                        id: newStreetUID,
+                                        name: nStreet->name,
+                                        nameAliases: Array<Alias> {},
+                                        lastUpdate: nStreet->lastUpdate,
+                                        city: nGoldenCity,
+                                        pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
                                     }
                                 };
-                                nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-                                golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
+                                for (_, alias in nStreet->aliases) {
+                                    nGoldenStreet->nameAliases.add(clone(alias));
+                                }
+                                nGoldenStreet->indexing(nGoldenStreet);
+                                nStreet->goldenStreet = nGoldenStreet;
+                                nGoldenStreet->caclrStreet = nStreet;
+                                info("New GoldenStreet added: id=${nGoldenStreet->id} name=${nGoldenStreet->name}");
                             }
+
+                            // for (buildingId, nBuilding in nStreet->buildings_by_id) {
+                            //     var newUID: String;
+                            //     do {
+                            //         newUID = GoldenServices::generateUID();
+                            //     } while (golden_pois_by_id.get(newUID) != null);
+
+                            //     var nGoldenPOI = node<GoldenPointOfInterest> {
+                            //         GoldenPointOfInterest {
+                            //             uid: newUID,
+                            //             number: nBuilding->number,
+                            //             multipleCode: nBuilding->multipleCode,
+                            //             postCode: nBuilding->postalCode,
+                            //             secondaryLocations: Map<String, geo> {},
+                            //             lastUpdate: nBuilding->lastUpdate,
+                            //             street: nGoldenStreet,
+                            //             linkedRecords: Array<LinkedRecordEntry> {},
+                            //             quality: nodeTime<QualityEvent> {}
+                            //         }
+                            //     };
+                            //     nGoldenPOI->indexing(nGoldenPOI);
+                            // }
                         }
                     }
                 }
@@ -473,12 +541,16 @@ type GoldenServices {
         for (_, entry in linkedRecords) {
             var nSource = entry.record->getSource();
             var scores = scoresBySource.get(nSource);
+            var s = entry.detailedScore?.resolve().overallScore;
+            if (s == null) {
+                continue;
+            }
             if (scores == null) {
                 var arr = Array<float> {};
-                arr.add(entry.score);
+                arr.add(s);
                 scoresBySource.set(nSource, arr);
             } else {
-                scores.add(entry.score);
+                scores.add(s);
             }
         }
         var weightedSum = 0.0;

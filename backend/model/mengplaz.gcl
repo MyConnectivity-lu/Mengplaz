@@ -3,12 +3,13 @@ var sources_by_name: nodeIndex<String, node<DataSource>>;
 enum QualityEventType {
     link;
     unlink;
+    update;
 }
 
 type QualityEvent {
     @precision(0.01)
     score: float;
-    sourceRecord: node<POIRecordProvider>;
+    sourceRecord: node<POIRecordProvider>?;
     eventType: QualityEventType;
 }
 
@@ -16,13 +17,15 @@ type LinkedRecordEntry {
     record: node<POIRecordProvider>;
     @precision(0.01)
     score: float;
+    detailedScore: node<ReconciliationCandidateScore>?;
 }
-
-
 
 abstract type DataSource {
     private reconciliationReport: node<ReconciliationReport>;
-    private isReconciling : node<bool>?;
+    private isReconciling: node<bool>?;
+
+    // Timestamp of last import
+    lastUpdate: time?;
 
     abstract fn name(): String;
     abstract fn getWeight(): float;
@@ -31,22 +34,32 @@ abstract type DataSource {
     // abstract fn search(req: SearchRequest): Array<SearchResult>;
     abstract fn getIndex(): nodeIndex<String, node<POIRecordProvider>>;
 
-    static fn reconcile(nSource: node<DataSource> , searchParams: SearchParameters?, pois : Array<node<POIRecordProvider>>?): ReconciliationReport {
+    abstract fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity>;
+    abstract fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet>;
+    abstract fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet>;
+    abstract fn findPoisInStreet(
+        ss: ScoredStreet,
+        houseNumber: String?,
+        postcode: String?,
+        max: int,
+        distanceThreshold: int
+    ): Array<ScoredPoi>;
+
+    static fn reconcile(
+        nSource: node<DataSource>,
+        searchParams: SearchParameters?,
+        pois: Array<node<POIRecordProvider>>?
+    ): ReconciliationReport {
         if (searchParams == null) {
             searchParams = SearchParameters::default();
         }
-        var workers = 8;
+        var workers = Runtime::info().bg_threads;
         var jobs = Array<Job> {};
         for (var i = 0; i < workers; i++) {
-            jobs.add(
-                Job<any?> {
-                    function: GoldenServices::search,
-                    arguments: [SearchRequest {
-                            items: Array<node<POIRecordProvider>> {},
-                            params: searchParams
-                        },],
-                }
-            );
+            jobs.add(Job<any?> {
+                function: GoldenServices::search,
+                arguments: [SearchRequest { items: Array<node<POIRecordProvider>> {}, params: searchParams }],
+            });
         }
 
         var count = 0;
@@ -63,22 +76,22 @@ abstract type DataSource {
         for (_, job in jobs) {
             for (_, searchResult in job.result() as Array<mengplaz::SearchResult>) {
                 var candidates = searchResult.candidates;
-                var results = Array<ReconciliationCandidate> {  };
+                var results = Array<ReconciliationCandidate> {};
                 var perfectMatch = 0;
                 for (_, candidate in candidates) {
                     var reconCandidate = ReconciliationCandidate {
-                        candidateRecord :candidate.elem,
+                        candidateRecord: candidate.elem,
                         mismatch: null,
-                        score :ReconciliationCandidateScore {
-                            cityScore : candidate.cityScore,
-                            numberScore : candidate.numberScore,
-                            postcodeScore : candidate.postcodeScore,
-                            streetScore : candidate.streetScore,
-                            geoScore: candidate.geoScore,
-                            overallScore: candidate.overallScore
+                        score: ReconciliationCandidateScore {
+                            cityScore: candidate.cityScore,
+                            numberScore: candidate.numberScore,
+                            postcodeScore: candidate.postcodeScore,
+                            streetScore: candidate.streetScore,
+                            geoScore: candidate.realGeoScore,
+                            overallScore: candidate.realOverallScore
                         }
                     };
-                    if(candidate.overallScore != 1){
+                    if (candidate.searchOverallScore != 1) {
                         var reason = MengplazMissmatch::COMPLEX_MISMATCH;
                         if (candidate.cityScore == 1) {
                             if (candidate.postcodeScore == 1) {
@@ -92,12 +105,12 @@ abstract type DataSource {
                             }
                         }
                         reconCandidate.mismatch = reason;
-                    } else{
+                    } else {
                         perfectMatch++;
                     }
                     results.add(reconCandidate);
                 }
-                if(perfectMatch > 1){
+                if (perfectMatch > 1) {
                     for (_, res in results) {
                         res.mismatch = MengplazMissmatch::MULTIPLE_MATCHES;
                     }
@@ -108,15 +121,15 @@ abstract type DataSource {
         return report;
     }
 
-    fn setIsReconciling(){
-        if(this.isReconciling == null){
-            this.isReconciling = node<bool> {true};
-        }else{
+    fn setIsReconciling() {
+        if (this.isReconciling == null) {
+            this.isReconciling = node<bool> { true };
+        } else {
             this.isReconciling.set(true);
         }
     }
 
-    fn removeIsReconciling(){
+    fn removeIsReconciling() {
         this.isReconciling?.set(false);
     }
 }
@@ -137,24 +150,27 @@ type ReconciliationCandidateScore {
 }
 
 // if score is null, we assume a score of 1, to save space
+
 type ReconciliationCandidate {
     candidateRecord: node<POIRecordProvider>;
     score: ReconciliationCandidateScore?;
     mismatch: MengplazMissmatch?;
+    // Same as score, but for linked records only, we do this to avoid creating permanent objects, since an unlinked score is temporary
+    detailedScore: node<ReconciliationCandidateScore>?;
 }
 
 type ReconciliationReport {
     date: time;
-    linked: nodeIndex<node<POIRecordProvider> , ReconciliationCandidate>;
-    unlinked: nodeIndex<node<POIRecordProvider> , Array<ReconciliationCandidate>>;
+    linked: nodeIndex<node<POIRecordProvider>, ReconciliationCandidate>;
+    unlinked: nodeIndex<node<POIRecordProvider>, Array<ReconciliationCandidate>>;
 
-    static fn init(): ReconciliationReport{
-        return  ReconciliationReport {
+    static fn init(): ReconciliationReport {
+        return ReconciliationReport {
             date: time::now(),
-            linked: nodeIndex<node<POIRecordProvider> , ReconciliationCandidate> {},
-            unlinked : nodeIndex<node<POIRecordProvider> , Array<ReconciliationCandidate>> {}
+            linked: nodeIndex<node<POIRecordProvider>, ReconciliationCandidate> {},
+            unlinked: nodeIndex<node<POIRecordProvider>, Array<ReconciliationCandidate>> {}
         };
-    };
+    }
 }
 
 @volatile
@@ -174,6 +190,7 @@ type POIFullRecordRef {
     ref: node<POIRecordProvider>;
     id: String;
     record: any;
+    matchScore: float?;
 }
 
 @volatile
@@ -184,7 +201,8 @@ type POIRecord {
     street: String?;
     streetAliases: Array<Alias>?;
     locality: String?;
-    cityAliases: Array<Alias>?;
+    localityAliases: Array<Alias>?;
+    commune: String?;
     primaryLocation: geo?;
     secondaryLocations: Map<String, geo>?;
     sourceName: String;
@@ -203,8 +221,10 @@ abstract type POIRecordProvider {
     abstract fn getSourceName(): String;
     abstract fn getId(): String;
     abstract fn toSearchItem(): SearchItem;
-    abstract fn getStreet():String?;
+    abstract fn getStreet(): String?;
     abstract fn getCity(): String?;
+    abstract fn getMunicipality(): String?;
+    abstract fn getPostcode(): String?;
 }
 
 @volatile
@@ -232,9 +252,11 @@ type SearchRequest {
 type SearchItem {
     number: String;
     street: String;
+    streetAliases: Array<Alias>?;
     multipleCode: String;
     postcode: String;
     city: String;
+    cityAliases: Array<Alias>?;
     coordinates: geo?;
 }
 
@@ -294,7 +316,7 @@ type SearchParameters {
             citySimilarityThreshold: 0.7,
             streetSimilarityThreshold: 0.7,
             postcodeSimilarityThreshold: 0.4,
-            coordinatesSimilarityThreshold : 0.7,
+            coordinatesSimilarityThreshold: 0.7,
             maxCandidatesPerItem: 10,
             postcodeMaxDistance: 200,
             weights: ScoringWeights::default(),
@@ -322,8 +344,10 @@ type CandidateMatch<T> {
     streetScore: float;
     numberScore: float;
     postcodeScore: float;
-    geoScore: float?;
-    overallScore: float;
+    searchGeoScore: float?;
+    realGeoScore: float?;
+    searchOverallScore: float;
+    realOverallScore: float;
     elem: T;
 }
 

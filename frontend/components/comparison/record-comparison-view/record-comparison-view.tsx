@@ -100,7 +100,7 @@ export class RecordComparisonView extends HTMLElement {
             <div className="score-breakdown">
               {this.renderScoreRow('Number', this._candidate.numberScore)}
               {this.renderScoreRow('Street', this._candidate.streetScore)}
-              {this.renderScoreRow('City', this._candidate.cityScore)}
+              {this.renderScoreRow('Locality', this._candidate.cityScore)}
               {this.renderScoreRow('Postcode', this._candidate.postcodeScore)}
               {this._candidate.geoScore != null ? this.renderScoreRow('Geo', this._candidate.geoScore) : ''}
             </div>
@@ -139,7 +139,7 @@ export class RecordComparisonView extends HTMLElement {
           <div className={['section-panel', 'panel-map']}>
             {this._sourceRecord.record.primaryLocation || this._candidate.record.primaryLocation ? (
               <div className="map-container">
-                <mengplaz-minimap primary={this._sourceRecord.record.primaryLocation} secondary={this._candidate.record.primaryLocation} />
+                <mengplaz-minimap source={this._sourceRecord.record.primaryLocation} golden={this._candidate.record.primaryLocation} />
               </div>
             ) : (
               <span className="no-coordinates">No Coordinates found</span>

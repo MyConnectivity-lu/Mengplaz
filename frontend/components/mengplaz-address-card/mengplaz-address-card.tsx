@@ -2,7 +2,7 @@ import './mengplaz-address-card.css';
 import '../address-field/address-content';
 import '../mengplaz-confirm-dialog/mengplaz-confirm-dialog';
 import { MengplazConfirmDialog } from '../mengplaz-confirm-dialog/mengplaz-confirm-dialog';
-import { handleGoToRecord } from '~/common/utils';
+import { colorForKey, handleGoToRecord } from '~/common/utils';
 
 export class MengplazAddressCard extends HTMLElement {
   _value?: gc.mengplaz.POIRecordRef | gc.mengplaz.POIFullRecordRef;
@@ -22,6 +22,8 @@ export class MengplazAddressCard extends HTMLElement {
    * Displays a button that triggers a link
    */
   showLink?: gc.node;
+
+  showMap?: boolean;
 
   private confirm: MengplazConfirmDialog;
 
@@ -72,10 +74,27 @@ export class MengplazAddressCard extends HTMLElement {
 
   render() {
     const record = this.value?.record;
+    const sourceUrl = this.getSourceUrl(record);
     this.replaceChildren(
       <div className={'card'}>
-        <div className={'card-title'} style={{ display: 'flex' }}>
-          <h4>{record?.sourceName ?? 'Unknown Source'}</h4>
+        <div className={'card-title'} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing)' }}>
+          <h4 style={{ color: colorForKey(record?.sourceName ?? ''), margin: '0' }}>{record?.sourceName ?? 'Unknown Source'}</h4>
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" title={`Open in ${record?.sourceName} source`}>
+              <sl-icon-button name="box-arrow-up-right" label="Open source" />
+            </a>
+          ) : (
+            ''
+          )}
+          {record?.deprecated === true ? (
+            <sl-tooltip content={`This address doesn't exist anymore in this source, Last seen: ${this.formatLastSeen(record?.lastSeenAt)}`}>
+              <sl-tag variant="warning" size="small">
+                Deprecated
+              </sl-tag>
+            </sl-tooltip>
+          ) : (
+            ''
+          )}
           <div style={{ flexGrow: '1' }} />
           {this.showGoTo === true && record?.sourceName == 'Golden' ? (
             <sl-button
@@ -124,18 +143,57 @@ export class MengplazAddressCard extends HTMLElement {
             ''
           )}
         </div>
-        <address-content value={record} />
-       
-        {this.renderMap(record)}
-
+        {/**@ts-ignore */}
+        <address-content value={record} score={this.value?.['matchScore']} />
+        {this.showMap ? this.renderMap(record) : ''}
         {this.confirm}
       </div>,
     );
   }
 
+  private formatLastSeen(lastSeenAt: unknown): string {
+    if (lastSeenAt instanceof gc.time) {
+      return lastSeenAt.toDate().toLocaleString('fr');
+    }
+    return '2025-12-15';
+  }
+
+  private getSourceUrl(record: unknown): string | null {
+    if (typeof record !== 'object' || record == null) return null;
+    const sourceName = (record as any).sourceName as string | undefined;
+    const loc = (record as any).primaryLocation as gc.geo | null | undefined;
+    if (!sourceName) return null;
+
+    switch (sourceName) {
+      case 'OSM': {
+        const id = (record as any).id;
+        const kind = (record as gc.OSMFullRecord).kind
+        if (id != null && id !== '') {
+          return `https://www.openstreetmap.org/${kind || "node"}/${id}`;
+        }
+        return null;
+      }
+      case 'BDA': {
+        const idGeo = (record as any).id_geoportail as string | undefined;
+        if (!idGeo || loc == null) return null;
+        const R = 6378137;
+        const latRad = (loc.lat * Math.PI) / 180;
+        const x = ((loc.lng * Math.PI) / 180) * R;
+        const y = R * Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+        return `https://map.geoportail.lu/theme/main?lang=fr&version=3&X=${x.toFixed(0)}&Y=${y.toFixed(0)}&zoom=17&rotation=0&features=&layers=152&opacities=1&time=&bgLayer=basemap_2015_global&fid=152_${idGeo}`;
+      }
+      default:
+        return null;
+    }
+  }
+
   private renderMap(record: unknown) {
     if (typeof record === 'object' && record != null && 'primaryLocation' in record && record['primaryLocation'] != null) {
-      return  <div className={'map-container'}> <mengplaz-minimap primary={record['primaryLocation'] as gc.geo}  /> </div> ;
+      return (
+        <div className={'map-container'}>
+          <mengplaz-minimap golden={record['primaryLocation'] as gc.geo} locations={(record as any)?.['secondaryLocations']} />
+        </div>
+      );
     }
   }
 }

@@ -1,8 +1,8 @@
 @include("backend");
 
-@library("std", "7.6.243-stable");
-@library("explorer", "7.6.19-stable");
-//@library("strplus");
+@library("std", "7.8.175-stable");
+@library("explorer", "7.8.19-stable");
+@library("postal");
 
 @role("public", "files", "api");
 
@@ -12,8 +12,19 @@ fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
-    Scheduler::add(GoldenExporter::exportAll, DailyPeriodicity { hour: 23 }, null);
-    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, null);
+    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
+    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, PeriodicOptions { immediate: false });
+
+    Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 20 }, PeriodicOptions { immediate: false });
+
+    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 20_s }, PeriodicOptions {
+        immediate: false,
+        start: time::now() + 10s
+    });
+
+    Scheduler::add(updateCACLR, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
+    Scheduler::add(updateBDA, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
+    Scheduler::add(updateOSM, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions { immediate: false });
 }
 
 fn bootstrap() {
@@ -26,21 +37,21 @@ fn bootstrap() {
     GoldenSource::init();
 
     try {
-        GoldenLoader::loadAll();
+        BackupImporter::importAll();
     } catch (err) {
-        error("Load From Dumped Data Failed : ${err.message}");
+        error("Restore From Backup Failed : ${err.message}");
     }
 }
 
 fn dump() {
-    GoldenExporter::exportAll();
+    BackupExporter::exportAll();
 }
 
 private fn createAdmin() {
     var admLogin = System::getEnv("MENGPLAZ_ADMIN_LOGIN");
     if (admLogin != null && User::getByName(admLogin) == null) {
         var user = User {
-            id: 0,  // will be overwritten after 
+            id: 0,
             name: admLogin,
             full_name: "Administrator",
             email: "admin@mengplaz.lu",

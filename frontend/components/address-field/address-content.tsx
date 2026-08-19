@@ -1,9 +1,10 @@
 import './address-field';
 
-const EXCLUDED_KEYS = ['goldenRef', 'sourceName'];
+const EXCLUDED_KEYS = ['goldenRef', 'sourceName', 'deprecated', 'lastSeenAt'];
 
 export class AddressContent extends HTMLElement {
   private _value?: gc.mengplaz.POIRecord | gc.mengplaz.SearchItem | gc.mengplaz.POIFullRecordRef;
+  private _score?: number;
 
   set value(v: gc.mengplaz.POIRecord | gc.mengplaz.SearchItem | gc.mengplaz.POIFullRecordRef | undefined) {
     this._value = v;
@@ -12,6 +13,14 @@ export class AddressContent extends HTMLElement {
 
   get value() {
     return this._value;
+  }
+  set score(v: number | undefined) {
+    this._score = v;
+    this.render();
+  }
+
+  get score() {
+    return this._score;
   }
 
   connectedCallback() {
@@ -37,7 +46,12 @@ export class AddressContent extends HTMLElement {
         return field;
       });
 
-    this.replaceChildren(<div className="card-content">{fields}</div>);
+    this.replaceChildren(
+      <div className="card-content">
+        {fields}
+        {this.score ? <address-field label={'Score'} value={`${this.score * 100} %`} /> : ''}
+      </div>,
+    );
   }
 }
 

@@ -1,0 +1,866 @@
+// Full graph restore: reads back everything `BackupExporter` writes to `files/backup/`.
+//
+// Import order follows the dependency chain, parents first:
+//   sources -> CACLR -> BDA -> OSM -> golden -> traffic
+// Golden comes after the three sources so `linkedRecords` and quality events can be
+// re-attached to the source records they point at.
+//
+// The import requires an empty graph and refuses to run otherwise. Most steps skip records
+// already present under their business key, but BDA streets have no such key and would be
+// appended a second time, so restoring onto a populated store duplicates them.
+//
+// Node identity is not preserved (GreyCat assigns new node ids); business keys are.
+// Indices are rebuilt through each type's `indexing()`, exactly as the live loaders do.
+
+abstract type BackupImporter {
+    /// Restores the whole graph from `files/backup/`. Throws if the graph already holds data.
+    static fn importAll() {
+        BackupImporter::assertGraphIsEmpty();
+
+        var start = time::now();
+        info("Restore: starting full graph import from ${BackupExporter::dir}");
+
+        BackupImporter::importSources();
+
+        info("Restore: CACLR constituencies=${BackupImporter::importCaclrConstituencies()}");
+        info("Restore: CACLR cantons=${BackupImporter::importCaclrCantons()}");
+        info("Restore: CACLR municipalities=${BackupImporter::importCaclrMunicipalities()}");
+        info("Restore: CACLR cities=${BackupImporter::importCaclrCities()}");
+        info("Restore: CACLR streets=${BackupImporter::importCaclrStreets()}");
+        info("Restore: CACLR buildings=${BackupImporter::importCaclrBuildings()}");
+
+        info("Restore: BDA municipalities=${BackupImporter::importBdaMunicipalities()}");
+        info("Restore: BDA cities=${BackupImporter::importBdaCities()}");
+        info("Restore: BDA streets=${BackupImporter::importBdaStreets()}");
+        info("Restore: BDA addresses=${BackupImporter::importBdaAddresses()}");
+
+        info("Restore: OSM cities=${BackupImporter::importOsmCities()}");
+        info("Restore: OSM streets=${BackupImporter::importOsmStreets()}");
+        info("Restore: OSM addresses=${BackupImporter::importOsmAddresses()}");
+        info("Restore: OSM partial addresses=${BackupImporter::importOsmPartialAddresses()}");
+
+        info("Restore: golden constituencies=${BackupImporter::importGoldenConstituencies()}");
+        info("Restore: golden cantons=${BackupImporter::importGoldenCantons()}");
+        info("Restore: golden municipalities=${BackupImporter::importGoldenMunicipalities()}");
+        info("Restore: golden cities=${BackupImporter::importGoldenCities()}");
+        info("Restore: golden streets=${BackupImporter::importGoldenStreets()}");
+        info("Restore: golden POIs=${BackupImporter::importGoldenPois()}");
+        info("Restore: golden quality history=${BackupImporter::importGoldenQualityHistory()}");
+
+        info("Restore: traffic=${BackupImporter::importTraffic()}");
+
+        info("Restore: done in ${(time::now() - start).to(DurationUnit::seconds)}s");
+    }
+
+    // -----------------------------------------------------------------------
+    // Empty graph guard
+    // -----------------------------------------------------------------------
+
+    /// Throws unless every data root is empty, listing what was found.
+    ///
+    /// `sources_by_name` is deliberately not checked: `bootstrap()` initialises the sources
+    /// before restoring, and `importSources()` is keyed by source name anyway.
+    static fn assertGraphIsEmpty() {
+        var found = "";
+        found = BackupImporter::appendIfFilled(found, "caclr_consistuency_by_code", caclr_consistuency_by_code.size());
+        found = BackupImporter::appendIfFilled(found, "caclr_cantons_by_id", caclr_cantons_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "caclr_municipalities_by_id", caclr_municipalities_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "caclr_cities_by_id", caclr_cities_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "caclr_streets_by_id", caclr_streets_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "caclr_buildings_by_id", caclr_buildings_by_id.size());
+
+        found = BackupImporter::appendIfFilled(found, "bda_municipalities_by_name", bda_municipalities_by_name.size());
+        found = BackupImporter::appendIfFilled(found, "bda_cities_by_name", bda_cities_by_name.size());
+        found = BackupImporter::appendIfFilled(found, "bda_streets_by_name", bda_streets_by_name.size());
+        found = BackupImporter::appendIfFilled(found, "bda_street_by_cacrid", bda_street_by_cacrid.size());
+        found = BackupImporter::appendIfFilled(found, "bda_address_by_geoportalid", bda_address_by_geoportalid.size());
+
+        found = BackupImporter::appendIfFilled(found, "osm_cities_by_name", osm_cities_by_name.size());
+        found = BackupImporter::appendIfFilled(found, "osm_streets_by_name", osm_streets_by_name.size());
+        found = BackupImporter::appendIfFilled(found, "osm_by_id", osm_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "osm_partial_by_id", osm_partial_by_id.size());
+
+        found = BackupImporter::appendIfFilled(found, "golden_constituency_by_code", golden_constituency_by_code.size());
+        found = BackupImporter::appendIfFilled(found, "golden_cantons_by_id", golden_cantons_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "golden_municipalities_by_id", golden_municipalities_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "golden_cities_by_id", golden_cities_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "golden_streets_by_id", golden_streets_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "golden_pois_by_id", golden_pois_by_id.size());
+
+        found = BackupImporter::appendIfFilled(found, "endpoints_by_name", endpoints_by_name.size());
+
+        if (found != "") {
+            throw "Restore refused: the graph is not empty (${found}). Stop the server, remove the gcdata directory, run 'greycat build', then restore again.";
+        }
+    }
+
+    static fn appendIfFilled(found: String, name: String, size: int): String {
+        if (size == 0) {
+            return found;
+        }
+        if (found == "") {
+            return "${name}=${size}";
+        }
+        return "${found}, ${name}=${size}";
+    }
+
+    // -----------------------------------------------------------------------
+    // Sources
+    // -----------------------------------------------------------------------
+
+    static fn importSources(): int {
+        CaclrSource::init();
+        BDAddressSource::init();
+        OsmSource::init();
+        GoldenSource::init();
+
+        var fr = CsvReader<BkSourceDTO> {
+            path: BackupExporter::sourcePath,
+            format: CsvFormat { header_lines: 1 }
+        };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nSource = sources_by_name.get(l.name);
+            if (nSource == null) {
+                warn("Restore: unknown source ${l.name}, skipped");
+                continue;
+            }
+            nSource->lastUpdate = l.lastUpdate;
+            count++;
+        }
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // CACLR
+    // -----------------------------------------------------------------------
+
+    static fn importCaclrConstituencies(): int {
+        var fr = JsonReader<BkCaclrConstituencyDTO> { path: BackupExporter::caclrConstituencyPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (caclr_consistuency_by_code.get(l.code) != null) {
+                continue;
+            }
+            var nConstituency = node<CaclrConstituency> {
+                CaclrConstituency {
+                    code: l.code,
+                    name: l.name,
+                    cantons_by_id: nodeIndex<String, node<CaclrCanton>> {}
+                }
+            };
+            caclr_consistuency_by_code.set(nConstituency->code, nConstituency);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importCaclrCantons(): int {
+        var fr = JsonReader<BkCaclrCantonDTO> { path: BackupExporter::caclrCantonPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (caclr_cantons_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nConstituency = caclr_consistuency_by_code.get(l.constituencyCode);
+            if (nConstituency == null) {
+                warn("Restore: CACLR canton ${l.id} references unknown constituency ${l.constituencyCode}, skipped");
+                continue;
+            }
+            var nCanton = node<CaclrCanton> {
+                CaclrCanton {
+                    id: l.id,
+                    code: l.code,
+                    name: l.name,
+                    lastUpdate: l.lastUpdate,
+                    constituency: nConstituency,
+                    municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>> {}
+                }
+            };
+            nConstituency->cantons_by_id.set(nCanton->id, nCanton);
+            caclr_cantons_by_id.set(nCanton->id, nCanton);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importCaclrMunicipalities(): int {
+        var fr = JsonReader<BkCaclrMunicipalityDTO> { path: BackupExporter::caclrMunicipalityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (caclr_municipalities_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nCanton = caclr_cantons_by_id.get(l.cantonId);
+            if (nCanton == null) {
+                warn("Restore: CACLR municipality ${l.id} references unknown canton ${l.cantonId}, skipped");
+                continue;
+            }
+            var nMunicipality = node<CaclrMunicipality> {
+                CaclrMunicipality {
+                    id: l.id,
+                    code: l.code,
+                    coficomCode: l.coficomCode,
+                    compoundCode: l.compoundCode,
+                    name: l.name,
+                    nameUpperCase: l.nameUpperCase,
+                    nameLu: l.nameLu,
+                    status: l.status,
+                    validityStartDate: l.validityStartDate,
+                    validityEndDate: l.validityEndDate,
+                    lastUpdate: l.lastUpdate,
+                    eurostats: l.eurostats,
+                    canton: nCanton,
+                    cities_by_id: nodeIndex<String, node<CaclrCity>> {}
+                }
+            };
+            nMunicipality->indexing(nMunicipality);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importCaclrCities(): int {
+        var fr = JsonReader<BkCaclrCityDTO> { path: BackupExporter::caclrCityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (caclr_cities_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nMunicipality = caclr_municipalities_by_id.get(l.municipalityId);
+            if (nMunicipality == null) {
+                warn("Restore: CACLR city ${l.id} references unknown municipality ${l.municipalityId}, skipped");
+                continue;
+            }
+            var nCity = node<CaclrCity> {
+                CaclrCity {
+                    id: l.id,
+                    code: l.code,
+                    compoundCode: l.compoundCode,
+                    name: l.name,
+                    nameUpperCase: l.nameUpperCase,
+                    aliases: l.aliases,
+                    isTown: l.isTown,
+                    validityStartDate: l.validityStartDate,
+                    validityEndDate: l.validityEndDate,
+                    lastUpdate: l.lastUpdate,
+                    municipality: nMunicipality,
+                    streets_by_id: nodeIndex<String, node<CaclrStreet>> {}
+                }
+            };
+            nCity->indexing(nCity);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importCaclrStreets(): int {
+        var fr = JsonReader<BkCaclrStreetDTO> { path: BackupExporter::caclrStreetPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (caclr_streets_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nCity = caclr_cities_by_id.get(l.cityId);
+            if (nCity == null) {
+                warn("Restore: CACLR street ${l.id} references unknown city ${l.cityId}, skipped");
+                continue;
+            }
+            var nStreet = node<CaclrStreet> {
+                CaclrStreet {
+                    id: l.id,
+                    name: l.name,
+                    nameUpperCase: l.nameUpperCase,
+                    keyWord: l.keyWord,
+                    aliases: l.aliases,
+                    administrativeStatus: l.administrativeStatus,
+                    isPlace: l.isPlace,
+                    validityStartDate: l.validityStartDate,
+                    validityEndDate: l.validityEndDate,
+                    lastUpdate: l.lastUpdate,
+                    city: nCity,
+                    buildings_by_id: nodeIndex<String, node<CaclrBuilding>> {}
+                }
+            };
+            nStreet->indexing(nStreet);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importCaclrBuildings(): int {
+        var fr = JsonReader<BkCaclrBuildingDTO> { path: BackupExporter::caclrBuildingPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (caclr_buildings_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nStreet: node<CaclrStreet>?;
+            if (l.streetId != null) {
+                nStreet = caclr_streets_by_id.get(l.streetId);
+                if (nStreet == null) {
+                    warn("Restore: CACLR building ${l.id} references unknown street ${l.streetId}");
+                }
+            }
+            var nBuilding = node<CaclrBuilding> {
+                CaclrBuilding {
+                    id: l.id,
+                    number: l.number,
+                    isNumberUndefined: l.isNumberUndefined,
+                    multipleCode: l.multipleCode,
+                    postalCode: l.postalCode,
+                    position: l.position,
+                    administrativeStatus: l.administrativeStatus,
+                    validityStartDate: l.validityStartDate,
+                    validityEndDate: l.validityEndDate,
+                    lastUpdate: l.lastUpdate,
+                    street: nStreet,
+                    lastSeenAt: l.lastSeenAt,
+                    deprecated: l.deprecated
+                }
+            };
+            nBuilding->indexing(nBuilding);
+            count++;
+        }
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // BDA
+    // -----------------------------------------------------------------------
+
+    static fn importBdaMunicipalities(): int {
+        var fr = JsonReader<BkBdaMunicipalityDTO> { path: BackupExporter::bdaMunicipalityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (bda_municipalities_by_name.get(l.name.lowercase()) != null) {
+                continue;
+            }
+            var nMunicipality = node<BDAMunicipality> {
+                BDAMunicipality {
+                    name: l.name,
+                    cities_by_name: nodeIndex<String, node<BDACity>> {}
+                }
+            };
+            nMunicipality->indexing(nMunicipality);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importBdaCities(): int {
+        var fr = JsonReader<BkBdaCityDTO> { path: BackupExporter::bdaCityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nMunicipality: node<BDAMunicipality>?;
+            if (l.municipalityName != null) {
+                nMunicipality = bda_municipalities_by_name.get(l.municipalityName.lowercase());
+            }
+            if (BackupImporter::findBdaCity(l.name, nMunicipality) != null) {
+                continue;
+            }
+            var nCity = node<BDACity> {
+                BDACity {
+                    name: l.name,
+                    municipality: nMunicipality,
+                    streets_by_name: nodeIndex<String, node<BDAStreet>> {}
+                }
+            };
+            nCity->indexing(nCity);
+            count++;
+        }
+        return count;
+    }
+
+    /// A BDA city has no id: identity is its name within its municipality.
+    ///
+    /// Without a municipality the name alone has to do. Some live streets point at a city
+    /// whose municipality is unreachable, which is why the fallback returns a same-named
+    /// city rather than nothing: dropping the link would also drop the street from that
+    /// city's `streets_by_name` index and hide it from city-scoped search.
+    static fn findBdaCity(name: String, nMunicipality: node<BDAMunicipality>?): node<BDACity>? {
+        var cityKey = name.lowercase();
+        if (nMunicipality != null) {
+            return nMunicipality->cities_by_name?.get(cityKey);
+        }
+        var candidates = bda_cities_by_name.get(cityKey);
+        if (candidates == null) {
+            return null;
+        }
+        for (_, nCity in candidates) {
+            if (nCity->municipality == null) {
+                return nCity;
+            }
+        }
+        return candidates.get(0);
+    }
+
+    static fn importBdaStreets(): int {
+        var fr = JsonReader<BkBdaStreetDTO> { path: BackupExporter::bdaStreetPath };
+        var count = 0;
+        var duplicates = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            
+            var nMunicipality: node<BDAMunicipality>?;
+            if (l.municipalityName != null) {
+                nMunicipality = bda_municipalities_by_name.get(l.municipalityName.lowercase());
+            }
+            var nCity: node<BDACity>?;
+            if (l.cityName != null) {
+                nCity = BackupImporter::findBdaCity(l.cityName, nMunicipality);
+            }
+            var nStreet = node<BDAStreet> {
+                BDAStreet {
+                    name: l.name,
+                    id_caclr: l.idCaclr,
+                    city: nCity,
+                    addresses_by_id: nodeIndex<String, node<BDAddress>> {},
+                    addresses_by_number: nodeIndex<String, node<BDAddress>> {}
+                }
+            };
+            nStreet->indexing(nStreet);
+            count++;
+        }
+        if (duplicates > 0) {
+            info("Restore: ${duplicates} BDA street rows collapsed onto an existing CACLR id");
+        }
+        return count;
+    }
+
+    static fn importBdaAddresses(): int {
+        var fr = JsonReader<BkBdaAddressDTO> { path: BackupExporter::bdaAddressPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (bda_address_by_geoportalid.get(l.idGeoportail) != null) {
+                continue;
+            }
+            var nStreet = bda_street_by_cacrid.get(l.streetIdCaclr);
+            var nMunicipality = bda_municipalities_by_name.get(l.municipalityName.lowercase());
+            if (nStreet == null || nMunicipality == null) {
+                warn("Restore: BDA address ${l.idGeoportail} references an unknown street or municipality, skipped");
+                continue;
+            }
+            var nCity = BackupImporter::findBdaCity(l.cityName, nMunicipality);
+            if (nCity == null) {
+                warn("Restore: BDA address ${l.idGeoportail} references unknown city ${l.cityName}, skipped");
+                continue;
+            }
+            var nAddress = node<BDAddress> {
+                BDAddress {
+                    number: l.number,
+                    postcode: l.postcode,
+                    position: l.position,
+                    id_caclr: l.idCaclr,
+                    id_geoportail: l.idGeoportail,
+                    street: nStreet,
+                    city: nCity,
+                    municipatlity: nMunicipality,
+                    lastSeenAt: l.lastSeenAt,
+                    deprecated: l.deprecated
+                }
+            };
+            nAddress->indexing(nAddress);
+            count++;
+        }
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // OSM
+    // -----------------------------------------------------------------------
+
+    static fn importOsmCities(): int {
+        var fr = JsonReader<BkOsmCityDTO> { path: BackupExporter::osmCityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (osm_cities_by_name.get(l.name.lowercase()) != null) {
+                continue;
+            }
+            var nCity = node<OsmCity> {
+                OsmCity {
+                    name: l.name,
+                    streets_by_name: nodeIndex<String, node<OsmStreet>> {}
+                }
+            };
+            nCity->indexing(nCity);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importOsmStreets(): int {
+        var fr = JsonReader<BkOsmStreetDTO> { path: BackupExporter::osmStreetPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nCity = osm_cities_by_name.get(l.cityName.lowercase());
+            if (nCity == null) {
+                warn("Restore: OSM street ${l.name} references unknown city ${l.cityName}, skipped");
+                continue;
+            }
+            if (nCity->streets_by_name.get(l.name.lowercase()) != null) {
+                continue;
+            }
+            var nStreet = node<OsmStreet> {
+                OsmStreet {
+                    name: l.name,
+                    city: nCity,
+                    addresses_by_id: nodeIndex<String, node<OsmAddress>> {},
+                    addresses_by_number: nodeIndex<String, node<OsmAddress>> {}
+                }
+            };
+            nStreet->indexing(nStreet);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importOsmAddresses(): int {
+        var fr = JsonReader<BkOsmAddressDTO> { path: BackupExporter::osmAddressPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (osm_by_id.get("${l.id}") != null) {
+                continue;
+            }
+            var nStreetRef: node<OsmStreet>?;
+            if (l.streetRefName != null && l.streetRefCity != null) {
+                nStreetRef = osm_cities_by_name.get(l.streetRefCity.lowercase())?->streets_by_name.get(l.streetRefName.lowercase());
+            }
+            var nAddress = node<OsmAddress> {
+                OsmAddress {
+                    id: l.id,
+                    position: l.position,
+                    city: l.city,
+                    postcode: l.postcode,
+                    street: l.street,
+                    number: l.number,
+                    ref_caclr: l.refCaclr,
+                    building: l.building,
+                    kind: l.kind,
+                    streetRef: nStreetRef,
+                    lastSeenAt: l.lastSeenAt,
+                    deprecated: l.deprecated
+                }
+            };
+            nAddress->indexing(nAddress);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importOsmPartialAddresses(): int {
+        var fr = JsonReader<BkOsmPartialAddressDTO> { path: BackupExporter::osmPartialAddressPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (osm_partial_by_id.get(l.id) != null) {
+                continue;
+            }
+            // OsmPartialAddress has no `indexing()`: the loader wires both roots by hand.
+            var nPartial = node<OsmPartialAddress> {
+                OsmPartialAddress {
+                    id: l.id,
+                    position: l.position,
+                    city: l.city,
+                    postcode: l.postcode,
+                    street: l.street,
+                    number: l.number,
+                    ref_caclr: l.refCaclr,
+                    map: l.map
+                }
+            };
+            osm_partial_by_id.set(l.id, nPartial);
+            if (l.position != null) {
+                osm_partial_by_geo.set(l.position, nPartial);
+            }
+            count++;
+        }
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // Golden
+    // -----------------------------------------------------------------------
+
+    static fn importGoldenConstituencies(): int {
+        var fr = JsonReader<BkGoldenConstituencyDTO> { path: BackupExporter::goldenConstituencyPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (golden_constituency_by_code.get(l.code) != null) {
+                continue;
+            }
+            var nConstituency = node<GoldenConstituency> {
+                GoldenConstituency {
+                    code: l.code,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    cantons_by_id: nodeIndex<String, node<GoldenCanton>> {}
+                }
+            };
+            golden_constituency_by_code.set(nConstituency->code, nConstituency);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importGoldenCantons(): int {
+        var fr = JsonReader<BkGoldenCantonDTO> { path: BackupExporter::goldenCantonPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (golden_cantons_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nConstituency = golden_constituency_by_code.get(l.constituencyId);
+            if (nConstituency == null) {
+                warn("Restore: golden canton ${l.id} references unknown constituency ${l.constituencyId}, skipped");
+                continue;
+            }
+            var nCanton = node<GoldenCanton> {
+                GoldenCanton {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    constituency: nConstituency,
+                    municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {}
+                }
+            };
+            nConstituency->cantons_by_id.set(nCanton->id, nCanton);
+            golden_cantons_by_id.set(nCanton->id, nCanton);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importGoldenMunicipalities(): int {
+        var fr = JsonReader<BkGoldenMunicipalityDTO> { path: BackupExporter::goldenMunicipalityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (golden_municipalities_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nCanton = golden_cantons_by_id.get(l.cantonId);
+            if (nCanton == null) {
+                warn("Restore: golden municipality ${l.id} references unknown canton ${l.cantonId}, skipped");
+                continue;
+            }
+            var nMunicipality = node<GoldenMunicipality> {
+                GoldenMunicipality {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    canton: nCanton,
+                    cities_by_id: nodeIndex<String, node<GoldenCity>> {}
+                }
+            };
+            nMunicipality->indexing(nMunicipality);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importGoldenCities(): int {
+        var fr = JsonReader<BkGoldenCityDTO> { path: BackupExporter::goldenCityPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (golden_cities_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nMunicipality = golden_municipalities_by_id.get(l.municipalityId);
+            if (nMunicipality == null) {
+                warn("Restore: golden city ${l.id} references unknown municipality ${l.municipalityId}, skipped");
+                continue;
+            }
+            var nCity = node<GoldenCity> {
+                GoldenCity {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    municipality: nMunicipality,
+                    streets_by_id: nodeIndex<String, node<GoldenStreet>> {}
+                }
+            };
+            nCity->indexing(nCity);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importGoldenStreets(): int {
+        var fr = JsonReader<BkGoldenStreetDTO> { path: BackupExporter::goldenStreetPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (golden_streets_by_id.get(l.id) != null) {
+                continue;
+            }
+            var nCity = golden_cities_by_id.get(l.cityId);
+            if (nCity == null) {
+                warn("Restore: golden street ${l.id} references unknown city ${l.cityId}, skipped");
+                continue;
+            }
+            var nStreet = node<GoldenStreet> {
+                GoldenStreet {
+                    id: l.id,
+                    name: l.name,
+                    nameAliases: l.nameAliases,
+                    lastUpdate: l.lastUpdate,
+                    city: nCity,
+                    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+                    pois_by_number: nodeIndex<String, node<GoldenPointOfInterest>> {}
+                }
+            };
+            nStreet->indexing(nStreet);
+            count++;
+        }
+        return count;
+    }
+
+    static fn importGoldenPois(): int {
+        var fr = JsonReader<BkGoldenPoiDTO> { path: BackupExporter::goldenPoiPath };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            if (golden_pois_by_id.get(l.uid) != null) {
+                continue;
+            }
+            var nStreet: node<GoldenStreet>?;
+            if (l.streetId != null) {
+                nStreet = golden_streets_by_id.get(l.streetId);
+            }
+            var nPOI = node<GoldenPointOfInterest> {
+                GoldenPointOfInterest {
+                    uid: l.uid,
+                    number: l.number,
+                    multipleCode: l.multipleCode,
+                    postCode: l.postCode,
+                    primaryLocation: l.primaryLocation,
+                    secondaryLocations: l.secondaryLocations,
+                    lastUpdate: l.lastUpdate,
+                    street: nStreet,
+                    linkedRecords: Array<LinkedRecordEntry> {},
+                    quality: nodeTime<QualityEvent> {}
+                }
+            };
+
+            for (_, linkedRecord in l.linkedRecords?) {
+                var nRecord = BackupImporter::findSourceRecord(linkedRecord.sourceName, linkedRecord.id);
+                if (nRecord == null) {
+                    warn("Restore: golden POI ${l.uid} links unknown ${linkedRecord.sourceName} record ${linkedRecord.id}");
+                    continue;
+                }
+                nRecord->linkToGolden(nPOI);
+                var entry = LinkedRecordEntry { record: nRecord, score: linkedRecord.score };
+                if (linkedRecord.detailedScore != null) {
+                    entry.detailedScore = node<ReconciliationCandidateScore> { linkedRecord.detailedScore };
+                }
+                nPOI->linkedRecords.add(entry);
+            }
+
+            for (_, event in l.quality?) {
+                var nRecord: node<POIRecordProvider>?;
+                if (event.id != null && event.sourceName != null) {
+                    nRecord = BackupImporter::findSourceRecord(event.sourceName, event.id);
+                }
+                nPOI->quality.setAt(event.t, QualityEvent {
+                    score: event.score,
+                    sourceRecord: nRecord,
+                    eventType: event.eventType
+                });
+            }
+
+            nPOI->indexing(nPOI);
+            count++;
+        }
+        return count;
+    }
+
+    static fn findSourceRecord(sourceName: String, id: String): node<POIRecordProvider>? {
+        if (sourceName == CaclrSource::NAME) {
+            return caclr_buildings_by_id.get(id);
+        } else if (sourceName == BDAddressSource::NAME) {
+            return bda_address_by_geoportalid.get(id);
+        } else if (sourceName == OsmSource::NAME) {
+            return osm_by_id.get(id);
+        }
+        return null;
+    }
+
+    static fn importGoldenQualityHistory(): int {
+        // Dereference before the type test, see `BackupExporter::exportGoldenQualityHistory`.
+        var nGoldenSource = sources_by_name.get(GoldenSource::NAME);
+        if (nGoldenSource == null) {
+            return 0;
+        }
+        var goldenSource = *nGoldenSource;
+        if (!(goldenSource is GoldenSource)) {
+            return 0;
+        }
+        var fr = CsvReader<BkGoldenQualityHistoryDTO> {
+            path: BackupExporter::goldenQualityHistoryPath,
+            format: CsvFormat { header_lines: 1 }
+        };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            goldenSource.qualityHistory.setAt(l.t, l.score);
+            count++;
+        }
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // Traffic
+    // -----------------------------------------------------------------------
+
+    static fn importTraffic(): int {
+        var fr = CsvReader<BkTrafficDTO> {
+            path: BackupExporter::trafficPath,
+            format: CsvFormat { header_lines: 1 }
+        };
+        var count = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nEndpoint = endpoints_by_name.get(l.endpoint);
+            if (nEndpoint == null) {
+                nEndpoint = node<Endpoint> {
+                    Endpoint { name: l.endpoint, traffic: nodeTime<Traffic> {} }
+                };
+                endpoints_by_name.set(l.endpoint, nEndpoint);
+            }
+            var executionTime: duration?;
+            if (l.executionTimeUs != null) {
+                executionTime = duration::new(l.executionTimeUs, DurationUnit::microseconds);
+            }
+            nEndpoint->traffic.setAt(l.t, Traffic { user: l.user, executionTime: executionTime });
+            count++;
+        }
+        return count;
+    }
+}
+
+/// Restores the whole graph from `files/backup/`.
+@expose
+@permission("admin")
+fn restoreGraph() {
+    BackupImporter::importAll();
+}

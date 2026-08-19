@@ -11,3 +11,10 @@ reconcile-pane {
   align-items: center;
   padding: var(--sl-spacing-small) 0;
 }
+
+.reconcile-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-spacing-x-small);
+  margin-left: auto;
+}

@@ -1,45 +1,82 @@
 import { GuiMap } from '@greycat/web';
 import maplibregl from 'maplibre-gl';
-import { calculateDistance, formatDistance } from '~/common/utils';
+import { calculateDistance, colorForKey, formatDistance } from '~/common/utils';
 import './minimap.css';
 
-const MASTER_COLOR = '#10069f'; // --secondary (blue)
-const CANDIDATE_COLOR = '#ff18a4'; // --tertiary (pink)
+const CANDIDATE_COLOR = '#10069f';
+const MASTER_COLOR = '#ff18a4';
+
+// Official orthophoto 2025, served as WMTS raster tiles (CORS-enabled, EPSG:3857).
+// Subdomains wmts1-4 load-balance. Same source as the full map page.
+const ORTHO_TILES = [1, 2, 3, 4].map(
+  (i) => `https://wmts${i}.geoportail.lu/mapproxy_4_v3/wmts/ortho_2025/GLOBAL_WEBMERCATOR_4_V3/{z}/{x}/{y}.jpeg`,
+);
+
+// Transparent WMS overlay (geoportail public_map_layers, layer 351) drawn on top of ortho.
+// WMS 1.3.0 GetMap; maplibre expands {bbox-epsg-3857} per tile.
+const ORTHO_OVERLAY_TILES = [
+  'https://wms.geoportail.lu/public_map_layers/service?REQUEST=GetMap&SERVICE=WMS&VERSION=1.3.0' +
+    '&FORMAT=image%2Fpng&STYLES=&TRANSPARENT=TRUE&LAYERS=351&WIDTH=256&HEIGHT=256' +
+    '&CRS=EPSG%3A3857&BBOX={bbox-epsg-3857}',
+];
+
+// Credit for the geoportail orthophoto and cadastral layers (Administration du cadastre
+// et de la topographie via geoportail.lu).
+const GEOPORTAIL_ATTRIBUTION =
+  '&copy; <a href="https://www.geoportail.lu" target="_blank" rel="noopener">geoportail.lu</a> / Administration du cadastre et de la topographie';
+
+// Required ODbL attribution: plotted locations may be derived from OpenStreetMap data.
+const OSM_DATA_ATTRIBUTION =
+  'Address data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL)';
 
 export class MiniMap extends HTMLElement {
-  primary?: gc.geo;
-  secondary?: gc.geo | null;
+  golden?: gc.geo;
+  source?: gc.geo | null;
   showDistance?: boolean;
   locations?: Map<string, gc.geo>;
 
   private map: GuiMap;
-  private primaryMarker?: maplibregl.Marker;
-  private secondaryMarker?: maplibregl.Marker;
+  private markers: maplibregl.Marker[] = [];
 
   constructor() {
     super();
     this.map = document.createElement('gui-map');
     this.map.options = {
-      attributionControl: false,
+      attributionControl: { compact: true, customAttribution: OSM_DATA_ATTRIBUTION },
       style: {
         version: 8,
         sources: {
-          osm: {
+          ortho: {
             type: 'raster',
-            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: ORTHO_TILES,
             tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors',
             maxzoom: 19,
+            attribution: GEOPORTAIL_ATTRIBUTION,
+          },
+          'ortho-overlay': {
+            type: 'raster',
+            tiles: ORTHO_OVERLAY_TILES,
+            tileSize: 256,
+            attribution: GEOPORTAIL_ATTRIBUTION,
           },
         },
         layers: [
           {
-            id: 'osm',
+            id: 'ortho',
             type: 'raster',
-            source: 'osm',
+            source: 'ortho',
+          },
+          {
+            id: 'ortho-overlay',
+            type: 'raster',
+            source: 'ortho-overlay',
           },
         ],
       },
+      maxBounds: [
+        [4.336, 48.548],
+        [7.932, 51.083],
+      ],
       zoom: 16,
     };
   }
@@ -48,69 +85,138 @@ export class MiniMap extends HTMLElement {
     this.render();
     this.map.style.height = '200px';
     this.map.ready.then((m) => {
-      // Add primary marker
-      if (this.primary) {
-        this.primaryMarker = new maplibregl.Marker({ color: MASTER_COLOR }).setLngLat([this.primary.lng, this.primary.lat]).addTo(m as any);
+      // Collapse the attribution box to the compact "i" button, like the main map.
+      const attc = (m as any)._controls?.find((c: unknown) => c instanceof maplibregl.AttributionControl);
+      attc?._updateCompactMinimize?.();
+
+      type Point = { label: string; geo: gc.geo; color: string };
+      const points: Point[] = [];
+      if (this.golden) points.push({ label: 'Golden', geo: this.golden, color: MASTER_COLOR });
+      if (this.source) points.push({ label: 'Source', geo: this.source, color: CANDIDATE_COLOR });
+      if (this.locations) {
+        for (const [k, v] of this.locations) {
+          points.push({ label: k, geo: v, color: colorForKey(k) });
+        }
       }
 
-      // Add secondary marker
-      if (this.secondary) {
-        this.secondaryMarker = new maplibregl.Marker({ color: CANDIDATE_COLOR }).setLngLat([this.secondary.lng, this.secondary.lat]).addTo(m as any);
+      const THRESHOLD = 1e-6;
+      const groups: Point[][] = [];
+      for (const p of points) {
+        const g = groups.find((gr) => Math.abs(gr[0].geo.lat - p.geo.lat) < THRESHOLD && Math.abs(gr[0].geo.lng - p.geo.lng) < THRESHOLD);
+        if (g) g.push(p);
+        else groups.push([p]);
       }
 
-      // Center map between both points or on primary
-      if (this.primary && this.secondary) {
-        const centerLat = (this.primary.lat + this.secondary.lat) / 2;
-        const centerLng = (this.primary.lng + this.secondary.lng) / 2;
-        m.setCenter([centerLng, centerLat]);
+      for (const g of groups) {
+        const popup = new maplibregl.Popup({ offset: 24 });
+        popup.on('open', () => {
+          const root = popup.getElement();
+          const content = root?.querySelector('.maplibregl-popup-content') as HTMLElement | null;
+          if (content) {
+            content.style.background = 'var(--color-card-bg, #ffffff)';
+            content.style.color = 'var(--color-text, #1e293b)';
+            content.style.border = '1px solid var(--color-card-border, #f1f5f9)';
+            content.style.borderRadius = 'var(--sl-border-radius-medium, 6px)';
+            content.style.padding = 'var(--sl-spacing-small, 8px) var(--sl-spacing-medium, 12px)';
+            content.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+            content.style.fontSize = 'var(--sl-font-size-small, 12px)';
+          }
+          const tip = root?.querySelector('.maplibregl-popup-tip') as HTMLElement | null;
+          if (tip && root) {
+            const bg = 'var(--color-card-bg, #ffffff)';
+            const cls = root.className;
+            if (cls.includes('anchor-top')) tip.style.borderBottomColor = bg;
+            else if (cls.includes('anchor-bottom')) tip.style.borderTopColor = bg;
+            else if (cls.includes('anchor-left')) tip.style.borderRightColor = bg;
+            else if (cls.includes('anchor-right')) tip.style.borderLeftColor = bg;
+          }
+        });
+        let marker: maplibregl.Marker;
+        if (g.length === 1) {
+          marker = new maplibregl.Marker({ color: g[0].color });
+          popup.setText(g[0].label);
+        } else {
+          const el = document.createElement('div');
+          el.textContent = String(g.length);
+          el.style.cssText = `width:26px;height:26px;border-radius:50%;background:${g[0].color};color:#ffffff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #ffffff;box-shadow:0 1px 4px rgba(0,0,0,0.4);cursor:pointer;`;
+          marker = new maplibregl.Marker({ element: el });
+          const rows = g
+            .map((p) => {
+              const dot = document.createElement('span');
+              dot.style.cssText = `width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;background:${p.color};`;
+              const row = document.createElement('div');
+              row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:2px 0;';
+              row.appendChild(dot);
+              row.appendChild(document.createTextNode(p.label));
+              return row.outerHTML;
+            })
+            .join('');
+          popup.setHTML(rows);
+        }
+        marker
+          .setLngLat([g[0].geo.lng, g[0].geo.lat])
+          .setPopup(popup)
+          .addTo(m as any);
 
-        // Adjust zoom to fit both markers
-        const distance = calculateDistance(this.primary, this.secondary);
-        if (distance > 5) m.setZoom(10);
-        else if (distance > 1) m.setZoom(12);
-        else if (distance > 0.5) m.setZoom(14);
-        else m.setZoom(15);
-      } else if (this.primary) {
-        m.setCenter([this.primary.lng, this.primary.lat]);
+        const hostEl = marker.getElement();
+        hostEl.addEventListener('mouseenter', () => {
+          if (!popup.isOpen()) marker.togglePopup();
+        });
+        hostEl.addEventListener('mouseleave', () => {
+          if (popup.isOpen()) marker.togglePopup();
+        });
+
+        this.markers.push(marker);
       }
+
+      if (this.golden) m.setCenter([this.golden.lng, this.golden.lat]);
+      else if (points.length > 0) m.setCenter([points[0].geo.lng, points[0].geo.lat]);
     });
   }
 
   disconnectedCallback() {
-    this.primaryMarker?.remove();
-    this.secondaryMarker?.remove();
+    for (const marker of this.markers) marker.remove();
+    this.markers = [];
   }
 
   render() {
     this.innerHTML = '';
 
     const distanceLabel =
-      this.showDistance && this.primary && this.secondary ? (
+      this.showDistance && this.golden && this.source ? (
         <div className="minimap-distance-label">
           <sl-badge variant="neutral" pill>
-            {formatDistance(calculateDistance(this.primary, this.secondary))}
+            {formatDistance(calculateDistance(this.golden, this.source))}
           </sl-badge>
         </div>
       ) : null;
 
     const legend = (
       <div className="minimap-legend">
-        {this.primary ? (
+        {this.golden ? (
           <span className="legend-item">
             <span className="legend-dot" style={{ backgroundColor: MASTER_COLOR }}></span>
+            Golden
+          </span>
+        ) : (
+          ''
+        )}
+        {this.source ? (
+          <span className="legend-item">
+            <span className="legend-dot" style={{ backgroundColor: CANDIDATE_COLOR }}></span>
             Source
           </span>
         ) : (
           ''
         )}
-        {this.secondary ? (
-          <span className="legend-item">
-            <span className="legend-dot" style={{ backgroundColor: CANDIDATE_COLOR }}></span>
-            Candidate
-          </span>
-        ) : (
-          ''
-        )}
+        {this.locations
+          ? Array.from(this.locations.keys()).map((name) => (
+              <span className="legend-item">
+                <span className="legend-dot" style={{ backgroundColor: colorForKey(name) }}></span>
+                {name}
+              </span>
+            ))
+          : ''}
       </div>
     );
 

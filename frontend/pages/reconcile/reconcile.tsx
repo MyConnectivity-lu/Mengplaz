@@ -9,6 +9,10 @@ import { MengplazPromotionDialog } from '~/components/mengplaz-promotion-dialog/
 import '~/components/mengplaz-promotion-dialog/mengplaz-promotion-dialog';
 import { SearchParametersDialog } from '~/components/search-parameters-dialog/search-parameters-dialog';
 import '~/components/search-parameters-dialog/search-parameters-dialog';
+import { BatchLinkDialog } from '~/components/batch-link-dialog/batch-link-dialog';
+import '~/components/batch-link-dialog/batch-link-dialog';
+import { AddressSelectEvent, MengplazAddressSearch } from '~/components/mengplaz-address-search/mengplaz-address-search';
+import '~/components/mengplaz-address-search/mengplaz-address-search';
 import { getQueryParam } from '~/common/utils';
 import './reconcile.css';
 
@@ -165,10 +169,13 @@ function addRecordToReport(report: gc.privateApi.ReconciliationReportView, sourc
 export class ReconcilePage extends HTMLElement {
   private sourceSelect: GuiSelect;
   private citySelect: GuiSelect;
+  private municipalitySelect: GuiSelect;
   private reconcileButton: sl.SlButton;
   private confirm: MengplazConfirmDialog;
   private promote: MengplazPromotionDialog;
   private searchParamsDialog: SearchParametersDialog;
+  private batchLinkDialog: BatchLinkDialog;
+  private addressSearch: MengplazAddressSearch;
   private searchParams: gc.mengplaz.SearchParameters = new gc.mengplaz.SearchParameters(
     0.7,
     0.7,
@@ -192,7 +199,7 @@ export class ReconcilePage extends HTMLElement {
 
     this.sourceSelect = new GuiSelect();
     this.sourceSelect.placeholder = 'Select a source...';
-    this.sourceSelect.addEventListener('gui-change', () => {
+    this.sourceSelect.addEventListener('gui-input', () => {
       this.stopReconcilePolling();
       if (this.sourceSelect.value) {
         const url = new URL(window.location.href);
@@ -204,6 +211,8 @@ export class ReconcilePage extends HTMLElement {
           this.startReconcilePolling();
         }
       }
+      this.addressSearch.source = this.sourceSelect.value?.name;
+      this.warnIfOsmWithMunicipality();
       this.updateLocalReconciliationReport();
     });
 
@@ -214,10 +223,28 @@ export class ReconcilePage extends HTMLElement {
       this.updateLocalReconciliationReport();
     });
 
+    this.municipalitySelect = new GuiSelect();
+    this.municipalitySelect.placeholder = 'Filter by golden Municipalities';
+    this.municipalitySelect.nullable = true;
+    this.municipalitySelect.addEventListener('gui-input', () => {
+      gc.api.getGoldenLocalities(this.municipalitySelect.value ?? null).then((d) => {
+        this.citySelect.options = d.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
+      });
+      this.warnIfOsmWithMunicipality();
+      this.updateLocalReconciliationReport();
+    });
+
     this.reconcileButton = (<sl-button onclick={() => this.reconcile()}>Reconcile</sl-button>) as sl.SlButton;
     this.confirm = (<mengplaz-confirm-dialog />) as MengplazConfirmDialog;
     this.promote = (<mengplaz-promotion-dialog />) as MengplazPromotionDialog;
     this.searchParamsDialog = (<search-parameters-dialog />) as SearchParametersDialog;
+    this.batchLinkDialog = (<batch-link-dialog />) as BatchLinkDialog;
+    this.addressSearch = (<mengplaz-address-search />) as MengplazAddressSearch;
+    this.addressSearch.placeholder = 'Search address in source...';
+    this.addressSearch.addEventListener('address-select', (e: Event) => {
+      const id = (e as CustomEvent<AddressSelectEvent>).detail.record.record.uid;
+      if (id) this.handleIdSearch(id);
+    });
 
     this.reportContainer = (<div className="report-container"></div>) as HTMLElement;
   }
@@ -233,14 +260,28 @@ export class ReconcilePage extends HTMLElement {
       this.handleReconcile((e as CustomEvent<RequestReconcileEvent>).detail);
     });
 
+    this.renderShell();
     this.showLoadingOverlay();
     try {
-      const [sources, cities] = await Promise.all([gc.privateApi.getSources(), gc.api.getGoldenCities()]);
+      const urlMuni = getQueryParam('municipality');
+
+      const [sources, cities, municipalities] = await Promise.all([
+        gc.privateApi.getSources(),
+        gc.api.getGoldenLocalities(urlMuni),
+        gc.api.getGoldenCommunes(),
+      ]);
       const filteredSources = sources.filter((v) => v.name !== 'Golden');
       this.sourceSelect.options = filteredSources.map((s) => ({ value: s, text: s.name }) as GuiOption);
       this.citySelect.options = cities.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
+      this.municipalitySelect.options = municipalities.map((c) => ({ value: c.name, text: c.name }) as GuiOption);
 
       // Restore city from URL param
+      if (urlMuni) {
+        const matchingMuni = municipalities.find((c) => c.name === urlMuni);
+        if (matchingMuni) {
+          this.municipalitySelect.value = matchingMuni;
+        }
+      }
       const urlCity = getQueryParam('city');
       if (urlCity) {
         const matchingCity = cities.find((c) => c.name === urlCity);
@@ -255,14 +296,14 @@ export class ReconcilePage extends HTMLElement {
         const matchingSource = filteredSources.find((s) => s.name === urlSource);
         if (matchingSource) {
           this.sourceSelect.value = matchingSource;
-          await this.updateLocalReconciliationReport();
+          this.addressSearch.source = matchingSource.name;
         }
       }
 
-      // Render empty state if no report was loaded
-      if (!this.reconciliationReport) {
-        this.render();
-      }
+      await this.updateLocalReconciliationReport();
+      // if (!this.reconciliationReport) {
+      //   this.renderReport();
+      // }
 
       // Start polling if the selected source is currently reconciling
       this.checkSourceLocked(sources);
@@ -286,7 +327,7 @@ export class ReconcilePage extends HTMLElement {
         <sl-spinner style={{ fontSize: '2rem' }} />
       </div>
     ) as HTMLElement;
-    this.replaceChildren(this.loadingOverlay);
+    (this.reportContainer ?? this).replaceChildren(this.loadingOverlay);
   }
 
   private hideLoadingOverlay() {
@@ -690,24 +731,67 @@ export class ReconcilePage extends HTMLElement {
     this.handleReconcile({ pois: [...ids] });
   }
 
+  private buildBatchLinkControl(): HTMLElement {
+    return (
+      <sl-button variant="primary" onclick={() => this.handleBatchLink()}>
+        <sl-icon slot="prefix" name="link-45deg"></sl-icon>
+        Batch link
+      </sl-button>
+    ) as HTMLElement;
+  }
+
+  private async handleBatchLink() {
+    if (!this.reconciliationReport) return;
+    const source = this.reconciliationReport.source;
+
+    const params = await this.batchLinkDialog.show();
+    if (params == null) return;
+
+    try {
+      const count = await gc.$.default.call('privateApi::batchLinkByScore', [
+        source,
+        params.globalScore,
+        params.geoScore,
+        params.cityScore,
+        params.streetScore,
+        params.numberScore,
+        params.postcodeScore,
+      ]);
+      toast.notify({ message: `Batch linked ${count} record(s).`, variant: 'primary', duration: 3000, icon: 'check2-circle' });
+      this.updateLocalReconciliationReport();
+    } catch (_) {
+      toast.notify({ message: 'An error occurred while batch linking records.', variant: 'danger', duration: 3000, icon: 'exclamation-circle' });
+    }
+  }
+
+  private warnIfOsmWithMunicipality() {
+    if (this.sourceSelect.value?.name === 'OSM' && this.municipalitySelect.value) {
+      toast.notify({
+        message: 'OSM source has no municipalities, only cities. Municipality filter will return no results.',
+        variant: 'warning',
+        duration: 5000,
+        icon: 'exclamation-triangle',
+      });
+    }
+  }
+
   private async updateLocalReconciliationReport() {
     this.reconcileButton.loading = true;
     if (this.sourceSelect.value) {
       try {
         const cityName = this.citySelect.value ?? null;
-        const report = await gc.privateApi.getReconciliationReport(this.sourceSelect.value.ref, cityName);
+        const municipalityName = this.municipalitySelect.value ?? null;
+        const report = await gc.privateApi.getReconciliationReport(this.sourceSelect.value.ref, cityName, municipalityName);
 
         if (report != null) {
           this.reconciliationReport = report;
-          this.render();
+          this.renderReport();
           this.activateInitialTab();
         } else {
           this.reconciliationReport = undefined;
-          this.render();
+          this.renderReport();
         }
       } catch (e) {
-        console.log(e);
-
         toast.notify({
           message: 'An error occurred while generating reconciliation report.',
           duration: 3000,
@@ -740,31 +824,41 @@ export class ReconcilePage extends HTMLElement {
     }
   }
 
-  render() {
+  private renderShell() {
     if (!gc.$.default.hasPermission('admin')) {
       window.location.assign(window.location.origin);
     }
 
+    this.replaceChildren(
+      <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
+        <h3 className="content-title">Reconcile</h3>
+        <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)', alignItems: 'center' }}>
+          {this.sourceSelect}
+          {this.reconcileButton}
+          {this.municipalitySelect}
+          {this.citySelect}
+          <div className="reconcile-address-search">{this.addressSearch}</div>
+        </div>
+        {this.reportContainer}
+        {this.confirm}
+        {this.promote}
+        {this.searchParamsDialog}
+        {this.batchLinkDialog}
+      </div>,
+    );
+  }
+
+  private renderReport() {
     // Reset stored references
     this.panes = {};
     this.badges = {};
     this.tabGroup = null;
 
+    if (!this.reportContainer) return;
+
     if (!this.reconciliationReport) {
-      this.replaceChildren(
-        <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
-          <h3 className="content-title">Reconcile</h3>
-          <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)' }}>
-            {this.sourceSelect}
-            {this.reconcileButton}
-          </div>
-          <p>No reconciliation available.</p>
-          {this.confirm}
-          {this.promote}
-          {this.searchParamsDialog}
-        </div>,
-      );
+      this.reportContainer.replaceChildren(<p>No reconciliation available.</p>);
       return;
     }
 
@@ -797,6 +891,9 @@ export class ReconcilePage extends HTMLElement {
       pane.onNavigate = (index) => this.handleNavigate(config.key, index);
       pane.onIdSearch = (id) => this.handleIdSearch(id);
       pane.setBulkAction(config.bulkAction ? { ...config.bulkAction, handler: () => this.handleBulkAction(config.key) } : null);
+      if (config.key === 'Mismatched') {
+        pane.setExtraControl(this.buildBatchLinkControl());
+      }
       this.panes[config.key] = pane;
 
       panels.push((<sl-tab-panel name={config.key}>{pane}</sl-tab-panel>) as HTMLElement);
@@ -821,28 +918,12 @@ export class ReconcilePage extends HTMLElement {
       this.updateUrlState(tabKey);
     });
 
-    this.reportContainer?.replaceChildren(this.tabGroup);
+    this.reportContainer.replaceChildren(this.tabGroup);
 
     // Re-append reconciling overlay if polling is active
     if (this.pollingTimer && this.reconcilingOverlay) {
-      this.reportContainer?.appendChild(this.reconcilingOverlay);
+      this.reportContainer.appendChild(this.reconcilingOverlay);
     }
-
-    this.replaceChildren(
-      <div style={{ display: 'flex', flexFlow: 'column', height: '100%', gap: 'var(--spacing)' }}>
-        <h3 className="content-title">Reconcile</h3>
-        <p className="content-subtitle">Process addresses and display a detailed mismatch report</p>
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--sl-spacing-small)' }}>
-          {this.sourceSelect}
-          {this.reconcileButton}
-          {this.citySelect}
-        </div>
-        {this.reportContainer}
-        {this.confirm}
-        {this.promote}
-        {this.searchParamsDialog}
-      </div>,
-    );
   }
 }
 

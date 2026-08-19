@@ -5,6 +5,10 @@ var golden_cities_by_id: nodeIndex<String, node<GoldenCity>>;
 var golden_streets_by_id: nodeIndex<String, node<GoldenStreet>>;
 var golden_pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
 
+var golden_municipalities_by_name: nodeIndex<String, node<GoldenMunicipality>>;
+var golden_cities_by_name: nodeIndex<String, Array<node<GoldenCity>>>;
+var golden_streets_by_name: nodeIndex<String, Array<node<GoldenStreet>>>;
+
 var golden_pois_by_geo: nodeGeo<node<GoldenPointOfInterest>>;
 
 type GoldenSource extends DataSource {
@@ -41,8 +45,131 @@ type GoldenSource extends DataSource {
         return GoldenServices::search(req);
     }
 
-    fn getIndex():nodeIndex<String, node<POIRecordProvider>> {
+    fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return golden_pois_by_id;
+    }
+
+    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+        var byKey = Map<int, ScoredCity> {};
+
+        var muniExact = golden_municipalities_by_name.get(name);
+        if (muniExact != null) {
+            for (_, nCity in muniExact->cities_by_id) {
+                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
+            }
+        } else {
+            var muniResults = golden_municipalities_by_name.search(name, max);
+            for (_, mr in muniResults) {
+                if (mr.distance > distanceThreshold) {
+                    continue;
+                }
+                for (_, nCity in mr.value->cities_by_id) {
+                    var k = nCity as int;
+                    if (byKey.get(k) == null) {
+                        byKey.set(k, ScoredCity { city: nCity, distance: mr.distance });
+                    }
+                }
+            }
+        }
+
+        var cityExact = golden_cities_by_name.get(name);
+        if (cityExact != null) {
+            for (_, nCity in cityExact) {
+                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
+            }
+        } else {
+            var cityResults = golden_cities_by_name.search(name, max);
+            for (_, cr in cityResults) {
+                if (cr.distance > distanceThreshold) {
+                    continue;
+                }
+                for (_, nCity in cr.value) {
+                    var k = nCity as int;
+                    if (byKey.get(k) == null) {
+                        byKey.set(k, ScoredCity { city: nCity, distance: cr.distance });
+                    }
+                }
+            }
+        }
+
+        var out = Array<ScoredCity> {};
+        for (_, sc in byKey) {
+            out.add(sc);
+        }
+        return out;
+    }
+
+    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var nCity = sc.city as node<GoldenCity>;
+        if (nCity->streets_by_name == null) {
+            return streets;
+        }
+        var idx = nCity->streets_by_name;
+        var exact = idx.get(road);
+        if (exact != null) {
+            streets.add(ScoredStreet { street: exact, distance: 0.0 });
+            return streets;
+        }
+        var streetResults = idx.search(road, max);
+        for (_, sr in streetResults) {
+            if (sr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - sr.key.jaro(road);
+            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
+        }
+        return streets;
+    }
+
+    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var exact = golden_streets_by_name.get(road);
+        if (exact != null) {
+            for (_, nStreet in exact) {
+                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
+            }
+            return streets;
+        }
+        var globalResults = golden_streets_by_name.search(road, 100);
+        for (_, gr in globalResults) {
+            if (gr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - gr.key.jaro(road);
+            for (_, nStreet in gr.value) {
+                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
+            }
+        }
+        return streets;
+    }
+
+    fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
+        var results = Array<ScoredPoi> {};
+        var nStreet = ss.street as node<GoldenStreet>;
+        if (houseNumber == null) {
+            for (_, nPoi in nStreet->pois_by_id) {
+                if (postcode == null || nPoi->postCode == postcode) {
+                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
+                }
+            }
+            return results;
+        }
+        var exact = nStreet->pois_by_number?.get(houseNumber);
+        if (exact != null) {
+            if (postcode == null || exact->postCode == postcode) {
+                results.add(ScoredPoi { poi: exact, distance: 0.0 });
+                return results;
+            }
+        }
+        var poiResults = nStreet->pois_by_number?.search(houseNumber, max);
+        for (_, pr in poiResults?) {
+            if (pr.distance > distanceThreshold) {
+                continue;
+            }
+            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
+        }
+        return results;
     }
 }
 
@@ -52,6 +179,8 @@ type GoldenConstituency {
     nameAliases: Array<Alias>;
 
     cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
+
+    caclrConstituency: node<CaclrConstituency>?;
 }
 
 type GoldenCanton {
@@ -64,6 +193,7 @@ type GoldenCanton {
 
     constituency: node<GoldenConstituency>;
     municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
+    caclrCanton: node<CaclrCanton>?;
 }
 
 type GoldenMunicipality {
@@ -76,6 +206,21 @@ type GoldenMunicipality {
 
     canton: node<GoldenCanton>;
     cities_by_id: nodeIndex<String, node<GoldenCity>>;
+    cities_by_name: nodeIndex<String, node<GoldenCity>>?;
+
+    caclrMunicipality: node<CaclrMunicipality>?;
+
+    fn indexing(self: node<GoldenMunicipality>) {
+        var munKey = this.name.lowercase();
+
+        if (this.cities_by_name == null) {
+            this.cities_by_name = nodeIndex<String, node<GoldenCity>> {};
+        }
+
+        this.canton->municipalities_by_id.set(this.id, self);
+        golden_municipalities_by_id.set(this.id, self);
+        golden_municipalities_by_name.set(munKey, self);
+    }
 }
 
 type GoldenCity {
@@ -88,6 +233,27 @@ type GoldenCity {
 
     municipality: node<GoldenMunicipality>;
     streets_by_id: nodeIndex<String, node<GoldenStreet>>;
+    streets_by_name: nodeIndex<String, node<GoldenStreet>>?;
+
+    caclrCity: node<CaclrCity>?;
+
+    fn indexing(self: node<GoldenCity>) {
+        var cityKey = this.name.lowercase();
+        var cities = golden_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<GoldenCity>> {};
+        }
+        cities.add(self);
+
+        if (this.streets_by_name == null) {
+            this.streets_by_name = nodeIndex<String, node<GoldenStreet>> {};
+        }
+
+        this.municipality->cities_by_id.set(this.id, self);
+        this.municipality->cities_by_name?.set(cityKey, self);
+        golden_cities_by_id.set(this.id, self);
+        golden_cities_by_name.set(cityKey, cities);
+    }
 }
 
 type GoldenStreet extends StreetRecordProvider {
@@ -100,6 +266,9 @@ type GoldenStreet extends StreetRecordProvider {
 
     city: node<GoldenCity>;
     pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
+    pois_by_number: nodeIndex<String, node<GoldenPointOfInterest>>?;
+
+    caclrStreet: node<CaclrStreet>?;
 
     fn toRecord(): StreetRecord {
         var record = StreetRecord {
@@ -124,6 +293,24 @@ type GoldenStreet extends StreetRecordProvider {
                 });
         }
         return arr;
+    }
+
+    fn indexing(self: node<GoldenStreet>) {
+        var streetKey = this.name.lowercase();
+        var streets = golden_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<GoldenStreet>> {};
+        }
+        streets.add(self);
+
+        if (this.pois_by_number == null) {
+            this.pois_by_number = nodeIndex<String, node<GoldenPointOfInterest>> {};
+        }
+
+        golden_streets_by_name.set(streetKey, streets);
+        golden_streets_by_id.set(this.id, self);
+        this.city->streets_by_name?.set(streetKey, self);
+        this.city->streets_by_id.set(this.id, self);
     }
 }
 
@@ -172,10 +359,11 @@ type GoldenPointOfInterest extends POIRecordProvider {
     fn toMengplazRecord(): POIRecord {
         var record = POIRecord {
             uid: this.uid,
-            number: "${this.number}${this.multipleCode}",
+            number: "${this.number} ${this.multipleCode}",
             street: this.street?->name,
             postcode: this.postCode,
             locality: this.street?->city->name,
+            commune: this.street?->city->municipality->name,
             primaryLocation: this.primaryLocation,
             secondaryLocations: this.secondaryLocations,
             sourceName: GoldenSource::NAME,
@@ -186,7 +374,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
                 record.streetAliases = this.street->nameAliases;
             }
             if (this.street->city->nameAliases.size() > 0) {
-                record.cityAliases = this.street->city->nameAliases;
+                record.localityAliases = this.street->city->nameAliases;
             }
         }
         return record;
@@ -200,13 +388,13 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return this.uid;
     }
 
-    fn toSearchItem(){};
+    fn toSearchItem() {};
 
     fn getSourceName(): String {
         return GoldenSource::NAME;
     }
 
-    fn addStreetAlias(name:String){
+    fn addStreetAlias(name: String) {
         if (this.street != null && name != this.street->name) {
             var found = false;
             for (_, alias in this.street->nameAliases) {
@@ -215,13 +403,13 @@ type GoldenPointOfInterest extends POIRecordProvider {
                     break;
                 }
             }
-            if (found == false ) {
-                this.street->nameAliases.add(Alias { value: name, id: ""});
+            if (found == false) {
+                this.street->nameAliases.add(Alias { value: name, id: "" });
             }
         }
-    }    
-    
-    fn addCityAlias(name:String){
+    }
+
+    fn addCityAlias(name: String) {
         var city = this.street?->city;
         if (city != null && name != city->name) {
             var found = false;
@@ -231,8 +419,8 @@ type GoldenPointOfInterest extends POIRecordProvider {
                     break;
                 }
             }
-            if (found == false ) {
-                city->nameAliases.add(Alias { value: name, id: ""});
+            if (found == false) {
+                city->nameAliases.add(Alias { value: name, id: "" });
             }
         }
     }
@@ -267,4 +455,55 @@ type GoldenPointOfInterest extends POIRecordProvider {
     fn getCity(): String? {
         return this.street?->city->name;
     }
+
+    fn getMunicipality(): String? {
+        return this.street?->city->municipality->name;
+    }
+
+    fn getPostcode(): String? {
+        return this.postCode;
+    }
+
+    fn indexing(self: node<GoldenPointOfInterest>) {
+        var nStreet = this.street;
+        if (nStreet != null) {
+            var numKey = "${this.number}${this.multipleCode}";
+            nStreet->pois_by_number?.set(numKey, self);
+            nStreet->pois_by_id.set(this.uid, self);
+        }
+
+        golden_pois_by_id.set(this.uid, self);
+
+        if (this.primaryLocation != null) {
+            golden_pois_by_geo.set(this.primaryLocation, self);
+        }
+    }
+}
+
+var golden_records_geo_recompute: nodeList<node<GoldenPointOfInterest>>;
+
+@permission("admin")
+@expose
+fn recomputeGoldenGeoScore() {
+    var params = SearchParameters::default();
+    var t = time::now();
+    for (_, nGolden in golden_records_geo_recompute) {
+        for (_, l in nGolden->linkedRecords) {
+            if (l.detailedScore != null) {
+                var score = l.detailedScore.resolve();
+                var item = l.record->toSearchItem();
+                var geoScore = GoldenServices::computeGeoScore(item.coordinates, nGolden->primaryLocation, params.geoParams);
+                var overallScore = GoldenServices::computeOverallScore(score.cityScore, score.streetScore, score.numberScore, score.postcodeScore, geoScore, params.weights);
+                score.geoScore = geoScore;
+                score.overallScore = overallScore;
+            }
+        }
+        var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
+        nGolden->quality.setAt(t, QualityEvent {
+                score: newQuality,
+                eventType: QualityEventType::update
+            });
+    }
+
+    golden_records_geo_recompute.removeAll();
 }

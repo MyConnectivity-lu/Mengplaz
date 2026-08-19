@@ -22,6 +22,7 @@ export class ReconcilePane extends HTMLElement {
   private dashboard: ComparisonDashboard;
   private searchDialog: MengplazSearchDialog;
   private bulkActionButton: HTMLElement | null = null;
+  private extraControl: HTMLElement | null = null;
   private emptyMessage: HTMLElement;
   private contentContainer: HTMLElement | null = null;
 
@@ -112,6 +113,11 @@ export class ReconcilePane extends HTMLElement {
         {config.label}
       </sl-button>
     ) as HTMLElement;
+  }
+
+  // Optional extra control rendered next to the bulk action (e.g. batch-link with score input)
+  setExtraControl(el: HTMLElement | null) {
+    this.extraControl = el;
   }
 
   // --- Lifecycle ---
@@ -251,7 +257,10 @@ export class ReconcilePane extends HTMLElement {
     const controls = (
       <div className="reconcile-pane-controls">
         {this.pagination}
-        {this.bulkActionButton}
+        <div className="reconcile-pane-actions">
+          {this.bulkActionButton}
+          {this.extraControl}
+        </div>
       </div>
     );
 

@@ -2,7 +2,8 @@
 type BDAddressLine {
     /* CSV Headers
     rue;numero;localite;code_postal;id_caclr_rue;id_caclr_bat;lat_wgs84;lon_wgs84;coord_est_luref;coord_nord_luref;id_geoportail;commune;lau2
-    */rue: String;
+    */
+    rue: String;
     numero: String;
     localite: String;
     code_postal: String;
@@ -40,39 +41,46 @@ abstract type BDAddressLoader {
         while (reader.can_read()) {
             var record = reader.read();
 
-            var nMunicipality = bda_municipalities_by_name.get(record.commune);
+            var munKey = record.commune.lowercase();
+            var nMunicipality = bda_municipalities_by_name.get(munKey);
             if (nMunicipality == null) {
                 var municipality = BDAMunicipality {
                     name: record.commune,
-                    cities: nodeIndex<String, node<BDACity>> {},
+                    cities_by_name: nodeIndex<String, node<BDACity>> {},
                 };
                 nMunicipality = node<BDAMunicipality> { municipality };
-                bda_municipalities_by_name.set(nMunicipality->name, nMunicipality);
+                nMunicipality->indexing(nMunicipality);
+                info("Created new municipality: ${record.commune}");
             }
 
-            var nCity = nMunicipality->cities.get(record.localite);
+            var cityKey = record.localite.lowercase();
+            var nCity = nMunicipality->cities_by_name?.get(cityKey);
             if (nCity == null) {
                 var city = BDACity {
-                    name: record.commune,
-                    streets: nodeIndex<String, node<BDAStreet>> {},
+                    name: record.localite,
+                    municipality: nMunicipality,
+                    streets_by_name: nodeIndex<String, node<BDAStreet>> {},
                 };
                 nCity = node<BDACity> { city };
-                nMunicipality->cities.set(nCity->name, nCity);
+                nCity->indexing(nCity);
+                info("Created new city: ${record.localite} (${record.commune})");
             }
 
-            var nStreet = nCity->streets.get(record.rue);
+            var nStreet = bda_street_by_cacrid.get(record.id_caclr_rue);
             if (nStreet == null) {
                 var street = BDAStreet {
                     name: record.rue,
                     id_caclr: record.id_caclr_rue,
-                    addresses: nodeIndex<String, node<BDAddress>> {},
+                    city: nCity,
+                    addresses_by_id: nodeIndex<String, node<BDAddress>> {},
+                    addresses_by_number: nodeIndex<String, node<BDAddress>> {},
                 };
                 nStreet = node<BDAStreet> { street };
-                nCity->streets.set(nStreet->name, nStreet);
-                bda_street_by_cacrid.set(nStreet->id_caclr, nStreet);
+                nStreet->indexing(nStreet);
+                info("Created new street: ${record.rue} (${record.localite})");
             }
 
-            var nAddress = nStreet->addresses.get(record.numero);
+            var nAddress = bda_address_by_geoportalid.get(record.id_geoportail);
             if (nAddress == null) {
                 var address = BDAddress {
                     number: record.numero,
@@ -85,11 +93,11 @@ abstract type BDAddressLoader {
                     municipatlity: nMunicipality,
                 };
                 nAddress = node<BDAddress> { address };
-                nStreet->addresses.set(nAddress->number, nAddress);
-                bda_address_by_cacrid.set(nAddress->id_caclr, nAddress);
-                bda_address_by_geoportalid.set(nAddress->id_geoportail, nAddress);
-                bda_address_by_geo.set(nAddress->position, nAddress);
+                nAddress->indexing(nAddress);
+                info("Created new address: ${record.numero} ${record.rue}, ${record.code_postal} ${record.localite}");
             }
+            nAddress->lastSeenAt = time::now();
+
             total++;
         }
         File::delete(path);
@@ -97,4 +105,3 @@ abstract type BDAddressLoader {
         info("Processed ${total} records.");
     }
 }
-

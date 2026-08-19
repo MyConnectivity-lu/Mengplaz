@@ -158,6 +158,7 @@ h4 {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  position: relative;
 }
 
 main {
@@ -432,6 +433,23 @@ gui-table::part(subheader) {
 }
 .maplibregl-popup {
   max-width: max-content !important;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--color-bg);
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--color-bg);
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-bg);
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-bg);
 }
 
 /* ==========================================================================

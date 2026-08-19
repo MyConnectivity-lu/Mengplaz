@@ -135,3 +135,14 @@ export function getGeoMatchQuality(distanceKm: number): {
   if (distanceKm < 0.1) return { label: 'Medium', variant: 'partial' }; // < 100m
   return { label: 'Low', variant: 'poor' }; // >= 100m
 }
+
+export const SOURCE_COLORS: Record<string, string> = {
+  Golden: '#ff18a4',
+  BDA: '#7c3aed',
+  OSM: '#f59e0b',
+  CACLR: '#10b981',
+};
+
+export function colorForKey(key: string): string {
+  return SOURCE_COLORS[key] ?? '#6b7280';
+}

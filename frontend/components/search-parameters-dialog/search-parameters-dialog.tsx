@@ -93,7 +93,7 @@ export class SearchParametersDialog extends HTMLElement {
   render() {
     // Threshold inputs
     this.citySimilarityInput = (
-      <sl-input label="City Threshold" type="number" min={0} max={1} step={0.1} value={this._value.citySimilarityThreshold.toString()} />
+      <sl-input label="Locality Threshold" type="number" min={0} max={1} step={0.1} value={this._value.citySimilarityThreshold.toString()} />
     ) as sl.SlInput;
 
     this.streetSimilarityInput = (
@@ -118,7 +118,7 @@ export class SearchParametersDialog extends HTMLElement {
 
     // Weight inputs
     this.cityWeightInput = (
-      <sl-input label="City" type="number" min={0} max={10} step={0.5} value={this._value.weights.cityWeight.toString()} />
+      <sl-input label="Locality" type="number" min={0} max={10} step={0.5} value={this._value.weights.cityWeight.toString()} />
     ) as sl.SlInput;
 
     this.streetWeightInput = (

@@ -20,7 +20,7 @@ export class SearchPage extends HTMLElement {
     this.resultTable.useDefaultColumns = false;
     this.resultTable.columns = [
       { index: gc.mengplaz.StreetRecord.$fields.street, header: 'Street' },
-      { index: gc.mengplaz.StreetRecord.$fields.city, header: 'City' },
+      { index: gc.mengplaz.StreetRecord.$fields.city, header: 'Locality' },
     ];
     this.resultTable.addEventListener('gui-table-click', async (ev) => {
       this.addressSelected = undefined;

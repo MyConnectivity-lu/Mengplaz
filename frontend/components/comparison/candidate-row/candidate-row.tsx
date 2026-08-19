@@ -95,7 +95,7 @@ export function createCandidateRow(
       <td className={[`candidate-field`, `${!cityMatch ? 'field-mismatch' : 'field-match'}`]} title={city}>
         {city}
         <span className="field-score">({candidate.cityScore}%)</span>
-        <span>{renderAliases(record?.cityAliases)}</span>
+        <span>{renderAliases(record?.localityAliases)}</span>
       </td>
 
       <td className={[`candidate-field`, `${!postcodeMatch ? 'field-mismatch' : 'field-match'}`]} title={postcode}>

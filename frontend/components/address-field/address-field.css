@@ -44,11 +44,7 @@
   margin-right: var(--sl-spacing-2x-small);
 }
 
-.position-map-badge::part(base) {
-  cursor: pointer;
-}
-
-.position-map-badge::part(base):hover {
-  background-color: var(--primary);
-  color: var(--blue);
+.address-locations {
+  display: flex;
+  gap: var(--sl-spacing-small);
 }

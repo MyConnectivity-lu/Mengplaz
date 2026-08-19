@@ -3,6 +3,51 @@ var osm_partial_by_id: nodeList<node<OsmPartialAddress>>;
 var osm_by_geo: nodeGeo<node<OsmAddress>>;
 var osm_partial_by_geo: nodeGeo<node<OsmPartialAddress>>;
 
+var osm_cities_by_name: nodeIndex<String, node<OsmCity>>;
+var osm_streets_by_name: nodeIndex<String, Array<node<OsmStreet>>>;
+
+@volatile
+type OsmParsedAddress {
+    id: int;
+    position: geo;
+    city: String;
+    postcode: String;
+    street: String;
+    number: String;
+    ref_caclr: String?;
+    building: String?;
+    kind: String?;
+}
+
+type OsmCity {
+    name: String;
+    streets_by_name: nodeIndex<String, node<OsmStreet>>;
+
+    fn indexing(self: node<OsmCity>) {
+        var key = this.name.lowercase();
+        osm_cities_by_name.set(key, self);
+    }
+}
+
+type OsmStreet {
+    name: String;
+    city: node<OsmCity>;
+    addresses_by_id: nodeIndex<String, node<OsmAddress>>;
+    addresses_by_number: nodeIndex<String, node<OsmAddress>>;
+
+    fn indexing(self: node<OsmStreet>) {
+        var key = this.name.lowercase();
+        var streets = osm_streets_by_name.get(key);
+        if (streets == null) {
+            streets = Array<node<OsmStreet>> {};
+        }
+        streets.add(self);
+
+        osm_streets_by_name.set(key, streets);
+        this.city->streets_by_name.set(key, self);
+    }
+}
+
 type OsmPartialAddress {
     id: int;
     position: geo?;
@@ -21,6 +66,7 @@ type OsmPartialAddress {
     }
 }
 
+
 @volatile
 type OSMFullRecord {
     id: String;
@@ -33,6 +79,12 @@ type OSMFullRecord {
 
     sourceName: String;
     goldenRef: node<GoldenPointOfInterest>?;
+
+    deprecated: bool?;
+    lastSeenAt: time?;
+
+    id_caclr: String?;
+    kind: String?;
 }
 
 type OsmAddress extends POIRecordProvider {
@@ -44,12 +96,19 @@ type OsmAddress extends POIRecordProvider {
     private number: String;
     private ref_caclr: String?;
     private building: String?;
+    kind: String?;
+
+    streetRef: node<OsmStreet>?;
+
+    lastSeenAt: time?;
+
+    deprecated: bool?;
 
     private goldenRef: node<GoldenPointOfInterest>?;
 
-    static fn parse(elem: Map): OsmAddress {
+    static fn parse(elem: Map): OsmParsedAddress {
         var tags = elem.get("tags") as Map<String, String>;
-        var kind = elem.get("type");
+        var kind = elem.get("type") as String?;
         var street = tags.get("addr:street") ?? tags.get("addr:place");
         if (street == null) {
             throw valueOf(AddrErr::STREET_MISSING);
@@ -75,7 +134,7 @@ type OsmAddress extends POIRecordProvider {
             throw "Can't read geo coordinates";
         }
 
-        return OsmAddress {
+        return OsmParsedAddress {
             id: elem.get("id") as int,
             position: geo { lat, lon },
             city: city,
@@ -83,7 +142,8 @@ type OsmAddress extends POIRecordProvider {
             street: street,
             number: tags.get("addr:housenumber") as String,
             ref_caclr: tags.get("ref:caclr"),
-            building: tags.get("building")
+            building: tags.get("building"),
+            kind: kind
         };
     }
 
@@ -124,11 +184,7 @@ type OsmAddress extends POIRecordProvider {
                 quality: nodeTime<QualityEvent> {}
             }
         };
-        nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-        golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-        if (nGoldenPOI->primaryLocation != null) {
-            golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
-        }
+        nGoldenPOI->indexing(nGoldenPOI);
         return nGoldenPOI;
     }
 
@@ -146,6 +202,10 @@ type OsmAddress extends POIRecordProvider {
             primaryLocation: this.position,
             sourceName: OsmSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
+            lastSeenAt: this.lastSeenAt,
+            id_caclr: this.ref_caclr,
+            kind: this.kind
         };
     }
 
@@ -199,6 +259,21 @@ type OsmAddress extends POIRecordProvider {
     fn getCity(): String? {
         return this.city;
     }
+
+    fn getMunicipality(): String? {
+        return null;
+    }
+
+    fn getPostcode(): String? {
+        return this.postcode;
+    }
+
+    fn indexing(self: node<OsmAddress>) {
+        osm_by_id.set("${this.id}", self);
+        osm_by_geo.set(this.position, self);
+        this.streetRef?->addresses_by_id.set("${this.id}", self);
+        this.streetRef?->addresses_by_number?.set(this.number, self);
+    }
 }
 
 type OsmSource extends DataSource {
@@ -209,9 +284,9 @@ type OsmSource extends DataSource {
         //Declare the source
         var source = sources_by_name.get(OsmSource::NAME);
         if (source == null) {
-            var source = OsmSource {
-                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() }
-            };
+            var source = OsmSource { reconciliationReport: node<ReconciliationReport> {
+                ReconciliationReport::init()
+            } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
@@ -228,9 +303,111 @@ type OsmSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn search(req: SearchRequest): mengplaz::SearchResult {}
+    // fn search(req: SearchRequest): mengplaz::SearchResult {}
 
     fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return osm_by_id;
+    }
+
+    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+        var byKey = Map<int, ScoredCity> {};
+
+        var cityExact = osm_cities_by_name.get(name);
+        if (cityExact != null) {
+            byKey.set(cityExact as int, ScoredCity { city: cityExact, distance: 0.0 });
+        } else {
+            var cityResults = osm_cities_by_name.search(name, max);
+            for (_, cr in cityResults) {
+                if (cr.distance > distanceThreshold) {
+                    continue;
+                }
+                var k = cr.value as int;
+                if (byKey.get(k) == null) {
+                    byKey.set(k, ScoredCity { city: cr.value, distance: cr.distance });
+                }
+            }
+        }
+
+        var out = Array<ScoredCity> {};
+        for (_, sc in byKey) {
+            out.add(sc);
+        }
+        return out;
+    }
+
+    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var nCity = sc.city as node<OsmCity>;
+        var idx = nCity->streets_by_name;
+        var exact = idx.get(road);
+        if (exact != null) {
+            streets.add(ScoredStreet { street: exact, distance: 0.0 });
+            return streets;
+        }
+        var streetResults = idx.search(road, max);
+        for (_, sr in streetResults) {
+            if (sr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - sr.key.jaro(road);
+            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
+        }
+        return streets;
+    }
+
+    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var exact = osm_streets_by_name.get(road);
+        if (exact != null) {
+            for (_, nStreet in exact) {
+                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
+            }
+            return streets;
+        }
+        var globalResults = osm_streets_by_name.search(road, 100);
+        for (_, gr in globalResults) {
+            if (gr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - gr.key.jaro(road);
+            for (_, nStreet in gr.value) {
+                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
+            }
+        }
+        return streets;
+    }
+
+    fn findPoisInStreet(
+        ss: ScoredStreet,
+        houseNumber: String?,
+        postcode: String?,
+        max: int,
+        distanceThreshold: int
+    ): Array<ScoredPoi> {
+        var results = Array<ScoredPoi> {};
+        var nStreet = ss.street as node<OsmStreet>;
+        if (houseNumber == null) {
+            for (_, nPoi in nStreet->addresses_by_id) {
+                if (postcode == null || nPoi->getPostcode() == postcode) {
+                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
+                }
+            }
+            return results;
+        }
+        var exact = nStreet->addresses_by_number.get(houseNumber);
+        if (exact != null) {
+            if (postcode == null || exact->getPostcode() == postcode) {
+                results.add(ScoredPoi { poi: exact, distance: 0.0 });
+                return results;
+            }
+        }
+        var poiResults = nStreet->addresses_by_number.search(houseNumber, max);
+        for (_, pr in poiResults) {
+            if (pr.distance > distanceThreshold) {
+                continue;
+            }
+            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
+        }
+        return results;
     }
 }

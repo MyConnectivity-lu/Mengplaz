@@ -1,0 +1,880 @@
+// Full graph backup.
+//
+// Dumps every persisted root of the graph to portable text files under `files/backup/`.
+//
+// Format rules:
+//  - NDJSON (JsonWriter): entities with nested structures, arrays (aliases), optionals or `geo`.
+//  - CSV (CsvWriter): flat tabular / time series data (source metadata, traffic, quality history).
+//
+// Relations are exported as business keys (ids or names), never as node references,
+// so the dump stays valid across store rebuilds.
+//
+// Roots keyed by name (BDA/OSM cities & streets) can reference the same node from several
+// keys, and their `Array<node<T>>` buckets accumulate duplicates across reloads, so those
+// exports deduplicate on node identity. Id-keyed roots (CACLR, golden) are unique already.
+//
+// The golden export is the restore counterpart of `GoldenLoader`, used by `bootstrap()`.
+//
+// NOT exported on purpose:
+//  - `caclr_token`  : short lived OAuth credential, must never leave the store.
+//  - reconciliation reports & `golden_records_geo_recompute` : recomputable working state.
+//  - security entities (users/groups) : live in the security store, not in the graph.
+// For a byte exact restore use `runtime::Runtime::backup_full` (backup/*.gcbkp) instead.
+
+// ---------------------------------------------------------------------------
+// Golden DTOs
+// ---------------------------------------------------------------------------
+
+@volatile
+type BkGoldenLinkedRecordDTO {
+    sourceName: String;
+    id: String;
+    score: float;
+    detailedScore: ReconciliationCandidateScore?;
+}
+
+@volatile
+type BkGoldenQualityDTO {
+    t: time;
+    score: float;
+    id: String?;
+    sourceName: String?;
+    eventType: QualityEventType;
+}
+
+@volatile
+type BkGoldenConstituencyDTO {
+    code: String;
+    name: String;
+    nameAliases: Array<Alias>;
+}
+
+@volatile
+type BkGoldenCantonDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    constituencyId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type BkGoldenMunicipalityDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    cantonId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type BkGoldenCityDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    municipalityId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type BkGoldenStreetDTO {
+    id: String;
+    name: String;
+    nameAliases: Array<Alias>;
+    cityId: String;
+    lastUpdate: time;
+}
+
+@volatile
+type BkGoldenPoiDTO {
+    uid: String;
+    number: int;
+    multipleCode: String;
+    postCode: String;
+    primaryLocation: geo?;
+    secondaryLocations: Map<String, geo>;
+    streetId: String?;
+    lastUpdate: time;
+
+    linkedRecords: Array<BkGoldenLinkedRecordDTO>?;
+
+    quality: Array<BkGoldenQualityDTO>?;
+}
+
+@volatile
+type BkGoldenQualityHistoryDTO {
+    t: time;
+    score: float;
+}
+
+// ---------------------------------------------------------------------------
+// CACLR DTOs
+// ---------------------------------------------------------------------------
+
+@volatile
+type BkCaclrConstituencyDTO {
+    code: String;
+    name: String;
+}
+
+@volatile
+type BkCaclrCantonDTO {
+    id: String;
+    code: String;
+    name: String;
+    lastUpdate: time;
+    constituencyCode: String;
+}
+
+@volatile
+type BkCaclrMunicipalityDTO {
+    id: String;
+    code: String;
+    coficomCode: String;
+    compoundCode: String;
+    name: String;
+    nameUpperCase: String;
+    nameLu: String;
+    status: CaclrDataStatus;
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+    eurostats: CaclrEurostatsIds;
+    cantonId: String;
+}
+
+@volatile
+type BkCaclrCityDTO {
+    id: String;
+    code: String;
+    compoundCode: String;
+    name: String;
+    nameUpperCase: String;
+    aliases: Array<Alias>;
+    isTown: bool;
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+    municipalityId: String;
+}
+
+@volatile
+type BkCaclrStreetDTO {
+    id: String;
+    name: String;
+    nameUpperCase: String;
+    keyWord: String;
+    aliases: Array<Alias>;
+    administrativeStatus: CaclrAdminStatus;
+    isPlace: bool;
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+    cityId: String;
+}
+
+@volatile
+type BkCaclrBuildingDTO {
+    id: String;
+    number: int;
+    isNumberUndefined: bool;
+    multipleCode: String;
+    postalCode: String;
+    position: geo?;
+    administrativeStatus: CaclrAdminStatus;
+    validityStartDate: time;
+    validityEndDate: time?;
+    lastUpdate: time;
+    streetId: String?;
+    goldenUid: String?;
+    lastSeenAt: time?;
+    deprecated: bool?;
+}
+
+// ---------------------------------------------------------------------------
+// BDA DTOs
+// ---------------------------------------------------------------------------
+
+@volatile
+type BkBdaMunicipalityDTO {
+    name: String;
+}
+
+@volatile
+type BkBdaCityDTO {
+    name: String;
+    municipalityName: String?;
+}
+
+@volatile
+type BkBdaStreetDTO {
+    name: String;
+    idCaclr: int;
+    cityName: String?;
+    municipalityName: String?;
+}
+
+@volatile
+type BkBdaAddressDTO {
+    idGeoportail: String;
+    idCaclr: int;
+    number: String;
+    postcode: String;
+    position: geo;
+    streetName: String;
+    streetIdCaclr: int;
+    cityName: String;
+    municipalityName: String;
+    goldenUid: String?;
+    lastSeenAt: time?;
+    deprecated: bool?;
+}
+
+// ---------------------------------------------------------------------------
+// OSM DTOs
+// ---------------------------------------------------------------------------
+
+@volatile
+type BkOsmCityDTO {
+    name: String;
+}
+
+@volatile
+type BkOsmStreetDTO {
+    name: String;
+    cityName: String;
+}
+
+@volatile
+type BkOsmAddressDTO {
+    id: int;
+    position: geo;
+    city: String;
+    postcode: String;
+    street: String;
+    number: String;
+    refCaclr: String?;
+    building: String?;
+    kind: String?;
+    streetRefName: String?;
+    streetRefCity: String?;
+    goldenUid: String?;
+    lastSeenAt: time?;
+    deprecated: bool?;
+}
+
+@volatile
+type BkOsmPartialAddressDTO {
+    id: int;
+    position: geo?;
+    city: String?;
+    postcode: String?;
+    street: String?;
+    number: String?;
+    refCaclr: String?;
+    map: Map;
+}
+
+// ---------------------------------------------------------------------------
+// Cross cutting DTOs
+// ---------------------------------------------------------------------------
+
+@volatile
+type BkSourceDTO {
+    name: String;
+    weight: float;
+    lastUpdate: time?;
+}
+
+@volatile
+type BkTrafficDTO {
+    endpoint: String;
+    t: time;
+    user: int;
+    executionTimeUs: int?;
+}
+
+@volatile
+type BkManifestEntryDTO {
+    file: String;
+    records: int;
+}
+
+// ---------------------------------------------------------------------------
+// Exporter
+// ---------------------------------------------------------------------------
+
+abstract type BackupExporter {
+    static dir: String = "files/backup";
+
+    static goldenConstituencyPath: String = "files/backup/golden_constituency.ndjson";
+    static goldenCantonPath: String = "files/backup/golden_canton.ndjson";
+    static goldenMunicipalityPath: String = "files/backup/golden_municipality.ndjson";
+    static goldenCityPath: String = "files/backup/golden_city.ndjson";
+    static goldenStreetPath: String = "files/backup/golden_street.ndjson";
+    static goldenPoiPath: String = "files/backup/golden_poi.ndjson";
+    static goldenQualityHistoryPath: String = "files/backup/golden_quality_history.csv";
+
+    static caclrConstituencyPath: String = "files/backup/caclr_constituency.ndjson";
+    static caclrCantonPath: String = "files/backup/caclr_canton.ndjson";
+    static caclrMunicipalityPath: String = "files/backup/caclr_municipality.ndjson";
+    static caclrCityPath: String = "files/backup/caclr_city.ndjson";
+    static caclrStreetPath: String = "files/backup/caclr_street.ndjson";
+    static caclrBuildingPath: String = "files/backup/caclr_building.ndjson";
+
+    static bdaMunicipalityPath: String = "files/backup/bda_municipality.ndjson";
+    static bdaCityPath: String = "files/backup/bda_city.ndjson";
+    static bdaStreetPath: String = "files/backup/bda_street.ndjson";
+    static bdaAddressPath: String = "files/backup/bda_address.ndjson";
+
+    static osmCityPath: String = "files/backup/osm_city.ndjson";
+    static osmStreetPath: String = "files/backup/osm_street.ndjson";
+    static osmAddressPath: String = "files/backup/osm_address.ndjson";
+    static osmPartialAddressPath: String = "files/backup/osm_partial_address.ndjson";
+
+    static sourcePath: String = "files/backup/sources.csv";
+    static trafficPath: String = "files/backup/traffic.csv";
+    static manifestPath: String = "files/backup/manifest.csv";
+
+    /// Dumps the whole graph. Long running: streams every source index to disk.
+    static fn exportAll() {
+        var start = time::now();
+        info("Backup: starting full graph export in ${BackupExporter::dir}");
+
+        var manifest = Array<BkManifestEntryDTO> {};
+
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::sourcePath, records: BackupExporter::exportSources() });
+
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrConstituencyPath, records: BackupExporter::exportCaclrConstituencies() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrCantonPath, records: BackupExporter::exportCaclrCantons() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrMunicipalityPath, records: BackupExporter::exportCaclrMunicipalities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrCityPath, records: BackupExporter::exportCaclrCities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrStreetPath, records: BackupExporter::exportCaclrStreets() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrBuildingPath, records: BackupExporter::exportCaclrBuildings() });
+
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaMunicipalityPath, records: BackupExporter::exportBdaMunicipalities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaCityPath, records: BackupExporter::exportBdaCities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaStreetPath, records: BackupExporter::exportBdaStreets() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaAddressPath, records: BackupExporter::exportBdaAddresses() });
+
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmCityPath, records: BackupExporter::exportOsmCities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmStreetPath, records: BackupExporter::exportOsmStreets() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmAddressPath, records: BackupExporter::exportOsmAddresses() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmPartialAddressPath, records: BackupExporter::exportOsmPartialAddresses() });
+
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::trafficPath, records: BackupExporter::exportTraffic() });
+
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenConstituencyPath, records: BackupExporter::exportGoldenConstituencies() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenCantonPath, records: BackupExporter::exportGoldenCantons() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenMunicipalityPath, records: BackupExporter::exportGoldenMunicipalities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenCityPath, records: BackupExporter::exportGoldenCities() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenStreetPath, records: BackupExporter::exportGoldenStreets() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenPoiPath, records: BackupExporter::exportGoldenPois() });
+        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenQualityHistoryPath, records: BackupExporter::exportGoldenQualityHistory() });
+
+        var fw = CsvWriter<BkManifestEntryDTO> { path: BackupExporter::manifestPath, format: CsvFormat { header_lines: 1 } };
+        var total = 0;
+        for (_, entry in manifest) {
+            fw.write(entry);
+            total = total + entry.records;
+            info("Backup: ${entry.records} records -> ${entry.file}");
+        }
+        fw.flush();
+
+        info("Backup: done, ${total} records in ${(time::now() - start).to(DurationUnit::seconds)}s");
+    }
+
+    // -----------------------------------------------------------------------
+    // Sources
+    // -----------------------------------------------------------------------
+
+    static fn exportSources(): int {
+        var fw = CsvWriter<BkSourceDTO> { path: BackupExporter::sourcePath, format: CsvFormat { header_lines: 1 } };
+        var count = 0;
+        for (_, nSource in sources_by_name) {
+            fw.write(BkSourceDTO {
+                name: nSource->name(),
+                weight: nSource->getWeight(),
+                lastUpdate: nSource->lastUpdate
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // Golden
+    // -----------------------------------------------------------------------
+
+    static fn exportGoldenConstituencies(): int {
+        var fw = JsonWriter<BkGoldenConstituencyDTO> { path: BackupExporter::goldenConstituencyPath };
+        var count = 0;
+        for (_, nConstituency in golden_constituency_by_code) {
+            fw.writeln(BkGoldenConstituencyDTO {
+                code: nConstituency->code,
+                name: nConstituency->name,
+                nameAliases: nConstituency->nameAliases
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportGoldenCantons(): int {
+        var fw = JsonWriter<BkGoldenCantonDTO> { path: BackupExporter::goldenCantonPath };
+        var count = 0;
+        for (_, nCanton in golden_cantons_by_id) {
+            fw.writeln(BkGoldenCantonDTO {
+                id: nCanton->id,
+                name: nCanton->name,
+                nameAliases: nCanton->nameAliases,
+                constituencyId: nCanton->constituency->code,
+                lastUpdate: nCanton->lastUpdate
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportGoldenMunicipalities(): int {
+        var fw = JsonWriter<BkGoldenMunicipalityDTO> { path: BackupExporter::goldenMunicipalityPath };
+        var count = 0;
+        for (_, nMunicipality in golden_municipalities_by_id) {
+            fw.writeln(BkGoldenMunicipalityDTO {
+                id: nMunicipality->id,
+                name: nMunicipality->name,
+                nameAliases: nMunicipality->nameAliases,
+                cantonId: nMunicipality->canton->id,
+                lastUpdate: nMunicipality->lastUpdate
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportGoldenCities(): int {
+        var fw = JsonWriter<BkGoldenCityDTO> { path: BackupExporter::goldenCityPath };
+        var count = 0;
+        for (_, nCity in golden_cities_by_id) {
+            fw.writeln(BkGoldenCityDTO {
+                id: nCity->id,
+                name: nCity->name,
+                nameAliases: nCity->nameAliases,
+                municipalityId: nCity->municipality->id,
+                lastUpdate: nCity->lastUpdate
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportGoldenStreets(): int {
+        var fw = JsonWriter<BkGoldenStreetDTO> { path: BackupExporter::goldenStreetPath };
+        var count = 0;
+        for (_, nStreet in golden_streets_by_id) {
+            fw.writeln(BkGoldenStreetDTO {
+                id: nStreet->id,
+                name: nStreet->name,
+                nameAliases: nStreet->nameAliases,
+                cityId: nStreet->city->id,
+                lastUpdate: nStreet->lastUpdate
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportGoldenPois(): int {
+        var fw = JsonWriter<BkGoldenPoiDTO> { path: BackupExporter::goldenPoiPath };
+        var count = 0;
+        for (_, nPOI in golden_pois_by_id) {
+            var linkedRecords = Array<BkGoldenLinkedRecordDTO> {};
+            for (_, entry in nPOI->linkedRecords) {
+                linkedRecords.add(BkGoldenLinkedRecordDTO {
+                    sourceName: entry.record->getSourceName(),
+                    id: entry.record->getId(),
+                    score: entry.score,
+                    detailedScore: entry.detailedScore?.resolve()
+                });
+            }
+            var quality = Array<BkGoldenQualityDTO> {};
+            for (t, entry in nPOI->quality) {
+                quality.add(BkGoldenQualityDTO {
+                    t: t,
+                    score: entry.score,
+                    id: entry.sourceRecord?->getId(),
+                    sourceName: entry.sourceRecord?->getSourceName(),
+                    eventType: entry.eventType
+                });
+            }
+
+            fw.writeln(BkGoldenPoiDTO {
+                uid: nPOI->uid,
+                number: nPOI->number,
+                multipleCode: nPOI->multipleCode,
+                postCode: nPOI->postCode,
+                primaryLocation: nPOI->primaryLocation,
+                secondaryLocations: nPOI->secondaryLocations,
+                streetId: nPOI->street?->id,
+                lastUpdate: nPOI->lastUpdate,
+                linkedRecords: linkedRecords,
+                quality: quality
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportGoldenQualityHistory(): int {
+        var fw = CsvWriter<BkGoldenQualityHistoryDTO> { path: BackupExporter::goldenQualityHistoryPath, format: CsvFormat { header_lines: 1 } };
+        // Written explicitly so the file exists even when the history is empty:
+        // the automatic header is only emitted on the first `write()`.
+        // Note: scores are serialised to 10 decimals, both here and by `JsonWriter`.
+        fw.write_line("t,score");
+        var count = 0;
+        // The value has to be dereferenced before the type test: `nSource is node<GoldenSource>`
+        // tests the reference, not what it points at, and never matches.
+        var nGoldenSource = sources_by_name.get(GoldenSource::NAME);
+        if (nGoldenSource != null) {
+            var goldenSource = *nGoldenSource;
+            if (goldenSource is GoldenSource) {
+                for (t, score in goldenSource.qualityHistory) {
+                    fw.write(BkGoldenQualityHistoryDTO { t: t, score: score });
+                    count++;
+                }
+            }
+        }
+        fw.flush();
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // CACLR
+    // -----------------------------------------------------------------------
+
+    static fn exportCaclrConstituencies(): int {
+        var fw = JsonWriter<BkCaclrConstituencyDTO> { path: BackupExporter::caclrConstituencyPath };
+        var count = 0;
+        for (_, nConstituency in caclr_consistuency_by_code) {
+            fw.writeln(BkCaclrConstituencyDTO { code: nConstituency->code, name: nConstituency->name });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportCaclrCantons(): int {
+        var fw = JsonWriter<BkCaclrCantonDTO> { path: BackupExporter::caclrCantonPath };
+        var count = 0;
+        for (_, nCanton in caclr_cantons_by_id) {
+            fw.writeln(BkCaclrCantonDTO {
+                id: nCanton->id,
+                code: nCanton->code,
+                name: nCanton->name,
+                lastUpdate: nCanton->lastUpdate,
+                constituencyCode: nCanton->constituency->code
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportCaclrMunicipalities(): int {
+        var fw = JsonWriter<BkCaclrMunicipalityDTO> { path: BackupExporter::caclrMunicipalityPath };
+        var count = 0;
+        for (_, nMunicipality in caclr_municipalities_by_id) {
+            fw.writeln(BkCaclrMunicipalityDTO {
+                id: nMunicipality->id,
+                code: nMunicipality->code,
+                coficomCode: nMunicipality->coficomCode,
+                compoundCode: nMunicipality->compoundCode,
+                name: nMunicipality->name,
+                nameUpperCase: nMunicipality->nameUpperCase,
+                nameLu: nMunicipality->nameLu,
+                status: nMunicipality->status,
+                validityStartDate: nMunicipality->validityStartDate,
+                validityEndDate: nMunicipality->validityEndDate,
+                lastUpdate: nMunicipality->lastUpdate,
+                eurostats: nMunicipality->eurostats,
+                cantonId: nMunicipality->canton->id
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportCaclrCities(): int {
+        var fw = JsonWriter<BkCaclrCityDTO> { path: BackupExporter::caclrCityPath };
+        var count = 0;
+        for (_, nCity in caclr_cities_by_id) {
+            fw.writeln(BkCaclrCityDTO {
+                id: nCity->id,
+                code: nCity->code,
+                compoundCode: nCity->compoundCode,
+                name: nCity->name,
+                nameUpperCase: nCity->nameUpperCase,
+                aliases: nCity->aliases,
+                isTown: nCity->isTown,
+                validityStartDate: nCity->validityStartDate,
+                validityEndDate: nCity->validityEndDate,
+                lastUpdate: nCity->lastUpdate,
+                municipalityId: nCity->municipality->id
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportCaclrStreets(): int {
+        var fw = JsonWriter<BkCaclrStreetDTO> { path: BackupExporter::caclrStreetPath };
+        var count = 0;
+        for (_, nStreet in caclr_streets_by_id) {
+            fw.writeln(BkCaclrStreetDTO {
+                id: nStreet->id,
+                name: nStreet->name,
+                nameUpperCase: nStreet->nameUpperCase,
+                keyWord: nStreet->keyWord,
+                aliases: nStreet->aliases,
+                administrativeStatus: nStreet->administrativeStatus,
+                isPlace: nStreet->isPlace,
+                validityStartDate: nStreet->validityStartDate,
+                validityEndDate: nStreet->validityEndDate,
+                lastUpdate: nStreet->lastUpdate,
+                cityId: nStreet->city->id
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportCaclrBuildings(): int {
+        var fw = JsonWriter<BkCaclrBuildingDTO> { path: BackupExporter::caclrBuildingPath };
+        var count = 0;
+        for (_, nBuilding in caclr_buildings_by_id) {
+            fw.writeln(BkCaclrBuildingDTO {
+                id: nBuilding->id,
+                number: nBuilding->number,
+                isNumberUndefined: nBuilding->isNumberUndefined,
+                multipleCode: nBuilding->multipleCode,
+                postalCode: nBuilding->postalCode,
+                position: nBuilding->position,
+                administrativeStatus: nBuilding->administrativeStatus,
+                validityStartDate: nBuilding->validityStartDate,
+                validityEndDate: nBuilding->validityEndDate,
+                lastUpdate: nBuilding->lastUpdate,
+                streetId: nBuilding->street?->id,
+                goldenUid: nBuilding->goldenRef?->uid,
+                lastSeenAt: nBuilding->lastSeenAt,
+                deprecated: nBuilding->deprecated
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // BDA
+    // -----------------------------------------------------------------------
+
+    static fn exportBdaMunicipalities(): int {
+        var fw = JsonWriter<BkBdaMunicipalityDTO> { path: BackupExporter::bdaMunicipalityPath };
+        var seen = Map<int, bool> {};
+        var count = 0;
+        for (_, nMunicipality in bda_municipalities_by_name) {
+            if (seen.get(nMunicipality as int) != null) {
+                continue;
+            }
+            seen.set(nMunicipality as int, true);
+            fw.writeln(BkBdaMunicipalityDTO { name: nMunicipality->name });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportBdaCities(): int {
+        var fw = JsonWriter<BkBdaCityDTO> { path: BackupExporter::bdaCityPath };
+        var seen = Map<int, bool> {};
+        var count = 0;
+        for (_, cities in bda_cities_by_name) {
+            for (_, nCity in cities) {
+                if (seen.get(nCity as int) != null) {
+                    continue;
+                }
+                seen.set(nCity as int, true);
+                fw.writeln(BkBdaCityDTO {
+                    name: nCity->name,
+                    municipalityName: nCity->municipality?->name
+                });
+                count++;
+            }
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportBdaStreets(): int {
+        var fw = JsonWriter<BkBdaStreetDTO> { path: BackupExporter::bdaStreetPath };
+        var count = 0;
+        for (_, nStreet in bda_street_by_cacrid) {
+                fw.writeln(BkBdaStreetDTO {
+                    name: nStreet->name,
+                    idCaclr: nStreet->id_caclr,
+                    cityName: nStreet->city?->name,
+                    municipalityName: nStreet->city?->municipality?->name,
+                });
+                count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportBdaAddresses(): int {
+        var fw = JsonWriter<BkBdaAddressDTO> { path: BackupExporter::bdaAddressPath };
+        var count = 0;
+        for (_, nAddress in bda_address_by_geoportalid) {
+            fw.writeln(BkBdaAddressDTO {
+                idGeoportail: nAddress->id_geoportail,
+                idCaclr: nAddress->id_caclr,
+                number: nAddress->number,
+                postcode: nAddress->postcode,
+                position: nAddress->position,
+                streetName: nAddress->street->name,
+                streetIdCaclr: nAddress->street->id_caclr,
+                cityName: nAddress->city->name,
+                municipalityName: nAddress->municipatlity->name,
+                goldenUid: nAddress->goldenRef?->uid,
+                lastSeenAt: nAddress->lastSeenAt,
+                deprecated: nAddress->deprecated
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // OSM
+    // -----------------------------------------------------------------------
+
+    static fn exportOsmCities(): int {
+        var fw = JsonWriter<BkOsmCityDTO> { path: BackupExporter::osmCityPath };
+        var seen = Map<int, bool> {};
+        var count = 0;
+        for (_, nCity in osm_cities_by_name) {
+            if (seen.get(nCity as int) != null) {
+                continue;
+            }
+            seen.set(nCity as int, true);
+            fw.writeln(BkOsmCityDTO { name: nCity->name });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportOsmStreets(): int {
+        var fw = JsonWriter<BkOsmStreetDTO> { path: BackupExporter::osmStreetPath };
+        var seen = Map<int, bool> {};
+        var count = 0;
+        for (_, streets in osm_streets_by_name) {
+            for (_, nStreet in streets) {
+                if (seen.get(nStreet as int) != null) {
+                    continue;
+                }
+                seen.set(nStreet as int, true);
+                fw.writeln(BkOsmStreetDTO { name: nStreet->name, cityName: nStreet->city->name });
+                count++;
+            }
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportOsmAddresses(): int {
+        var fw = JsonWriter<BkOsmAddressDTO> { path: BackupExporter::osmAddressPath };
+        var count = 0;
+        for (_, nAddress in osm_by_id) {
+            fw.writeln(BkOsmAddressDTO {
+                id: nAddress->id,
+                position: nAddress->position,
+                city: nAddress->city,
+                postcode: nAddress->postcode,
+                street: nAddress->street,
+                number: nAddress->number,
+                refCaclr: nAddress->ref_caclr,
+                building: nAddress->building,
+                kind: nAddress->kind,
+                streetRefName: nAddress->streetRef?->name,
+                streetRefCity: nAddress->streetRef?->city->name,
+                goldenUid: nAddress->goldenRef?->uid,
+                lastSeenAt: nAddress->lastSeenAt,
+                deprecated: nAddress->deprecated
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportOsmPartialAddresses(): int {
+        var fw = JsonWriter<BkOsmPartialAddressDTO> { path: BackupExporter::osmPartialAddressPath };
+        var count = 0;
+        for (_, nPartial in osm_partial_by_id) {
+            fw.writeln(BkOsmPartialAddressDTO {
+                id: nPartial->id,
+                position: nPartial->position,
+                city: nPartial->city,
+                postcode: nPartial->postcode,
+                street: nPartial->street,
+                number: nPartial->number,
+                refCaclr: nPartial->ref_caclr,
+                map: nPartial->map
+            });
+            count++;
+        }
+        fw.flush();
+        return count;
+    }
+
+    // -----------------------------------------------------------------------
+    // Traffic
+    // -----------------------------------------------------------------------
+
+    static fn exportTraffic(): int {
+        var fw = CsvWriter<BkTrafficDTO> { path: BackupExporter::trafficPath, format: CsvFormat { header_lines: 1 } };
+        var count = 0;
+        for (_, nEndpoint in endpoints_by_name) {
+            for (t, entry in nEndpoint->traffic) {
+                fw.write(BkTrafficDTO {
+                    endpoint: nEndpoint->name,
+                    t: t,
+                    user: entry.user,
+                    executionTimeUs: entry.executionTime?.to(DurationUnit::microseconds)
+                });
+                count++;
+            }
+        }
+        fw.flush();
+        return count;
+    }
+}
+
+/// Dumps the whole graph to `files/backup/` (plus the golden dump in `files/dump/`).
+@expose
+@permission("admin")
+fn backupGraph() {
+    BackupExporter::exportAll();
+}

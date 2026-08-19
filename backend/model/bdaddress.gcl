@@ -1,4 +1,6 @@
 var bda_municipalities_by_name: nodeIndex<String, node<BDAMunicipality>>;
+var bda_cities_by_name: nodeIndex<String, Array<node<BDACity>>>;
+var bda_streets_by_name: nodeIndex<String, Array<node<BDAStreet>>>;
 var bda_street_by_cacrid: nodeList<node<BDAStreet>>;
 var bda_address_by_geo: nodeGeo<node<BDAddress>>;
 var bda_address_by_cacrid: nodeList<node<BDAddress>>;
@@ -6,18 +8,51 @@ var bda_address_by_geoportalid: nodeIndex<String, node<BDAddress>>;
 
 type BDAMunicipality {
     name: String;
-    cities: nodeIndex<String, node<BDACity>>;
+    cities_by_name: nodeIndex<String, node<BDACity>>?;
+
+    fn indexing(self: node<BDAMunicipality>) {
+        var munKey = this.name.lowercase();
+        bda_municipalities_by_name.set(munKey, self);
+    }
 }
 
 type BDACity {
     name: String;
-    streets: nodeIndex<String, node<BDAStreet>>;
+    municipality: node<BDAMunicipality>?;
+    streets_by_name: nodeIndex<String, node<BDAStreet>>?;
+
+    fn indexing(self: node<BDACity>) {
+        var cityKey = this.name.lowercase();
+        var cities = bda_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<BDACity>> {};
+        }
+        cities.add(self);
+
+        this.municipality?->cities_by_name?.set(cityKey, self);
+        bda_cities_by_name.set(cityKey, cities);
+    }
 }
 
 type BDAStreet {
     name: String;
     id_caclr: int;
-    addresses: nodeIndex<String, node<BDAddress>>;
+    city: node<BDACity>?;
+    addresses_by_id: nodeIndex<String, node<BDAddress>>?;
+    addresses_by_number: nodeIndex<String, node<BDAddress>>?;
+
+    fn indexing(self: node<BDAStreet>) {
+        var streetKey = this.name.lowercase();
+        var streets = bda_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<BDAStreet>> {};
+        }
+        streets.add(self);
+
+        bda_streets_by_name.set(streetKey, streets);
+        bda_street_by_cacrid.set(this.id_caclr, self);
+        this.city?->streets_by_name?.set(streetKey, self);
+    }
 }
 
 @volatile
@@ -34,6 +69,9 @@ type BDAddressFullRecord {
 
     sourceName: String;
     goldenRef: node<GoldenPointOfInterest>?;
+
+    deprecated: bool?;
+    lastSeenAt: time?;
 }
 
 type BDAddress extends POIRecordProvider {
@@ -49,6 +87,10 @@ type BDAddress extends POIRecordProvider {
     private street: node<BDAStreet>;
 
     private goldenRef: node<GoldenPointOfInterest>?;
+
+    lastSeenAt: time?;
+
+    deprecated: bool?;
 
     fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
         this.goldenRef = nGolden;
@@ -89,11 +131,8 @@ type BDAddress extends POIRecordProvider {
                 quality: nodeTime<QualityEvent> {}
             }
         };
-        nGoldenStreet->pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-        golden_pois_by_id.set(nGoldenPOI->uid, nGoldenPOI);
-        if (nGoldenPOI->primaryLocation != null) {
-            golden_pois_by_geo.set(nGoldenPOI->primaryLocation, nGoldenPOI);
-        }
+        nGoldenPOI->indexing(nGoldenPOI);
+
         return nGoldenPOI;
     }
 
@@ -109,12 +148,14 @@ type BDAddress extends POIRecordProvider {
             street: this.street->name,
             sourceName: BDAddressSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
+            lastSeenAt: this.lastSeenAt,
         };
     }
 
     fn toMengplazRecord(): POIRecord {
         var record = POIRecord {
-            uid: "${this.id_caclr}",
+            uid: this.id_geoportail,
             number: "${this.number}",
             street: this.street->name,
             postcode: this.postcode,
@@ -163,6 +204,22 @@ type BDAddress extends POIRecordProvider {
     fn getCity(): String {
         return this.city->name;
     }
+
+    fn getMunicipality(): String? {
+        return this.city->municipality?.resolve().name;
+    }
+
+    fn getPostcode(): String? {
+        return this.postcode;
+    }
+
+    fn indexing(self: node<BDAddress>) {
+        bda_address_by_geoportalid.set(this.id_geoportail, self);
+        bda_address_by_cacrid.set(this.id_caclr, self);
+        bda_address_by_geo.set(this.position, self);
+        this.street->addresses_by_id?.set(this.id_geoportail, self);
+        this.street->addresses_by_number?.set(this.number, self);
+    }
 }
 
 type BDAddressSource extends DataSource {
@@ -173,9 +230,9 @@ type BDAddressSource extends DataSource {
         //Declare the source
         var source = sources_by_name.get(BDAddressSource::NAME);
         if (source == null) {
-            var source = BDAddressSource {
-                reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() }
-            };
+            var source = BDAddressSource { reconciliationReport: node<ReconciliationReport> {
+                ReconciliationReport::init()
+            } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }
@@ -192,9 +249,142 @@ type BDAddressSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn search(req: SearchRequest): mengplaz::SearchResult {}
+    // fn search(req: SearchRequest): mengplaz::SearchResult {}
 
     fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return bda_address_by_geoportalid;
+    }
+
+    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
+        var byKey = Map<int, ScoredCity> {};
+
+        var muniExact = bda_municipalities_by_name.get(name);
+        if (muniExact != null) {
+            if (muniExact->cities_by_name != null) {
+                for (_, nCity in muniExact->cities_by_name) {
+                    byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
+                }
+            }
+        } else {
+            var muniResults = bda_municipalities_by_name.search(name, max);
+            for (_, mr in muniResults) {
+                if (mr.distance > distanceThreshold) {
+                    continue;
+                }
+                if (mr.value->cities_by_name != null) {
+                    for (_, nCity in mr.value->cities_by_name) {
+                        var k = nCity as int;
+                        if (byKey.get(k) == null) {
+                            byKey.set(k, ScoredCity { city: nCity, distance: mr.distance });
+                        }
+                    }
+                }
+            }
+        }
+
+        var cityExact = bda_cities_by_name.get(name);
+        if (cityExact != null) {
+            for (_, nCity in cityExact) {
+                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
+            }
+        } else {
+            var cityResults = bda_cities_by_name.search(name, max);
+            for (_, cr in cityResults) {
+                if (cr.distance > distanceThreshold) {
+                    continue;
+                }
+                for (_, nCity in cr.value) {
+                    var k = nCity as int;
+                    if (byKey.get(k) == null) {
+                        byKey.set(k, ScoredCity { city: nCity, distance: cr.distance });
+                    }
+                }
+            }
+        }
+
+        var out = Array<ScoredCity> {};
+        for (_, sc in byKey) {
+            out.add(sc);
+        }
+        return out;
+    }
+
+    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var nCity = sc.city as node<BDACity>;
+        if (nCity->streets_by_name == null) {
+            return streets;
+        }
+        var idx = nCity->streets_by_name;
+        var exact = idx.get(road);
+        if (exact != null) {
+            streets.add(ScoredStreet { street: exact, distance: 0.0 });
+            return streets;
+        }
+        var streetResults = idx.search(road, max);
+        for (_, sr in streetResults) {
+            if (sr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - sr.key.jaro(road);
+            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
+        }
+        return streets;
+    }
+
+    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
+        var streets = Array<ScoredStreet> {};
+        var exact = bda_streets_by_name.get(road);
+        if (exact != null) {
+            for (_, nStreet in exact) {
+                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
+            }
+            return streets;
+        }
+        var globalResults = bda_streets_by_name.search(road, 100);
+        for (_, gr in globalResults) {
+            if (gr.distance > distanceThreshold) {
+                continue;
+            }
+            var jaroDist = 1.0 - gr.key.jaro(road);
+            for (_, nStreet in gr.value) {
+                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
+            }
+        }
+        return streets;
+    }
+
+    fn findPoisInStreet(
+        ss: ScoredStreet,
+        houseNumber: String?,
+        postcode: String?,
+        max: int,
+        distanceThreshold: int
+    ): Array<ScoredPoi> {
+        var results = Array<ScoredPoi> {};
+        var nStreet = ss.street as node<BDAStreet>;
+        if (houseNumber == null) {
+            for (_, nPoi in nStreet->addresses_by_id?) {
+                if (postcode == null || nPoi->getPostcode() == postcode) {
+                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
+                }
+            }
+            return results;
+        }
+        var exact = nStreet->addresses_by_number?.get(houseNumber);
+        if (exact != null) {
+            if (postcode == null || exact->getPostcode() == postcode) {
+                results.add(ScoredPoi { poi: exact, distance: 0.0 });
+                return results;
+            }
+        }
+        var poiResults = nStreet->addresses_by_number?.search(houseNumber, max);
+        for (_, pr in poiResults?) {
+            if (pr.distance > distanceThreshold) {
+                continue;
+            }
+            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
+        }
+        return results;
     }
 }

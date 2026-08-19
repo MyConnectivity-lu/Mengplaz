@@ -32,7 +32,7 @@ export class QualityHistoryPage extends HTMLElement {
       },
       { index: 1, header: 'Number' },
       { index: 2, header: 'Street' },
-      { index: 3, header: 'City' },
+      { index: 3, header: 'Locality' },
       { index: 4, header: 'Postcode' },
       { index: 5, header: 'Linked Records' },
       { index: 6, header: 'Quality (%)', value : ({value}) =>  `${value * 100} %` },
