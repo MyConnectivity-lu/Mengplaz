@@ -2,6 +2,7 @@
 
 @library("std", "8.1.150-stable");
 @library("explorer", "8.1.4-stable");
+@library("text_search", "8.1.54-stable");
 
 @role("public", "api");
 

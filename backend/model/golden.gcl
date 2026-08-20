@@ -475,6 +475,10 @@ type GoldenPointOfInterest extends POIRecordProvider {
         if (this.primaryLocation != null) {
             golden_pois_by_geo.set(this.primaryLocation, self);
         }
+
+        // No-op until the text index has been built once, so the initial bulk load
+        // pays nothing. See GoldenTextSearch::onIndexing.
+        GoldenTextSearch::onIndexing(self);
     }
 }
 

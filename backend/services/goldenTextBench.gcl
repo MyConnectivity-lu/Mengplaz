@@ -1,0 +1,235 @@
+/// Latency benchmark for the golden text index.
+///
+///     greycat run goldenTextBench::bench
+///
+/// Two things are deliberate about the shape of this file.
+///
+/// **Every case carries the row the client meant** (`GoldenBenchCase.want`), and the
+/// table reports the RANK that row came back at. Latency alone would rank a wrong answer
+/// first: the cheapest response of all is a confident page of wrong rows. `rank=0` means
+/// the wanted row is not in the top k — a miss, however fast it was.
+///
+/// **It prints with `println`.** The logger is the rule elsewhere in this project, but
+/// its lines go to the log file and never to the terminal; a benchmark whose whole output
+/// is a table to read is the one-off CLI dump `println` is for. Each case also emits one
+/// machine-readable `BENCH,` CSV line, so two configurations can be diffed with `diff`
+/// instead of by eye.
+///
+/// Every case runs `reps` times (default 3) and all runs are printed, because the spread
+/// between the first and the rest IS the cache effect and averaging it away hides which
+/// queries are cache-sensitive.
+
+/// One benchmark query, tagged by what it exercises.
+@volatile
+type GoldenBenchCase {
+    /// What the query is meant to represent, e.g. "typo sole word".
+    name: String;
+    query: String;
+    /// A string that must appear in the indexed body of the row the client meant.
+    want: String;
+}
+
+/// The query set. Both rows are real addresses in the store:
+///
+///     4 Avenue de la Gare, 1610 Luxembourg      (uid WmCPos)
+///     8 Elterstrachen, 7260 Bereldange          (uid DbbsDL, commune Walferdange)
+///     5 Rue de l'Industrie, 1811 Luxembourg     (uid FazGB4)
+///
+/// The set walks the shapes a client actually types: a whole address, progressively less
+/// of it, an abbreviation, a postcode alone, and the two kinds of typo — one wrong word
+/// among several, and a sole wrong word with nothing else to carry the query.
+///
+/// `number + typo` is the hardest case in the set and the one that exercises the most of
+/// the config at once: a bare house number, no town, and a street word that is both
+/// misspelled AND elided. It only resolves if the apostrophe fold in
+/// `GoldenTextSearch::tokenization` put "lindustrie" and "l'industrie" in the same term
+/// AND typo tolerance reaches "industrie" from "industrye" — and the "5" carries almost
+/// no weight, since every street has one.
+///
+/// The `typing ...` cases are one address typed a character at a time and are the reason
+/// `searchTypeahead` exists: under plain BM25 every one of them reduced to the single term
+/// "5" and returned the same tied rows until the last keystroke.
+///
+/// Four cases are known rank-0 or rank-poor, and each is kept to document a real limit
+/// rather than to be quietly fixed:
+///
+///   `commune only`    Walferdange commune holds many streets; BM25 returns twenty of
+///                     them and the Elterstrachen row is not among them. Correct for a
+///                     query naming no street — hits > 0 and "found what was meant" are
+///                     different questions.
+///   `elision omitted` "5 rue de lindus" — the client typed neither the apostrophe nor a
+///                     space, so the fragment is "lindus" and the indexed term is
+///                     "industrie". This is the exact cost of the charMap rule in
+///                     `GoldenTextSearch::tokenization`, priced in a test.
+///   `noise word`      "zzzeldange" returns Bereldange. It is what `maxEdits2: 3` buys and
+///                     is here so nobody raises the budget again without seeing it.
+///   `abbreviated`     "av de la gare luxembourg" — NOT a config problem. Some golden
+///                     street names are stored abbreviated ("av. Grand Duc Jean"), so "av"
+///                     is a genuine and RARE vocabulary term while "avenue" is very common.
+///                     BM25 weights the abbreviation far above the word it abbreviates, and
+///                     the synonym cannot correct it because synonyms carry no weight. Fix
+///                     it in the data or with a weighted expansion, not with a knob.
+fn cases(): Array<GoldenBenchCase> {
+    var gare = "Avenue de la Gare";
+    var elter = "Elterstrachen";
+    var indus = "Rue de l'Industrie";
+    return Array<GoldenBenchCase> {
+        GoldenBenchCase { name: "full address", query: "4 Avenue de la Gare, 1610 Luxembourg", want: gare },
+        GoldenBenchCase { name: "number + street", query: "4 avenue de la gare luxembourg", want: gare },
+        GoldenBenchCase { name: "street + town", query: "avenue de la gare luxembourg", want: gare },
+        GoldenBenchCase { name: "street only", query: "avenue de la gare", want: gare },
+        GoldenBenchCase { name: "abbreviated", query: "av de la gare luxembourg", want: gare },
+        GoldenBenchCase { name: "postcode only", query: "1610", want: gare },
+        GoldenBenchCase { name: "postcode + town", query: "7260 bereldange", want: elter },
+        GoldenBenchCase { name: "street + town 2", query: "elterstrachen bereldange", want: elter },
+        GoldenBenchCase { name: "town only", query: "bereldange", want: elter },
+        GoldenBenchCase { name: "commune only", query: "walferdange", want: elter },
+        GoldenBenchCase { name: "typo one word", query: "elterstrahen bereldange", want: elter },
+        GoldenBenchCase { name: "typo sole word", query: "bereldanje", want: elter },
+        GoldenBenchCase { name: "typo street", query: "avenue de la garre luxembourg", want: gare },
+        GoldenBenchCase { name: "word prefix", query: "bereldang", want: elter },
+        GoldenBenchCase { name: "number + typo", query: "5 industrye", want: indus },
+        GoldenBenchCase { name: "transposed typo", query: "5 indsutrye", want: indus },
+        GoldenBenchCase { name: "typing 5 i", query: "5 i", want: indus },
+        GoldenBenchCase { name: "typing 5 ind", query: "5 ind", want: indus },
+        GoldenBenchCase { name: "typing 5 indus", query: "5 indus", want: indus },
+        GoldenBenchCase { name: "typing 5 industr", query: "5 industr", want: indus },
+        GoldenBenchCase { name: "typing full elided", query: "5 rue de l'indus", want: indus },
+        GoldenBenchCase { name: "elision omitted", query: "5 rue de lindus", want: indus },
+        GoldenBenchCase { name: "noise word", query: "zzzeldange", want: elter },
+    };
+}
+
+/// Milliseconds, two decimals.
+fn ms(us: int): String {
+    return float::to_string((us as float) / 1000.0, '.', null, 2, false);
+}
+
+/// Appends `v` truncated-or-padded to `w` characters, then one space.
+fn col(b: Buffer, v: any?, w: int) {
+    b.add_and_pad(v, w, ' ');
+    b.add(" ");
+}
+
+/// 1-based position of the first row whose indexed body carries `want`, or 0 when the
+/// wanted row is not in the results at all.
+///
+/// Called after the clock is read, never inside the timed window.
+fn rank_of(rows: Array<TextResult>, want: String): int {
+    var needle = want.lowercase();
+    for (var i = 0; i < rows.size(); i++) {
+        var nPoi = rows[i].value as node<GoldenPointOfInterest>?;
+        if (nPoi != null) {
+            if (GoldenTextSearch::docText(nPoi).lowercase().contains(needle)) {
+                return i + 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/// Runs the shipped search — `searchTypeahead`, the exact call `searchAddress` makes —
+/// `reps` times per query, and prints hits, the rank of the wanted row, every run's
+/// milliseconds and the best of them.
+fn bench(k: int?, reps: int?) {
+    var kk = k ?? 20;
+    var n = reps ?? 3;
+    var idx = GoldenTextSearch::require();
+
+    // One warm-up so the library's lazily-built cached maps are not billed to whichever
+    // case happens to run first.
+    GoldenTextSearch::searchTypeahead(idx, "warmup", kk);
+
+    var s = idx.stats();
+    println("");
+    println("golden text index benchmark  k=${kk} reps=${n}");
+    println(
+        "docs=${s.totalEntries} terms=${s.totalTerms} avgTokens=${float::to_string(s.avgTokenCount, '.', null, 2, false)}"
+    );
+    println("");
+
+    var head = Buffer {};
+    col(head, "case", 16);
+    col(head, "query", 38);
+    col(head, "hits", 4);
+    col(head, "rank", 4);
+    for (var i = 0; i < n; i++) {
+        col(head, "run${i + 1}", 8);
+    }
+    col(head, "best", 8);
+    println(head.toString());
+
+    var cs = cases();
+    for (var ci = 0; ci < cs.size(); ci++) {
+        var c = cs[ci];
+        var runs = Array<int> {};
+        var hits = 0;
+        var rank = 0;
+
+        for (var r = 0; r < n; r++) {
+            var t0 = time::now().to(DurationUnit::microseconds);
+            var rows = GoldenTextSearch::searchTypeahead(idx, c.query, kk);
+            var t1 = time::now().to(DurationUnit::microseconds);
+            runs.add(t1 - t0);
+            hits = rows.size();
+            rank = rank_of(rows, c.want);
+        }
+
+        var best = runs[0];
+        for (var i = 1; i < runs.size(); i++) {
+            if (runs[i] < best) {
+                best = runs[i];
+            }
+        }
+
+        var line = Buffer {};
+        col(line, c.name, 16);
+        col(line, c.query, 38);
+        col(line, hits, 4);
+        col(line, rank, 4);
+        for (var i = 0; i < runs.size(); i++) {
+            col(line, ms(runs[i]), 8);
+        }
+        col(line, ms(best), 8);
+        println(line.toString());
+        println("BENCH,${c.name},${c.query},${hits},${rank},${ms(best)}");
+    }
+}
+
+/// Diagnostic for one query: its tokens, what plain BM25 returns, what the last token
+/// completes to, and what a prefix pass on it returns.
+///
+///     greycat run goldenTextBench::probe "av de la gare luxembourg"
+///
+/// The bench tells you a case regressed; this tells you why. Both findings below came
+/// out of it and neither was visible from a rank column.
+fn probe(q: String) {
+    var idx = GoldenTextSearch::require();
+    var toks = TextTokenizer::tokenize(q, idx.config);
+    var b = Buffer {};
+    for (var i = 0; i < toks.size(); i++) {
+        if (i > 0) { b.add(" | "); }
+        b.add(toks[i].text);
+    }
+    println("query '${q}' tokens: ${b.toString()}");
+
+    var last = toks[toks.size() - 1].text;
+    var bm = GoldenTextSearch::search(idx, q, 5);
+    println("  bm25 -> ${bm.size()} hits");
+    for (var i = 0; i < bm.size(); i++) {
+        println("    [${float::to_string(bm[i].score, '.', null, 3, false)}] ${bm[i].text}");
+    }
+    var sug = idx.suggest(last, 10);
+    var sb = Buffer {};
+    for (var i = 0; i < sug.size(); i++) {
+        if (i > 0) { sb.add(", "); }
+        sb.add("${sug[i].term}(df=${sug[i].df})");
+    }
+    println("  suggest('${last}') -> ${sug.size()}: ${sb.toString()}");
+
+    var pre = idx.search_prefix(last, 5);
+    println("  prefix('${last}') -> ${pre.size()} hits");
+    for (var i = 0; i < pre.size(); i++) {
+        println("    [${float::to_string(pre[i].score, '.', null, 3, false)}] ${pre[i].text}");
+    }
+}

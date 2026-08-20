@@ -380,14 +380,26 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
 
     var ts = Traffic_Service::start(searchAddress);
 
-    // TODO: address parsing was dropped with the `postal` library; until a replacement
-    // parser feeds the findLocalityScopes -> findStreetsInCity -> findPoisInStreet
-    // pipeline, this endpoint returns no matches.
     var pois = Array<node<POIRecordProvider>> {};
     var results = Array<POIRecordRef> {};
 
+    // Only the golden source is text-indexed. The other sources still have no address
+    // parser since the `postal` library was dropped, so they return no matches.
+    if (srcName == GoldenSource::NAME) {
+        var idx = GoldenTextSearch::ready();
+        if (idx == null) {
+            warn("searchAddress: golden text index not built - run `greycat run buildGoldenTextIndex`");
+        } else {
+            for (_, nGolden in GoldenTextSearch::resolve(GoldenTextSearch::searchTypeahead(idx, addr, max))) {
+                var nPoi = nGolden as node<POIRecordProvider>;
+                pois.add(nPoi);
+                results.add(POIRecordRef { ref: nPoi, record: nGolden->toMengplazRecord() });
+            }
+        }
+    }
+
     var _t = ts.end();
-    address_searches.setAt(time::now(), AddressSearchInput { input: addr, source: srcName, results: pois });
+    // address_searches.setAt(time::now(), AddressSearchInput { input: addr, source: srcName, results: pois });
     return results;
 }
 
