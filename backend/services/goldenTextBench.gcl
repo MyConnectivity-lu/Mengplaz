@@ -18,7 +18,6 @@
 /// Every case runs `reps` times (default 3) and all runs are printed, because the spread
 /// between the first and the rest IS the cache effect and averaging it away hides which
 /// queries are cache-sensitive.
-
 /// One benchmark query, tagged by what it exercises.
 @volatile
 type GoldenBenchCase {
@@ -40,35 +39,36 @@ type GoldenBenchCase {
 /// among several, and a sole wrong word with nothing else to carry the query.
 ///
 /// `number + typo` is the hardest case in the set and the one that exercises the most of
-/// the config at once: a bare house number, no town, and a street word that is both
-/// misspelled AND elided. It only resolves if the apostrophe fold in
-/// `GoldenTextSearch::tokenization` put "lindustrie" and "l'industrie" in the same term
-/// AND typo tolerance reaches "industrie" from "industrye" — and the "5" carries almost
-/// no weight, since every street has one.
+/// the pipeline at once: a bare house number, no town, and a street word that is both
+/// misspelled AND elided. libpostal cannot anchor "5, industrye" — no recognized street
+/// type word — so it returns every component null, and the case only resolves because
+/// `AddressIndex::search` falls back to reading the leading number straight off the query
+/// text, then reaches "industrie" from "industrye" through fuzzy matching over a body the
+/// `address()` preset split on the apostrophe.
 ///
-/// The `typing ...` cases are one address typed a character at a time and are the reason
-/// `searchTypeahead` exists: under plain BM25 every one of them reduced to the single term
-/// "5" and returned the same tied rows until the last keystroke.
+/// Cases known to come back rank-0, each kept to document a real limit rather than to be
+/// quietly fixed:
 ///
-/// Four cases are known rank-0 or rank-poor, and each is kept to document a real limit
-/// rather than to be quietly fixed:
-///
-///   `commune only`    Walferdange commune holds many streets; BM25 returns twenty of
-///                     them and the Elterstrachen row is not among them. Correct for a
+///   `typing 5 i` ..    The five progressive-typing cases. There is no prefix pass any
+///   `typing 5 industr` more: `AddressIndex` matches whole terms, so a half-typed word is
+///                     neither a term nor within the edit budget of one, and every one of
+///                     these queries reduces to the single term "5". They were the reason
+///                     the old hand-rolled `searchTypeahead` existed; search-as-you-type
+///                     now needs a prefix pass layered back on top of `AddressIndex`.
+///   `commune only`    Walferdange commune holds many streets; the query names none of
+///                     them, so the Elterstrachen row is not in the top k. Correct for a
 ///                     query naming no street — hits > 0 and "found what was meant" are
 ///                     different questions.
 ///   `elision omitted` "5 rue de lindus" — the client typed neither the apostrophe nor a
-///                     space, so the fragment is "lindus" and the indexed term is
-///                     "industrie". This is the exact cost of the charMap rule in
-///                     `GoldenTextSearch::tokenization`, priced in a test.
-///   `noise word`      "zzzeldange" returns Bereldange. It is what `maxEdits2: 3` buys and
-///                     is here so nobody raises the budget again without seeing it.
+///                     space, so the token is "lindus" while the indexed term is
+///                     "industrie". The `address()` preset splits on the apostrophe the
+///                     client did not type; it cannot split what is not there.
 ///   `abbreviated`     "av de la gare luxembourg" — NOT a config problem. Some golden
 ///                     street names are stored abbreviated ("av. Grand Duc Jean"), so "av"
-///                     is a genuine and RARE vocabulary term while "avenue" is very common.
-///                     BM25 weights the abbreviation far above the word it abbreviates, and
-///                     the synonym cannot correct it because synonyms carry no weight. Fix
-///                     it in the data or with a weighted expansion, not with a knob.
+///                     is a genuine and RARE vocabulary term while "avenue" is very common,
+///                     and BM25 weights the abbreviation far above the word it abbreviates.
+///                     libpostal's `expand()` canonicalizes the QUERY side, but the stored
+///                     street name is what it is. Fix it in the data, not with a knob.
 fn cases(): Array<GoldenBenchCase> {
     var gare = "Avenue de la Gare";
     var elter = "Elterstrachen";
@@ -87,6 +87,7 @@ fn cases(): Array<GoldenBenchCase> {
         GoldenBenchCase { name: "typo one word", query: "elterstrahen bereldange", want: elter },
         GoldenBenchCase { name: "typo sole word", query: "bereldanje", want: elter },
         GoldenBenchCase { name: "typo street", query: "avenue de la garre luxembourg", want: gare },
+        GoldenBenchCase { name: "typo street only", query: "avenue de la garre", want: gare },
         GoldenBenchCase { name: "word prefix", query: "bereldang", want: elter },
         GoldenBenchCase { name: "number + typo", query: "5 industrye", want: indus },
         GoldenBenchCase { name: "transposed typo", query: "5 indsutrye", want: indus },
@@ -111,16 +112,20 @@ fn col(b: Buffer, v: any?, w: int) {
     b.add(" ");
 }
 
-/// 1-based position of the first row whose indexed body carries `want`, or 0 when the
-/// wanted row is not in the results at all.
+/// 1-based position of the first hit whose indexed address line carries `want`, or 0 when
+/// the wanted row is not in the results at all.
+///
+/// Reads `AddressDoc.raw` — the line `GoldenTextSearch::rawAddress` fed to libpostal —
+/// rather than resolving the payload back to a POI node: the raw line already holds
+/// number, street, postcode and city, and this way the check costs no graph lookup.
 ///
 /// Called after the clock is read, never inside the timed window.
-fn rank_of(rows: Array<TextResult>, want: String): int {
+fn rank_of(idx: AddressIndex<String>, hits: Array<AddressSearchHit>, want: String): int {
     var needle = want.lowercase();
-    for (var i = 0; i < rows.size(); i++) {
-        var nPoi = rows[i].value as node<GoldenPointOfInterest>?;
-        if (nPoi != null) {
-            if (GoldenTextSearch::docText(nPoi).lowercase().contains(needle)) {
+    for (var i = 0; i < hits.size(); i++) {
+        var doc = idx.doc_of(hits[i]);
+        if (doc != null) {
+            if (doc.raw.lowercase().contains(needle)) {
                 return i + 1;
             }
         }
@@ -128,19 +133,20 @@ fn rank_of(rows: Array<TextResult>, want: String): int {
     return 0;
 }
 
-/// Runs the shipped search — `searchTypeahead`, the exact call `searchAddress` makes —
-/// `reps` times per query, and prints hits, the rank of the wanted row, every run's
-/// milliseconds and the best of them.
+/// Runs the shipped search — `GoldenTextSearch::search`, the exact call `searchAddress`
+/// makes — `reps` times per query, and prints hits, the rank of the wanted row, every
+/// run's milliseconds and the best of them.
 fn bench(k: int?, reps: int?) {
     var kk = k ?? 20;
     var n = reps ?? 3;
     var idx = GoldenTextSearch::require();
 
-    // One warm-up so the library's lazily-built cached maps are not billed to whichever
-    // case happens to run first.
-    GoldenTextSearch::searchTypeahead(idx, "warmup", kk);
+    // One warm-up so libpostal's models and the library's lazily-built cached maps are not
+    // billed to whichever case happens to run first. The first parse loads ~3 GB of NLP
+    // models and takes seconds, so this is not a micro-optimisation.
+    GoldenTextSearch::search(idx, "warmup", kk);
 
-    var s = idx.stats();
+    var s = idx.index.stats();
     println("");
     println("golden text index benchmark  k=${kk} reps=${n}");
     println(
@@ -168,11 +174,11 @@ fn bench(k: int?, reps: int?) {
 
         for (var r = 0; r < n; r++) {
             var t0 = time::now().to(DurationUnit::microseconds);
-            var rows = GoldenTextSearch::searchTypeahead(idx, c.query, kk);
+            var rows = GoldenTextSearch::search(idx, c.query, kk);
             var t1 = time::now().to(DurationUnit::microseconds);
             runs.add(t1 - t0);
             hits = rows.size();
-            rank = rank_of(rows, c.want);
+            rank = rank_of(idx, rows, c.want);
         }
 
         var best = runs[0];
@@ -204,25 +210,33 @@ fn bench(k: int?, reps: int?) {
 /// The bench tells you a case regressed; this tells you why. Both findings below came
 /// out of it and neither was visible from a rank column.
 fn probe(q: String) {
-    var idx = GoldenTextSearch::require();
+    var ai = GoldenTextSearch::require();
+    var idx = ai.index;
     var toks = TextTokenizer::tokenize(q, idx.config);
     var b = Buffer {};
     for (var i = 0; i < toks.size(); i++) {
-        if (i > 0) { b.add(" | "); }
+        if (i > 0) {
+            b.add(" | ");
+        }
         b.add(toks[i].text);
     }
     println("query '${q}' tokens: ${b.toString()}");
 
     var last = toks[toks.size() - 1].text;
-    var bm = GoldenTextSearch::search(idx, q, 5);
-    println("  bm25 -> ${bm.size()} hits");
+    var bm = GoldenTextSearch::search(ai, q, 5);
+    println("  search -> ${bm.size()} hits");
     for (var i = 0; i < bm.size(); i++) {
-        println("    [${float::to_string(bm[i].score, '.', null, 3, false)}] ${bm[i].text}");
+        var r = bm[i].result;
+        println(
+            "    [${float::to_string(r.score, '.', null, 3, false)}] houseNumberMatch=${bm[i].houseNumberMatch} ${r.text}"
+        );
     }
     var sug = idx.suggest(last, 10);
     var sb = Buffer {};
     for (var i = 0; i < sug.size(); i++) {
-        if (i > 0) { sb.add(", "); }
+        if (i > 0) {
+            sb.add(", ");
+        }
         sb.add("${sug[i].term}(df=${sug[i].df})");
     }
     println("  suggest('${last}') -> ${sug.size()}: ${sb.toString()}");

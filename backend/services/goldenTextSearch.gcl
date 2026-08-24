@@ -1,204 +1,76 @@
 /// Full-text index over the golden addresses.
 ///
-/// One flat document per `GoldenPointOfInterest` — house number, street, postcode,
-/// locality and commune concatenated into a single text body — searched by a BM25 call
-/// carrying typo tolerance, plus a prefix pass on the last token so a half-typed word
-/// still discriminates (`searchTypeahead`).
+/// A thin wrapper around `AddressIndex` from the `postal` library: libpostal parses and
+/// canonicalizes every address line (both at index time and at query time), and
+/// `text_search`'s `address()` preset does the elision-aware, typo-tolerant ranking.
+/// Everything this file used to tune by hand — synonyms, tokenizer separators, typo
+/// budgets, BM25 knobs — now lives in `address_index_config()` inside the library.
+///
+/// Each document carries the POI's `uid` as its `AddressDoc.payload`. The payload is
+/// deliberately absent from the library's indexed field list, so it round-trips without
+/// polluting the term vocabulary — `resolve()` reads it back and looks the node up in
+/// `golden_pois_by_id`.
 ///
 /// This is deliberately NOT the `findLocalityScopes -> findStreetsInCity ->
-/// findPoisInStreet` chain in `GoldenSource`. That chain needs a parsed address (the
-/// `postal` library it depended on is gone); this one needs nothing but the raw string
-/// a client typed, so it answers whole queries rather than parsed parts.
+/// findPoisInStreet` chain in `GoldenSource`. That chain walks the golden graph by
+/// parsed parts; this one answers a whole raw string the way a client typed it.
+///
+/// STALENESS: the index is REBUILD-ONLY. `AddressIndex::add()` returns no doc-id, so a
+/// previously indexed document cannot be retracted, which means a POI edited after a
+/// build cannot be re-indexed in place without layering a second document on top of the
+/// first. Rather than keep doc-id bookkeeping the library does not expose, writes are not
+/// indexed at all: an edit becomes visible at the next `buildGoldenTextIndex`, which the
+/// nightly schedule already runs.
+///
+/// COST: `rebuild()` runs one libpostal `parseStructured` per golden POI, so it needs
+/// `GREYCAT_POSTAL_DATA_DIR` pointing at the libpostal model directory. Without it the
+/// parser is disarmed and every call raises.
 /// The index. `node<...?>` because the value is set by `reset()`, not at declaration.
-var golden_text_index: node<TextIndex<node<GoldenPointOfInterest>>?>;
-
-/// POI uid -> doc-id, so an update or a delete can retract the previous document
-/// instead of layering a second one on top of it. `TextIndex` doc-ids are stable and
-/// never reused, so this mapping stays valid for the life of an entry.
-var golden_text_docid_by_uid: nodeIndex<String, int>;
+/// `AddressIndex<String>` — the payload type is the golden POI's `uid`.
+var golden_address_index: node<AddressIndex<String>?>;
 
 type GoldenTextSearch {
-    /// Bidirectional street-type synonyms, so an abbreviation and its full word are
-    /// interchangeable in either direction. Luxembourg street names are French, German
-    /// and Luxembourgish in the same corpus, so all three families are covered.
-    /// Punctuation is already folded away by `tokenization()`, so "av" covers "av." too.
-    static fn synonyms(): Map<String, Array<String>> {
-        var syns = Map<String, Array<String>> {};
-        syns.set("r", ["rue"]);
-        syns.set("rue", ["r"]);
-        syns.set("av", ["avenue"]);
-        syns.set("avenue", ["av"]);
-        syns.set("bd", ["boulevard"]);
-        syns.set("boulevard", ["bd"]);
-        syns.set("pl", ["place"]);
-        syns.set("place", ["pl"]);
-        syns.set("ch", ["chemin"]);
-        syns.set("chemin", ["ch"]);
-        syns.set("imp", ["impasse"]);
-        syns.set("impasse", ["imp"]);
-        syns.set("st", ["saint"]);
-        syns.set("saint", ["st"]);
-        syns.set("str", ["strasse", "strooss"]);
-        syns.set("strasse", ["str", "strooss"]);
-        syns.set("strooss", ["str", "strasse"]);
-        return syns;
+    /// Parser hints. Luxembourg addresses are predominantly French-language, and pinning
+    /// the country stops libpostal reading a trailing "Luxembourg" as a country when it is
+    /// the city (the two share a name — see the postal library README).
+    static fn hints(): PostalOptions {
+        return PostalOptions { language: "fr", country: "lu" };
     }
 
-    /// Character-level normalization, not word-level patches.
+    /// The raw address line handed to libpostal, in the shape a client would type.
     ///
-    /// Both entries map punctuation to a SPACE, and that is the whole point of having
-    /// them: `stripPunctuation` (on by default) already removes both characters, but it
-    /// removes them by CLOSING UP, which is wrong for both.
-    ///
-    ///   apostrophe  the default gives "l'Industrie" -> the single term "lindustrie",
-    ///               article welded to noun. A client typing "industrie" then matches
-    ///               NOTHING — it is not that term, and not a prefix of it either, so
-    ///               type-ahead cannot reach it. Mapping to a space gives "l" +
-    ///               "industrie" and both work. Measured.
-    ///   hyphen      the default gives "Notre-Dame" -> "notredame", so "notre dame" misses.
-    ///
-    /// The cost of the apostrophe rule, stated plainly: someone typing "lindus" — no
-    /// apostrophe, article glued on — now gets no prefix match, because the indexed term
-    /// is "industrie". One charMap cannot serve both directions; splitting is the better
-    /// bet for a search box, where "indus" is far likelier than "lindus".
-    ///
-    /// Accents are stripped because clients type "Ettelbruck" for "Ettelbrück".
-    ///
-    /// `filterNumericTerms` stays OFF: house numbers and postcodes are the whole point
-    /// of an address index and would otherwise never be indexed. Stemming stays OFF —
-    /// the corpus is proper nouns in three languages, not prose.
-    ///
-    /// `minTermLength: 1` rather than the library default of 2, because that default
-    /// silently ate every single-digit house number. At 2, "5 rue de l'industrie" scored
-    /// byte-identically to "9 rue de l'industrie": the "5" never entered the vocabulary
-    /// and was dropped from the query too. Numbers 10 and up indexed fine, so it looked
-    /// like "numbers do not rank" when it was really "1-9 do not exist".
-    static fn tokenization(): TokenizationOptions {
-        var charMap = Map<String, String> {};
-        charMap.set("'", "");
-        charMap.set("-", " ");
-        return TokenizationOptions {
-            filterNumericTerms: false,
-            normOptions: NormOptions { stripAccents: true, normalizeQuotes: true },
-            minTermLength: 1,
-            separators: [" ", "'", "-"],
-        };
-    }
-
-    /// Index configuration.
-    ///
-    /// `buildTrigram` is load-bearing, not an optimization: the typo-tolerant BM25 path
-    /// pre-filters candidate terms through the trigram index, and without it every query
-    /// term absent from the vocabulary costs a scan of the whole term vocabulary.
-    ///
-    /// `buildBlockMax` is WAND pruning — speed only, result-identical.
-    ///
-    /// `buildTrie` is ON because `searchTypeahead` runs a prefix pass on every keystroke;
-    /// without it `PrefixEngine::search` falls back to an O(vocabulary) scan per query.
-    ///
-    /// `buildReverseTrie` stays OFF (leading wildcards), as do `storePositions` (phrase /
-    /// proximity / span) and `usePhonetic`. Turning any of them on requires a rebuild.
-    ///
-    /// `typoTolerance` here only carries the THRESHOLDS — the switch is
-    /// `SearchOptions.typoTolerance` at query time, since
-    /// `FuzzyEngine::compute_typo_max_edits_from_config` never reads `enabled`.
-    ///
-    /// `minWordLength: 5` rather than the library default of 4 is deliberate: Luxembourg
-    /// postcodes are exactly 4 digits, and a 4-digit number one edit away from another
-    /// 4-digit number is a different town, not a typo. Five keeps every postcode out of
-    /// fuzzy expansion while leaving real words (which are longer) fully covered.
-    ///
-    /// `maxEdits2: 3` for words of 9+ characters, rather than the default 2, because the
-    /// engine scores with plain Levenshtein (`FuzzyEngine::banded_levenshtein` — no
-    /// Damerau), and plain Levenshtein charges a TRANSPOSITION as two edits. Transposed
-    /// letters are the commonest typing slip, so one slip reads as two. Measured:
-    /// "indsutrye" is 3 edits from "industrie" — one transposition plus one substitution —
-    /// and returned nothing at all under a budget of 2.
-    ///
-    /// The widening has a price and it is not theoretical: at 3, "zzzeldange" — a word
-    /// that should match nothing — returns Bereldange. A budget of 2 already admitted
-    /// "bereldxnxe", so this widens existing behaviour rather than introducing it, but on
-    /// a sole-word query these false positives ARE the answer. `goldenTextBench` keeps a
-    /// noise case so the trade stays visible.
-    static fn config(): TextIndexConfig {
-        return TextIndexConfig {
-            synonyms: GoldenTextSearch::synonyms(),
-            tokenization: GoldenTextSearch::tokenization(),
-            stopWords: StopWordOptions {
-                mode: StopWordMode::default,
-                language: TextSearchLanguage::fr,
-            },
-            typoTolerance: TypoOptions { enabled: true, minWordLength: 5, maxEdits1: 2, maxEdits2: 3 },
-            buildTrigram: true,
-            buildTrie: true,
-            buildBlockMax: true,
-        };
-    }
-
-    /// The indexed body of one POI: everything a client might type, in one string.
-    ///
-    /// A POI with no street still gets its postcode indexed — it is the only thing
-    /// that can match it.
-    static fn docText(nPoi: node<GoldenPointOfInterest>): String {
+    /// A POI with no street still gets a line — its postcode is the only thing that can
+    /// match it.
+    static fn rawAddress(nPoi: node<GoldenPointOfInterest>): String {
         var nStreet = nPoi->street;
         if (nStreet == null) {
-            return "${nPoi->number}${nPoi->multipleCode} ${nPoi->postCode}";
+            return "${nPoi->number}${nPoi->multipleCode}, ${nPoi->postCode}";
         }
         var nCity = nStreet->city;
-        return "${nPoi->number}${nPoi->multipleCode} ${nStreet->name} ${nPoi->postCode} ${nCity->name} ${nCity->municipality->name}";
+        return "${nPoi->number}${nPoi->multipleCode} ${nStreet->name}, ${nPoi->postCode} ${nCity->name}";
     }
 
-    /// Drops the index and re-creates it empty, clearing the uid mapping with it.
+    /// Drops the index and re-creates it empty.
+    ///
+    /// The literal rather than `AddressIndex::create` — GCL rejects generic arguments on a
+    /// static access, and the library documents this spelling as the typed-payload path.
     static fn reset() {
-        golden_text_docid_by_uid.removeAll();
-        golden_text_index.set(TextIndex<node<GoldenPointOfInterest>> {
-            config: GoldenTextSearch::config(),
-        });
-    }
-
-    /// Adds or replaces one POI's document.
-    ///
-    /// Retracting the previous doc-id first is what makes this callable from
-    /// `GoldenPointOfInterest::indexing()`, which fires on every write to the node —
-    /// without it a POI whose street or postcode changed would stay findable under both
-    /// its old and its new address.
-    static fn upsert(idx: TextIndex<node<GoldenPointOfInterest>>, nPoi: node<GoldenPointOfInterest>) {
-        var uid = nPoi->uid;
-        var previous = golden_text_docid_by_uid.get(uid);
-        if (previous != null) {
-            idx.remove(previous);
-        }
-        var docId = idx.add(GoldenTextSearch::docText(nPoi), nPoi);
-        golden_text_docid_by_uid.set(uid, docId);
-    }
-
-    /// Called from `GoldenPointOfInterest::indexing()`.
-    ///
-    /// A no-op until the index has been built once. That is what keeps the initial
-    /// CACLR / BDA / OSM bulk load free: those run before any build, so nothing is added
-    /// per row. After the first `rebuild()`, every subsequent write keeps the index
-    /// current incrementally — the library refreshes IDF for the touched terms on a
-    /// post-build `add()`.
-    static fn onIndexing(nPoi: node<GoldenPointOfInterest>) {
-        var idx = GoldenTextSearch::ready();
-        if (idx == null) {
-            return;
-        }
-        GoldenTextSearch::upsert(idx, nPoi);
+        var lang = TextSearchLanguage::fr;
+        golden_address_index.set(AddressIndex::create(lang));
     }
 
     /// The index if it has been built, `null` otherwise. Callers that can degrade
     /// gracefully (the public endpoints) use this; tooling uses `require`.
-    static fn ready(): TextIndex<node<GoldenPointOfInterest>>? {
-        var idx = golden_text_index.resolve();
-        if (idx == null || (idx.built ?? false) == false) {
+    static fn ready(): AddressIndex<String>? {
+        var idx = golden_address_index.resolve();
+        if (idx == null || (idx.index.built ?? false) == false) {
             return null;
         }
         return idx;
     }
 
     /// Same, but refuses to answer instead of returning nothing.
-    static fn require(): TextIndex<node<GoldenPointOfInterest>> {
+    static fn require(): AddressIndex<String> {
         var idx = GoldenTextSearch::ready();
         if (idx == null) {
             throw "The golden text index is empty - run `greycat run buildGoldenTextIndex` first";
@@ -206,18 +78,17 @@ type GoldenTextSearch {
         return idx;
     }
 
-    /// Rebuilds the whole index from `golden_pois_by_id`.
-    ///
-    /// Also the nightly refresh: incremental adds keep results correct but let the IDF
-    /// statistics drift, and a full build recomputes them.
+    /// Rebuilds the whole index from `golden_pois_by_id`. Re-runnable, and the only way an
+    /// edit reaches the index (see the file header).
     static fn rebuild(): int {
         var t0 = time::now().to(DurationUnit::milliseconds);
         GoldenTextSearch::reset();
-        var idx = golden_text_index.resolve()!!;
+        var idx = golden_address_index.resolve()!!;
+        var hints = GoldenTextSearch::hints();
 
         var n = 0;
         for (_, nPoi in golden_pois_by_id) {
-            GoldenTextSearch::upsert(idx, nPoi);
+            idx.add(GoldenTextSearch::rawAddress(nPoi), hints, nPoi->uid);
             n++;
             if (n % 50000 == 0) {
                 info("goldenTextSearch: added ${n} addresses");
@@ -228,182 +99,35 @@ type GoldenTextSearch {
         idx.build();
         var t2 = time::now().to(DurationUnit::milliseconds);
 
-        var s = idx.stats();
+        var s = idx.index.stats();
         info(
             "goldenTextSearch: ${n} addresses added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
         );
         return n;
     }
 
-    /// One query, one engine.
+    /// One query.
     ///
-    /// `search_bm25()` is NOT used here even though this is a BM25-only search: it takes
-    /// no options, so it cannot carry typo tolerance, and it silently drops any query
-    /// term missing from the vocabulary — which is exactly the misspelled word. Passing
-    /// a single mode to `search()` takes the single-mode fast path (no fusion, one
-    /// engine) and reaches the typo-tolerant branch in `text_index_dispatch_mode`, where
-    /// an unmatched term is resolved to its nearest vocabulary term within the edit
-    /// budget from `config.typoTolerance`.
-    ///
-    /// `SearchMode::prefix` is deliberately NOT in this list, and adding it would be
-    /// wasted work rather than a widening: the fused path hands each engine the WHOLE
-    /// query string, and `PrefixEngine::search` normalizes that whole string into one
-    /// prefix and tests `termText.startsWith(...)`. No term contains a space, so
-    /// `search_prefix("5 indus")` returns ZERO while `search_prefix("indus")` returns the
-    /// right rows. Prefix has to be applied to one token — see `searchTypeahead`.
-    static fn search(idx: TextIndex<node<GoldenPointOfInterest>>, query: String, k: int): Array<TextResult> {
-        return idx.search(query, k, SearchOptions {
-            modes: Array<SearchMode> { SearchMode::bm25 },
-            typoTolerance: true,
-        });
+    /// `AddressIndex::search` parses the query the same way the documents were parsed,
+    /// then runs bm25 + fuzzy + exact over the combined street/city/postcode text. A house
+    /// number, when the query has one, is a hard two-tier filter rather than a fuzzy
+    /// match: exact first, and only if that is empty a same-street fallback whose hits
+    /// carry `houseNumberMatch: false`. Both tiers come back in one array here — the API
+    /// does not surface the distinction.
+    static fn search(idx: AddressIndex<String>, query: String, k: int): Array<AddressSearchHit> {
+        return idx.search(query, k, GoldenTextSearch::hints());
     }
 
-    /// Search-as-you-type: `search` over the whole query, plus a prefix pass on the LAST
-    /// token alone, scores summed per document.
-    ///
-    /// This exists because BM25 structurally cannot answer a half-typed word. A term
-    /// index matches whole terms, so "5 i" through "5 industr" all reduce to the single
-    /// term "5" and return the same tied rows — every address with a number 5, in
-    /// whatever order. Typo tolerance does not rescue it either: it corrects WRONG words,
-    /// not UNFINISHED ones, and a fragment is many edits from its word.
-    ///
-    /// The last token is fed to BOTH passes and nothing inspects which kind it is. It may
-    /// be a finished word (then the prefix pass simply also matches longer terms sharing
-    /// its stem — "industrie" additionally pulls "industriels") or a fragment (then BM25
-    /// contributes nothing for it and the prefix pass carries the query). Measured, the
-    /// wanted row ranks first from the FIRST character typed, and the complete-word case
-    /// is unchanged.
-    ///
-    /// The last token comes from the TOKENIZER, not from a whitespace split, and that
-    /// distinction is load-bearing. Splitting "5 rue de l'indus" on spaces yields
-    /// "l'indus", which the charMap turns into "l indus" — a string containing a space,
-    /// so `startsWith` never matches and the prefix pass silently returns nothing.
-    /// Tokenizing yields "indus".
-    /// How many vocabulary completions one fragment expands into.
-    ///
-    /// Kept deliberately small. Expansion terms enter the query as ordinary BM25 terms,
-    /// so a RARE completion carries more weight than the words the client actually typed:
-    /// expanding "gare" to ten completions injected "garerbierg" (df=20) and
-    /// "garerstrooss" (df=16) alongside "gare" (df=2806), and their IDF buried every
-    /// Avenue de la Gare in the corpus — the wanted row fell out of the top 20 entirely.
-    /// Completions arrive most-common-first, which is also most-likely-meant-first.
-    ///
-    /// One, not three, and that is measured rather than conservative. At three, "5 indus"
-    /// expands to "industrie industrielle" and the WRONG one wins: "industrielle" (df=144)
-    /// is rarer than "industrie" (df=327), so BM25 ranks every Zone Industrielle above
-    /// every Rue de l'Industrie — the wanted row fell to rank 7. At one, it is rank 1.
-    /// Ranks for the progressive-typing cases in `goldenTextBench`, three against one:
-    ///
-    ///     "5 ind"             18 -> 1
-    ///     "5 indus"            7 -> 1
-    ///     "5 industr"          7 -> 1
-    ///     "5 rue de l'indus"   3 -> 1
-    ///
-    /// The cost is recall: a client typing "indus" who meant "industrielle" gets industrie
-    /// rows. Every further character they type narrows the completion, so the cost is paid
-    /// only on the shortest, least specific fragments.
-    static EXPANSIONS: int = 1;
-
-    /// Renders a token list as "a | b | c", for the trace below.
-    static fn joinTokens(tokens: Array<TokenInfo>): String {
-        var b = Buffer {};
-        for (var i = 0; i < tokens.size(); i++) {
-            if (i > 0) {
-                b.add(" | ");
-            }
-            b.add(tokens[i].text);
-        }
-        return b.toString();
-    }
-
-    /// Renders completions as "term(df=N), term(df=N)", for the trace below.
-    static fn joinCompletions(completions: Array<Suggestion>): String {
-        var b = Buffer {};
-        for (var i = 0; i < completions.size(); i++) {
-            if (i > 0) {
-                b.add(", ");
-            }
-            b.add("${completions[i].term}(df=${completions[i].df})");
-        }
-        return b.toString();
-    }
-
-    static fn searchTypeahead(idx: TextIndex<node<GoldenPointOfInterest>>, query: String, k: int): Array<TextResult> {
-        var t0 = time::now().to(DurationUnit::microseconds);
-
-        var tokens = TextTokenizer::tokenize(query, idx.config);
-        if (tokens.size() == 0) {
-            info("typeahead q='${query}' k=${k} | tokens=NONE | path=plain (nothing to expand)");
-            return GoldenTextSearch::search(idx, query, k);
-        }
-
-        var last = tokens[tokens.size() - 1].text;
-        info("typeahead q='${query}' k=${k} | tokens=${GoldenTextSearch::joinTokens(tokens)} | last='${last}'");
-
-        var completions = idx.suggest(last, GoldenTextSearch::EXPANSIONS);
-        if (completions.size() == 0) {
-            // Nothing in the vocabulary starts with this fragment. It is not a prefix of
-            // anything, so it is either a complete word or a misspelling — either way the
-            // plain call, with its typo tolerance, is the right and only answer.
-            var plain = GoldenTextSearch::search(idx, query, k);
-            var t1 = time::now().to(DurationUnit::microseconds);
-            info(
-                "typeahead   completions=NONE ('${last}' prefixes no term) | path=plain+typo | hits=${plain.size()} in ${((t1 - t0) as float) / 1000.0}ms"
-            );
-            return plain;
-        }
-
-        info("typeahead   completions=${GoldenTextSearch::joinCompletions(completions)}");
-
-        if (completions[0].term == last) {
-            // The last token is already a term in its own right, so the client has
-            // finished the word. Expanding it here is not a widening but a corruption:
-            // the completions of a finished word are all RARER than it, and BM25 weights
-            // them accordingly — "avenue de la gare" expanded this way ranked
-            // Garerbierg and Garerstrooss above every Avenue de la Gare in the country.
-            var whole = GoldenTextSearch::search(idx, query, k);
-            var t2 = time::now().to(DurationUnit::microseconds);
-            info(
-                "typeahead   path=plain ('${last}' is already a term, not expanded) | hits=${whole.size()} in ${((t2 - t0) as float) / 1000.0}ms"
-            );
-            return whole;
-        }
-
-        // Rebuild the query with the last token REPLACED by its completions. Replaced,
-        // not appended: the fragment is not a term, so leaving it in only gives typo
-        // tolerance something to mis-correct.
-        var expanded = Buffer {};
-        for (var i = 0; i < tokens.size() - 1; i++) {
-            expanded.add(tokens[i].text);
-            expanded.add(" ");
-        }
-        for (var i = 0; i < completions.size(); i++) {
-            if (i > 0) {
-                expanded.add(" ");
-            }
-            expanded.add(completions[i].term);
-        }
-
-        var expandedQuery = expanded.toString();
-        var results = GoldenTextSearch::search(idx, expandedQuery, k);
-        var t3 = time::now().to(DurationUnit::microseconds);
-        info(
-            "typeahead   path=expanded '${last}' -> '${expandedQuery}' | hits=${results.size()} in ${((t3 - t0) as float) / 1000.0}ms"
-        );
-        // The top row is what the client sees first, so trace it: a ranking regression is
-        // visible here without re-running the benchmark.
-        if (results.size() > 0) {
-            info("typeahead   top=[${results[0].score}] '${results[0].text}'");
-        }
-        return results;
-    }
-
-    /// Resolves search results back to golden POI nodes, dropping any tombstoned entry.
-    /// Relevance order is preserved.
-    static fn resolve(results: Array<TextResult>): Array<node<GoldenPointOfInterest>> {
+    /// Resolves search hits back to golden POI nodes, dropping any entry whose POI has
+    /// since disappeared. Relevance order is preserved.
+    static fn resolve(idx: AddressIndex<String>, hits: Array<AddressSearchHit>): Array<node<GoldenPointOfInterest>> {
         var out = Array<node<GoldenPointOfInterest>> {};
-        for (_, r in results) {
-            var nPoi = r.value as node<GoldenPointOfInterest>?;
+        for (_, hit in hits) {
+            var uid = idx.payload_of(hit);
+            if (uid == null) {
+                continue;
+            }
+            var nPoi = golden_pois_by_id.get(uid);
             if (nPoi != null) {
                 out.add(nPoi);
             }
@@ -432,16 +156,16 @@ fn buildGoldenTextIndex(): int {
 /// Index size and staleness, for the explorer and for checking a build landed.
 @expose
 fn goldenTextIndexStats(): GoldenTextIndexStats {
-    var idx = golden_text_index.resolve();
+    var idx = golden_address_index.resolve();
     if (idx == null) {
         return GoldenTextIndexStats { built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 };
     }
-    var s = idx.stats();
+    var s = idx.index.stats();
     return GoldenTextIndexStats {
-        built: idx.built ?? false,
+        built: idx.index.built ?? false,
         docs: s.totalEntries,
         terms: s.totalTerms,
         avgLen: s.avgTokenCount,
-        dirty: idx.dirtyCount ?? 0,
+        dirty: idx.index.dirtyCount ?? 0,
     };
 }

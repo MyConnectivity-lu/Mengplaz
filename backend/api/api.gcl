@@ -383,14 +383,15 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     var pois = Array<node<POIRecordProvider>> {};
     var results = Array<POIRecordRef> {};
 
-    // Only the golden source is text-indexed. The other sources still have no address
-    // parser since the `postal` library was dropped, so they return no matches.
+    // Only the golden source is text-indexed. The other sources have no address index of
+    // their own, so they return no matches.
     if (srcName == GoldenSource::NAME) {
         var idx = GoldenTextSearch::ready();
         if (idx == null) {
             warn("searchAddress: golden text index not built - run `greycat run buildGoldenTextIndex`");
         } else {
-            for (_, nGolden in GoldenTextSearch::resolve(GoldenTextSearch::searchTypeahead(idx, addr, max))) {
+            var hits = GoldenTextSearch::search(idx, addr, max);
+            for (_, nGolden in GoldenTextSearch::resolve(idx, hits)) {
                 var nPoi = nGolden as node<POIRecordProvider>;
                 pois.add(nPoi);
                 results.add(POIRecordRef { ref: nPoi, record: nGolden->toMengplazRecord() });

@@ -1,8 +1,9 @@
 @include("backend");
 
-@library("std", "8.1.150-stable");
-@library("explorer", "8.1.4-stable");
-@library("text_search", "8.1.54-stable");
+@library("std", "8.2.85-dev");
+@library("http", "8.2.18-dev");
+@library("postal", "8.2.42-dev");
+@library("text_search", "8.2.9-dev");
 
 @role("public", "api");
 
