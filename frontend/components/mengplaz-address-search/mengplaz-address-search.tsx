@@ -60,6 +60,11 @@ export class MengplazAddressSearch extends HTMLElement {
     this.searchInput.addEventListener('sl-clear', () => this.clearResults());
   }
 
+  disconnectedCallback() {
+    this.cancelPendingSearch();
+    this.setLoading(false);
+  }
+
   clear() {
     this.searchInput.value = '';
     this.clearResults();
@@ -67,12 +72,10 @@ export class MengplazAddressSearch extends HTMLElement {
 
   private onSearchInput() {
     const value = this.searchInput.value?.trim() ?? '';
-    if (this.debounceTimer != null) {
-      window.clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
-    }
+    this.cancelPendingSearch();
     if (value.length < SEARCH_MIN_LENGTH) {
       this.clearResults();
+      this.setLoading(false);
       return;
     }
     this.setLoading(true);
@@ -87,11 +90,26 @@ export class MengplazAddressSearch extends HTMLElement {
     try {
       results = (await gc.api.searchAddress(query, SEARCH_MAX_RESULTS, this._source, undefined, controller.signal)) ?? [];
     } catch (_e) {
+      // an aborted request has been superseded (or cancelled): the caller owns the UI state now
+      if (controller.signal.aborted) return;
+      this.searchAbort = null;
+      this.setLoading(false);
       return;
     }
     if (controller.signal.aborted) return;
+    this.searchAbort = null;
     this.renderResults(results);
     this.setLoading(false);
+  }
+
+  /** Cancels the debounced search, if any, and aborts the in-flight request, if any. */
+  private cancelPendingSearch() {
+    if (this.debounceTimer != null) {
+      window.clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    this.searchAbort?.abort();
+    this.searchAbort = null;
   }
 
   private setLoading(loading: boolean) {
@@ -99,8 +117,7 @@ export class MengplazAddressSearch extends HTMLElement {
   }
 
   private clearResults() {
-    this.searchAbort?.abort();
-    this.searchAbort = null;
+    this.cancelPendingSearch();
     this.resultsContainer.replaceChildren();
   }
 

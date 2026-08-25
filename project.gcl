@@ -1,9 +1,10 @@
 @include("backend");
 
 @library("std", "8.2.85-dev");
+@library("explorer", "8.2.2-dev");
 @library("http", "8.2.18-dev");
-@library("postal", "8.2.42-dev");
-@library("text_search", "8.2.9-dev");
+@library("postal", "8.2.47-dev");
+@library("text_search", "8.2.10-dev");
 
 @role("public", "api");
 
@@ -12,19 +13,21 @@ fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
-    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
-    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, PeriodicOptions { immediate: false });
+    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions {
+        immediate: false
+    });
+    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 6 }, PeriodicOptions { immediate: false });
 
-    Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 20 }, PeriodicOptions { immediate: false });
+    Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 1 }, PeriodicOptions { immediate: false });
 
-    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 20_s }, PeriodicOptions {
+    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 30_s }, PeriodicOptions {
         immediate: false,
         start: time::now() + 10s
     });
 
     Scheduler::add(updateCACLR, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
-    Scheduler::add(updateBDA, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
-    Scheduler::add(updateOSM, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions { immediate: false });
+    Scheduler::add(updateBDA, DailyPeriodicity { hour: 23, minute: 15 }, PeriodicOptions { immediate: false });
+    Scheduler::add(updateOSM, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
 }
 
 fn bootstrap() {
@@ -59,6 +62,7 @@ private fn createAdmin() {
     }
 }
 
+@permission("admin")
 @expose
 fn loadOsm() {
     OsmSource::init();
@@ -68,7 +72,7 @@ fn loadOsm() {
         error("OSM Failed : ${err.message}");
     }
 }
-
+@permission("admin")
 @expose
 fn loadBda() {
     BDAddressSource::init();
@@ -78,7 +82,7 @@ fn loadBda() {
         error("BDA Failed : ${err.message}");
     }
 }
-
+@permission("admin")
 @expose
 fn loadCaclr() {
     CaclrSource::init();

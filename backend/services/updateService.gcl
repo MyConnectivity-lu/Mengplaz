@@ -29,7 +29,10 @@ fn updateCACLR() {
     }
     info("Found ${toReconcile.size()} Records to reconcile");
     // Reconcile newly created CALCR Records
-    if (s->isReconciling?.resolve() == false) {
+    // `!= true`, not `== false`: `isReconciling` is null until a reconcile has run at least
+    // once, and `null == false` is false — which silently skipped this reconcile on every
+    // update and left new records in neither side of the report.
+    if (s->isReconciling?.resolve() != true) {
         DataSource::reconcile(s, null, toReconcile);
     }
 
@@ -98,7 +101,10 @@ fn updateBDA() {
     }
     info("Found ${toReconcile.size()} Records to reconcile");
     // Reconcile newly created CALCR Records
-    if (s->isReconciling?.resolve() == false) {
+    // `!= true`, not `== false`: `isReconciling` is null until a reconcile has run at least
+    // once, and `null == false` is false — which silently skipped this reconcile on every
+    // update and left new records in neither side of the report.
+    if (s->isReconciling?.resolve() != true) {
         try {
             DataSource::reconcile(s, null, toReconcile);
         } catch (err) {
@@ -164,7 +170,10 @@ fn updateOSM() {
     }
     info("Found ${toReconcile.size()} Records to reconcile");
     // Reconcile newly created CALCR Records
-    if (s->isReconciling?.resolve() == false) {
+    // `!= true`, not `== false`: `isReconciling` is null until a reconcile has run at least
+    // once, and `null == false` is false — which silently skipped this reconcile on every
+    // update and left new records in neither side of the report.
+    if (s->isReconciling?.resolve() != true) {
         try {
             DataSource::reconcile(s, null, toReconcile);
         } catch (err) {

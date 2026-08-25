@@ -15,7 +15,6 @@ import './index.css';
 import './components/mengplaz-layout/mengplaz-layout';
 // initialize GreyCat SDK
 
-console.log(import.meta.env.VITE_ENV);
 
 await gc.sdk.init({ debug: import.meta.env.VITE_ENV === "dev" });
 

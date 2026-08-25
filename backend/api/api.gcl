@@ -383,8 +383,10 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     var pois = Array<node<POIRecordProvider>> {};
     var results = Array<POIRecordRef> {};
 
-    // Only the golden source is text-indexed. The other sources have no address index of
-    // their own, so they return no matches.
+    // Golden answers from its own index over the golden graph; every other source answers
+    // from the per-source index `SourceTextSearch` builds over its own records. Both are
+    // rebuild-only, so an unbuilt index warns and returns nothing rather than throwing —
+    // the reconcile page degrades to "No results" instead of erroring.
     if (srcName == GoldenSource::NAME) {
         var idx = GoldenTextSearch::ready();
         if (idx == null) {
@@ -395,6 +397,17 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
                 var nPoi = nGolden as node<POIRecordProvider>;
                 pois.add(nPoi);
                 results.add(POIRecordRef { ref: nPoi, record: nGolden->toMengplazRecord() });
+            }
+        }
+    } else {
+        var idx = SourceTextSearch::ready(srcName);
+        if (idx == null) {
+            warn("searchAddress: ${srcName} text index not built - run `greycat run buildSourceTextIndexes`");
+        } else {
+            var hits = SourceTextSearch::search(idx, addr, max);
+            for (_, nRecord in SourceTextSearch::resolve(nSource, idx, hits)) {
+                pois.add(nRecord);
+                results.add(POIRecordRef { ref: nRecord, record: nRecord->toMengplazRecord() });
             }
         }
     }

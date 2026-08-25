@@ -55,8 +55,9 @@ type GoldenTextSearch {
     /// The literal rather than `AddressIndex::create` — GCL rejects generic arguments on a
     /// static access, and the library documents this spelling as the typed-payload path.
     static fn reset() {
-        var lang = TextSearchLanguage::fr;
-        golden_address_index.set(AddressIndex::create(lang));
+        golden_address_index.set(AddressIndex<String> { index: TextIndex<AddressDoc> {
+            config: address_index_config(TextSearchLanguage::fr)
+        }, lang: TextSearchLanguage::fr });
     }
 
     /// The index if it has been built, `null` otherwise. Callers that can degrade
@@ -154,6 +155,7 @@ fn buildGoldenTextIndex(): int {
 }
 
 /// Index size and staleness, for the explorer and for checking a build landed.
+@permission("admin")
 @expose
 fn goldenTextIndexStats(): GoldenTextIndexStats {
     var idx = golden_address_index.resolve();

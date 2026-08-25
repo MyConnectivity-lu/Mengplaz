@@ -2,8 +2,10 @@
 //
 // Import order follows the dependency chain, parents first:
 //   sources -> CACLR -> BDA -> OSM -> golden -> traffic
-// Golden comes after the three sources so `linkedRecords` and quality events can be
-// re-attached to the source records they point at.
+// Golden comes after the three sources so `linkedRecords`, quality events and the `linked`
+// side of each source's reconciliation report can be re-attached to the records they point at.
+// The `unlinked` side holds match candidates that are not backed up; re-run a reconciliation
+// to rebuild it.
 //
 // The import requires an empty graph and refuses to run otherwise. Most steps skip records
 // already present under their business key, but BDA streets have no such key and would be
@@ -737,7 +739,9 @@ abstract type BackupImporter {
 
     static fn importGoldenPois(): int {
         var fr = JsonReader<BkGoldenPoiDTO> { path: BackupExporter::goldenPoiPath };
+        var reports = BackupImporter::reportsBySourceName();
         var count = 0;
+        var linkCount = 0;
         while (fr.can_read()) {
             var l = fr.read();
             if (golden_pois_by_id.get(l.uid) != null) {
@@ -774,6 +778,20 @@ abstract type BackupImporter {
                     entry.detailedScore = node<ReconciliationCandidateScore> { linkedRecord.detailedScore };
                 }
                 nPOI->linkedRecords.add(entry);
+
+                // `linkRecords`/`promoteRecord` mirror every link into the source's reconciliation
+                // report, so rebuild that side too: without it the "Linked" tab of a restored graph
+                // is empty even though the golden records hold the links.
+                var nReport = reports.get(linkedRecord.sourceName);
+                if (nReport == null) {
+                    warn("Restore: no reconciliation report for source ${linkedRecord.sourceName}, link ${linkedRecord.id} not reported");
+                    continue;
+                }
+                nReport->linked.set(nRecord, ReconciliationCandidate {
+                    candidateRecord: nPOI,
+                    detailedScore: entry.detailedScore
+                });
+                linkCount++;
             }
 
             for (_, event in l.quality?) {
@@ -791,7 +809,18 @@ abstract type BackupImporter {
             nPOI->indexing(nPOI);
             count++;
         }
+        info("Restore: reconciliation report links=${linkCount}");
         return count;
+    }
+
+    /// Reconciliation report node of every known source, keyed by source name, so the golden
+    /// import can re-attach links without resolving the source node for each record.
+    static fn reportsBySourceName(): Map<String, node<ReconciliationReport>> {
+        var reports = Map<String, node<ReconciliationReport>> {};
+        for (name, nSource in sources_by_name) {
+            reports.set(name, nSource->reconciliationReport);
+        }
+        return reports;
     }
 
     static fn findSourceRecord(sourceName: String, id: String): node<POIRecordProvider>? {
