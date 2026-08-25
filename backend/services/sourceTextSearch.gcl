@@ -14,8 +14,14 @@
 /// Each document carries the record's `getId()` as its `AddressDoc.payload`, which
 /// `resolve()` looks back up through the source's own `getIndex()`.
 ///
-/// STALENESS: rebuild-only, for the reason spelled out in `goldenTextSearch.gcl` —
-/// `AddressIndex::add()` returns no doc-id, so an indexed document cannot be retracted.
+/// STALENESS: edits are rebuild-only, for the reason spelled out in `goldenTextSearch.gcl`
+/// — `AddressIndex::add()` returns no doc-id, so an indexed document cannot be retracted.
+/// CREATION is the exception, exactly as on the golden side: a record the loaders have
+/// just created has no earlier document to layer over, so each loader hands its batch of
+/// new records to `appendAll()` and they are searchable without waiting for the next
+/// build. Unlike golden, where records are created one at a time from the reconciliation
+/// UI, the source loaders can produce a whole country in one run — see `appendAll` for
+/// why that batch is rebuilt rather than appended past a threshold.
 ///
 /// COST: one libpostal `parseStructured` per source record, so this needs
 /// `GREYCAT_POSTAL_DATA_DIR` pointing at the libpostal model directory, same as golden.
@@ -97,6 +103,73 @@ type SourceTextSearch {
         info(
             "sourceTextSearch[${sourceName}]: ${n} addresses added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
         );
+        return n;
+    }
+
+    /// Appends one newly-created source record to its own source's live index, so it is
+    /// searchable without waiting for the next `rebuild()`.
+    ///
+    /// Creation-only, by design — see the file header. Returns whether the document was
+    /// added; `false` means either that this source has no index yet (nothing to keep in
+    /// sync — the first `buildSourceTextIndex` reads the record straight out of
+    /// `getIndex()`) or that libpostal refused the line. A loader must not abort over a
+    /// record it cannot index, so a parse error is logged, not raised.
+    ///
+    /// COST: an append to a BUILT index walks every entry once inside the library. Fine per
+    /// record, quadratic in bulk — go through `appendAll`, which caps that.
+    static fn append(nRecord: node<POIRecordProvider>): bool {
+        var sourceName = nRecord->getSourceName();
+        var idx = source_address_indexes.get(sourceName)?.resolve();
+        if (idx == null) {
+            return false;
+        }
+        try {
+            idx.add(SourceTextSearch::rawAddress(nRecord), GoldenTextSearch::hints(), nRecord->getId());
+        } catch (ex) {
+            warn(
+                "sourceTextSearch[${sourceName}]: could not index new record ${nRecord->getId()}, it will be picked up by the next build (${ex})"
+            );
+            return false;
+        }
+        return true;
+    }
+
+    /// Above this many new records in one load, rebuilding the whole index costs less than
+    /// appending them one by one: an append to a built index is O(docs) inside the library,
+    /// so a batch is O(new * docs), while a rebuild is one libpostal parse per record.
+    static APPEND_LIMIT: int = 1000;
+
+    /// Puts one loader's batch of newly-created records into that source's index.
+    ///
+    /// This is the source-side entry point — loaders call it once per run rather than
+    /// appending inside their record loop, because the batch size is what decides between
+    /// the two strategies:
+    ///   - no index for this source yet -> nothing to do, the first build reads `getIndex()`
+    ///   - batch over `APPEND_LIMIT`    -> one `rebuild()` (a fresh full load lands here)
+    ///   - otherwise                    -> append each (the nightly delta lands here)
+    ///
+    /// Returns the number of records now in the index because of this call.
+    static fn appendAll(nSource: node<DataSource>, records: Array<node<POIRecordProvider>>): int {
+        if (records.size() == 0) {
+            return 0;
+        }
+        var sourceName = nSource->name();
+        if (source_address_indexes.get(sourceName)?.resolve() == null) {
+            return 0;
+        }
+        if (records.size() > SourceTextSearch::APPEND_LIMIT) {
+            info(
+                "sourceTextSearch[${sourceName}]: ${records.size()} new records exceeds the ${SourceTextSearch::APPEND_LIMIT} append limit, rebuilding instead"
+            );
+            return SourceTextSearch::rebuild(nSource);
+        }
+        var n = 0;
+        for (_, nRecord in records) {
+            if (SourceTextSearch::append(nRecord)) {
+                n++;
+            }
+        }
+        info("sourceTextSearch[${sourceName}]: appended ${n} new records");
         return n;
     }
 

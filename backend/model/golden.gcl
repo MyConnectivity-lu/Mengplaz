@@ -476,10 +476,12 @@ type GoldenPointOfInterest extends POIRecordProvider {
             golden_pois_by_geo.set(this.primaryLocation, self);
         }
 
-        // The golden text index is NOT updated here: it is rebuild-only (the postal
-        // AddressIndex exposes no doc-id, so a previous document cannot be retracted).
-        // An edit becomes searchable at the next buildGoldenTextIndex, which the nightly
-        // schedule runs. See the goldenTextSearch.gcl header.
+        // The golden text index is deliberately NOT updated here. `indexing()` also runs
+        // for every POI of a backup restore, and one post-build append costs O(docs), so
+        // appending from here would make a restore quadratic. A newly created POI is
+        // appended by `promoteToGolden` instead (GoldenTextSearch::append); an edit still
+        // becomes searchable at the next buildGoldenTextIndex, which the nightly schedule
+        // runs. See the goldenTextSearch.gcl header.
     }
 }
 

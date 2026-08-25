@@ -132,6 +132,9 @@ type BDAddress extends POIRecordProvider {
             }
         };
         nGoldenPOI->indexing(nGoldenPOI);
+        // Newly created, so there is no earlier document to retract: append it to the live
+        // text index instead of leaving it unsearchable until the nightly rebuild.
+        GoldenTextSearch::append(nGoldenPOI);
 
         return nGoldenPOI;
     }

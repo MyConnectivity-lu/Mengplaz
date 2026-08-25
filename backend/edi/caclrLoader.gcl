@@ -482,6 +482,8 @@ abstract type CACLRLoader {
 
         var count = 0;
         var errored = false;
+        // Records created by this run, handed to the text index in one batch at the end.
+        var newBuildings = Array<node<POIRecordProvider>> {};
         for (_, job in jobs) {
             var results = job.result();
             if (results is Error) {
@@ -489,10 +491,16 @@ abstract type CACLRLoader {
             } else {
                 for (_, nBuilding: node<CaclrBuilding> in results?) {
                     nBuilding->indexing(nBuilding);
+                    newBuildings.add(nBuilding);
                 }
             }
             count = count + (results?.size() ?? 0);
         }
+        var nSource = sources_by_name.get(CaclrSource::NAME);
+        if (nSource != null) {
+            SourceTextSearch::appendAll(nSource, newBuildings);
+        }
+
         info("${count} new Buildings added");
         return errored;
     }

@@ -37,6 +37,8 @@ abstract type OSMLoader {
             info("Collected ${elements.size()} addresses.");
 
             var issues = Map<String, int> {};
+            // Records created by this run, handed to the text index in one batch at the end.
+            var newAddresses = Array<node<POIRecordProvider>> {};
 
             for (_, elem in elements) {
                 try {
@@ -86,6 +88,7 @@ abstract type OSMLoader {
                             }
                         };
                         nAddr->indexing(nAddr);
+                        newAddresses.add(nAddr);
                         info(
                             "Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}"
                         );
@@ -105,6 +108,11 @@ abstract type OSMLoader {
                     warn("Could not parse: ${elem}\n${e}");
                 }
             }
+            var nSource = sources_by_name.get(OsmSource::NAME);
+            if (nSource != null) {
+                SourceTextSearch::appendAll(nSource, newAddresses);
+            }
+
             info("Parsed ${(osm_by_id).size()} addresses.");
             info("Parsed ${(osm_partial_by_id).size()} partial addresses.");
             // info("Issues ${issues}.");

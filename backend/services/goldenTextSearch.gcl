@@ -15,12 +15,18 @@
 /// findPoisInStreet` chain in `GoldenSource`. That chain walks the golden graph by
 /// parsed parts; this one answers a whole raw string the way a client typed it.
 ///
-/// STALENESS: the index is REBUILD-ONLY. `AddressIndex::add()` returns no doc-id, so a
-/// previously indexed document cannot be retracted, which means a POI edited after a
-/// build cannot be re-indexed in place without layering a second document on top of the
-/// first. Rather than keep doc-id bookkeeping the library does not expose, writes are not
-/// indexed at all: an edit becomes visible at the next `buildGoldenTextIndex`, which the
-/// nightly schedule already runs.
+/// STALENESS: `AddressIndex::add()` returns no doc-id, so a previously indexed document
+/// cannot be retracted, which means a POI EDITED after a build cannot be re-indexed in
+/// place without layering a second document on top of the first. Rather than keep doc-id
+/// bookkeeping the library does not expose, edits are not indexed at all: an edit becomes
+/// visible at the next `buildGoldenTextIndex`, which the nightly schedule already runs.
+///
+/// CREATION is the exception, and the retraction limit does not apply to it: a brand-new
+/// POI has no earlier document to layer over. `promoteToGolden` calls `append()`, so a
+/// record created from the reconciliation UI is searchable straight away instead of
+/// waiting for the nightly build. That path is single-record only — bulk paths (loaders,
+/// backup restore) still reset and `rebuild()`, because one post-build append costs
+/// O(docs) inside the library.
 ///
 /// COST: `rebuild()` runs one libpostal `parseStructured` per golden POI, so it needs
 /// `GREYCAT_POSTAL_DATA_DIR` pointing at the libpostal model directory. Without it the
@@ -105,6 +111,39 @@ type GoldenTextSearch {
             "goldenTextSearch: ${n} addresses added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
         );
         return n;
+    }
+
+    /// Appends one newly-created golden POI to the live index, so it is searchable without
+    /// waiting for the next `rebuild()`.
+    ///
+    /// Creation-only, by design — see the file header: a new POI has no earlier document
+    /// to retract, whereas an edit would leave the stale one behind. The library supports
+    /// adding after `build()` (it refreshes IDF and drops the trigram/trie/phonetic
+    /// accelerators, which then fall back to a scan), so the document is immediately
+    /// reachable by every engine; the nightly `rebuild()` restores exact IDF and the
+    /// accelerators.
+    ///
+    /// COST: an append to a BUILT index walks every entry once to rebuild the doc-length
+    /// scratch. Fine per record, quadratic in bulk — never call this in a loop over a
+    /// whole source, use `rebuild()`.
+    ///
+    /// Returns whether the document was added. Two ways it is not, both non-fatal:
+    /// the index has never been created (nothing to keep in sync — `rebuild()` will pick
+    /// the POI up from `golden_pois_by_id`), or libpostal refused the line. A record must
+    /// still be created when its indexing fails, so the parse error is logged, not raised;
+    /// the POI then becomes searchable at the next nightly build, as edits already do.
+    static fn append(nPoi: node<GoldenPointOfInterest>): bool {
+        var idx = golden_address_index.resolve();
+        if (idx == null) {
+            return false;
+        }
+        try {
+            idx.add(GoldenTextSearch::rawAddress(nPoi), GoldenTextSearch::hints(), nPoi->uid);
+        } catch (ex) {
+            warn("goldenTextSearch: could not index new POI ${nPoi->uid}, it will be picked up by the next build (${ex})");
+            return false;
+        }
+        return true;
     }
 
     /// One query.

@@ -21,6 +21,8 @@ type BDAddressLine {
 abstract type BDAddressLoader {
     static fn load() {
         var total = 0;
+        // Records created by this run, handed to the text index in one batch at the end.
+        var newAddresses = Array<node<POIRecordProvider>> {};
         var httpClient = Http<Array<BDAddressLine>> {};
         var httpRequest = HttpRequest {
             url: "https://data.public.lu/fr/datasets/r/5cadc5b8-6a7d-4283-87bc-f9e58dd771f7",
@@ -94,6 +96,7 @@ abstract type BDAddressLoader {
                 };
                 nAddress = node<BDAddress> { address };
                 nAddress->indexing(nAddress);
+                newAddresses.add(nAddress);
                 info("Created new address: ${record.numero} ${record.rue}, ${record.code_postal} ${record.localite}");
             }
             nAddress->lastSeenAt = time::now();
@@ -101,6 +104,11 @@ abstract type BDAddressLoader {
             total++;
         }
         File::delete(path);
+
+        var nSource = sources_by_name.get(BDAddressSource::NAME);
+        if (nSource != null) {
+            SourceTextSearch::appendAll(nSource, newAddresses);
+        }
 
         info("Processed ${total} records.");
     }
