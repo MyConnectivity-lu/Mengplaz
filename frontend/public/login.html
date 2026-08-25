@@ -419,7 +419,7 @@
   // detect prefix
   let prefix = ".";
   for (let i = 0; i < 4; i++) {
-    const response = await fetch(`${prefix}/runtime::User::me`, { method: 'POST' });
+    const response = await fetch(`${prefix}/runtime::Identity::current_id`, { method: 'POST' });
     if (response.status === 401) {
       break;
     }
@@ -430,7 +430,7 @@
     const password = await window.greycat_desktop_password();
     try {
       const credentials = btoa(`root:${sha256hex(password)}`);
-      const res = await fetch(`${prefix}/runtime::User::login`, {
+      const res = await fetch(`${prefix}/runtime::Identity::login`, {
         method: 'POST',
         body: JSON.stringify([credentials, true])
       });
@@ -450,9 +450,9 @@
   async function auth() {
     try {
       const credentials = btoa(`${usernameEl.value}:${sha256hex(passwordEl.value)}`);
-      const res = await fetch(`${prefix}/runtime::User::login`, {
+      const res = await fetch(`${prefix}/runtime::Identity::login`, {
         method: 'POST',
-        body: JSON.stringify([credentials, true])
+        body: JSON.stringify([usernameEl.value, sha256hex(passwordEl.value)])
       });
       if (res.ok) {
         const url = new URL(window.location.href.toString());
@@ -471,12 +471,12 @@
     const oid_params = new URLSearchParams(window.location.hash.replace('#', '?'));
     const token = oid_params.get('id_token');
     if (token) {
-      const response = await fetch(`${prefix}/runtime::User::tokenLogin`, {
+      const response = await fetch(`${prefix}/runtime::Identity::tokenLogin`, {
         method: 'POST',
         body: JSON.stringify([token, true])
       });
       if (response.ok) {
-        const res = await fetch(`${prefix}/runtime::User::permissions`, { method: 'POST' });
+        const res = await fetch(`${prefix}/runtime::Identity::permissions`, { method: 'POST' });
         const permissions = await res.json();
         if (!permissions.includes('web')) {
           missingWebPerm();
@@ -521,7 +521,7 @@
   }
 
   async function signout() {
-    await fetch(`${prefix}/runtime::User::logout`, { method: 'POST' });
+    await fetch(`${prefix}/runtime::Identity::logout`, { method: 'POST' });
     window.location.reload();
   }
 

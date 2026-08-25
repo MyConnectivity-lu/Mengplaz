@@ -89,7 +89,6 @@ abstract type BackupImporter {
         found = BackupImporter::appendIfFilled(found, "golden_streets_by_id", golden_streets_by_id.size());
         found = BackupImporter::appendIfFilled(found, "golden_pois_by_id", golden_pois_by_id.size());
 
-        found = BackupImporter::appendIfFilled(found, "endpoints_by_name", endpoints_by_name.size());
 
         if (found != "") {
             throw "Restore refused: the graph is not empty (${found}). Stop the server, remove the gcdata directory, run 'greycat build', then restore again.";
