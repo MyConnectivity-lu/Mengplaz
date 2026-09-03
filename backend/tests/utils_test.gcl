@@ -1,0 +1,84 @@
+/// `extractAlphaCharsFromStreetNumber` — the split every source record goes through before
+/// its house number can be compared to a golden one.
+///
+/// It runs on the promote path (where it decides the stored `number`/`multipleCode` of a
+/// new golden POI) and inside every `toSearchItem()`, so a change here silently moves
+/// number scores across the whole reconciliation. The uppercase-only alphabet and the
+/// hyphen handling are the two behaviours worth pinning.
+
+@test
+fn plainNumberHasNoAlphaPart() {
+    var r = extractAlphaCharsFromStreetNumber("12");
+    Assert::equals(r.numerical, 12);
+    Assert::equals(r.alpha, "");
+}
+
+@test
+fn zeroIsAValidNumber() {
+    // Guards the `idx != -1 && idx != int::max` sentinel dance: a falsy-looking 0 must not
+    // be confused with "no number found".
+    var r = extractAlphaCharsFromStreetNumber("0");
+    Assert::equals(r.numerical, 0);
+    Assert::equals(r.alpha, "");
+}
+
+@test
+fn trailingLetterBecomesTheMultipleCode() {
+    var r = extractAlphaCharsFromStreetNumber("12A");
+    Assert::equals(r.numerical, 12);
+    Assert::equals(r.alpha, "A");
+}
+
+@test
+fn hyphenatedNumberKeepsTheHyphenInTheAlphaPart() {
+    // "7-8" is CACLR's spelling for the second half of a split building; the doc comment on
+    // the function calls this out as its reason for existing.
+    var r = extractAlphaCharsFromStreetNumber("7-8");
+    Assert::equals(r.numerical, 7);
+    Assert::equals(r.alpha, "-8");
+}
+
+@test
+fn letterBeforeHyphenWinsOverTheHyphen() {
+    // The letter scan runs first, so everything from the letter onwards is the alpha part —
+    // the hyphen never gets its own turn.
+    var r = extractAlphaCharsFromStreetNumber("1B-3");
+    Assert::equals(r.numerical, 1);
+    Assert::equals(r.alpha, "B-3");
+}
+
+@test
+fn nonNumericNumberIsRejected() {
+    var threw = false;
+    try {
+        extractAlphaCharsFromStreetNumber("ABC");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+@test
+fn emptyNumberIsRejected() {
+    var threw = false;
+    try {
+        extractAlphaCharsFromStreetNumber("");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+@test
+fn lowercaseSuffixIsRejected() {
+    // The alphabet in the function is uppercase-only, so "12 bis" reaches `parseNumber` whole
+    // and fails. Callers on the search path swallow this in a try/catch and fall back to the
+    // raw string; the promote path does not, and lets it surface.
+    var threw = false;
+    try {
+        extractAlphaCharsFromStreetNumber("12 bis");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}

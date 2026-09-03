@@ -1,0 +1,499 @@
+/// The linking write paths: `linkRecords`, `unlinkRecord`, and the two batch endpoints
+/// (`linkAllFullMatched`, `batchLinkByScore`), plus `mergePositionsToGolden`.
+///
+/// Linking is how a source record corroborates an existing golden POI, and it writes to five
+/// places at once: the source record's `goldenRef`, the golden POI's `linkedRecords`, the
+/// golden POI's quality series, and both buckets of the source's reconciliation report. A
+/// path that updates four of the five leaves the UI showing a record in the wrong tab, or the
+/// quality score stuck at its old value, so each is asserted.
+///
+/// The score a link is recorded at has two provenances, and they do not agree: a link made
+/// from a reconciliation candidate reuses the score the search computed, while a link made
+/// from a free-text search has no candidate and recomputes one from scratch. The recomputed
+/// path is not identical to the search path — see `linkingWithoutACandidateScoresGeoAsZero`.
+
+fn here(): geo {
+    return geo { 49.6116, 6.1319 };
+}
+
+/// One golden POI at `here()` on "Rue de la Gare", Gasperich, 1234.
+fn seedGolden(): node<GoldenPointOfInterest> {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    return fixtures_test::goldenPoi(nStreet, 12, "", "1234", here());
+}
+
+// ----------------------------------------------------------- linkRecords
+
+@test
+fn linkingFromACandidateReusesTheScoreTheSearchComputed() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nSource = fixtures_test::osmSource();
+    fixtures_test::reportCandidate(nSource, nOsm, nGolden, 0.92, MengplazMissmatch::POSTCODE_MISMATCH);
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::equals(nGolden->linkedRecords.size(), 1);
+    var entry = nGolden->linkedRecords[0];
+    Assert::equals(entry.record, nOsm as node<POIRecordProvider>);
+    Assert::equalsd(entry.score, 0.92, 0.0001);
+    Assert::equalsd(entry.detailedScore?.resolve()!!.overallScore, 0.92, 0.0001);
+}
+
+@test
+fn linkingWritesBothSidesOfTheRelation() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    fixtures_test::reportCandidate(fixtures_test::osmSource(), nOsm, nGolden, 1.0, null);
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::equals(nOsm->getLinkedGolden(), nGolden);
+    Assert::equals(nGolden->linkedRecords[0].record, nOsm as node<POIRecordProvider>);
+}
+
+@test
+fn linkingMovesTheRecordFromUnlinkedToLinkedInTheReport() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nSource = fixtures_test::osmSource();
+    fixtures_test::reportCandidate(nSource, nOsm, nGolden, 1.0, null);
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::isNull(nSource->reconciliationReport->unlinked.get(nOsm));
+    var linked = nSource->reconciliationReport->linked.get(nOsm);
+    Assert::isNotNull(linked);
+    Assert::equals(linked!!.candidateRecord, nGolden as node<POIRecordProvider>);
+}
+
+@test
+fn linkingStampsALinkQualityEvent() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    fixtures_test::reportCandidate(fixtures_test::osmSource(), nOsm, nGolden, 1.0, null);
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::equals(nGolden->quality.size(), 1);
+    var event = nGolden->quality.last()!!;
+    Assert::equals(event.eventType, QualityEventType::link);
+    Assert::equals(event.sourceRecord, nOsm as node<POIRecordProvider>);
+    // OSM alone: 2 of the 10 registered weight, matched at 1.0.
+    Assert::equalsd(event.score, 0.2, 0.0001);
+}
+
+@test
+fn linkingWithoutACandidateRecomputesTheScore() {
+    // The reconcile UI can link a record to a golden POI it found by free-text search, which
+    // never went through reconciliation — so there is no candidate to copy a score from.
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nSource = fixtures_test::osmSource();
+    Assert::isNull(nSource->reconciliationReport->unlinked.get(nOsm));
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::equals(nGolden->linkedRecords.size(), 1);
+    var score = nGolden->linkedRecords[0].detailedScore?.resolve()!!;
+    Assert::equals(score.cityScore, 1.0);
+    Assert::equals(score.streetScore, 1.0);
+    Assert::equals(score.numberScore, 1.0);
+    Assert::equals(score.postcodeScore, 1.0);
+    Assert::equals(score.overallScore, 1.0);
+}
+
+@test
+fn linkingWithoutACandidateScoresGeoAsZero() {
+    // Deliberate pin of a discrepancy between the two link paths. The recompute in
+    // `linkRecords` coalesces a null geo score to 0.0, whereas the search path leaves it null
+    // and `computeOverallScore` then treats it as a neutral 1.0. So linking a coordinate-less
+    // golden POI by hand records a materially lower score (11/14 = 0.79) than reconciling the
+    // same pair would (1.0), and the record's quality is dragged down accordingly.
+    //
+    // The tolerance is 0.01, not an epsilon: `ReconciliationCandidateScore` fields carry
+    // `@precision(0.01)`, so what comes back out of the graph is quantised to two decimals.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+
+    // Reconciliation calls this pair a perfect match.
+    Assert::equals(GoldenServices::searchItem(nOsm, SearchParameters::default()).candidates[0].realOverallScore, 1.0);
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    var score = nGolden->linkedRecords[0].detailedScore?.resolve()!!;
+    Assert::equals(score.geoScore, 0.0);
+    Assert::equalsd(score.overallScore, 11.0 / 14.0, 0.01);
+}
+
+@test
+fn linkingIsIdempotentOnTheGoldenSide() {
+    // Re-linking an already-linked pair must not duplicate the entry — a duplicate would be
+    // averaged into the source's quality contribution twice.
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::equals(nGolden->linkedRecords.size(), 1);
+    Assert::equals(nGolden->quality.size(), 1);
+}
+
+@test
+fn twoSourcesCanCorroborateTheSameGoldenPoi() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+    );
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+    privateApi::linkRecords(nBda, nGolden, null);
+
+    Assert::equals(nGolden->linkedRecords.size(), 2);
+    // OSM 2 + BDA 3 of a 10 total, both perfect.
+    Assert::equalsd(nGolden->quality.last()!!.score, 0.5, 0.0001);
+}
+
+@test
+fn aliasesAreOnlyAddedWhenTheCallerAsksForThem() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Gare-Strooss", "Gaasperech", "1234", here());
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+    Assert::equals(nGolden->street!!->nameAliases.size(), 0);
+    Assert::equals(nGolden->street->city->nameAliases.size(), 0);
+}
+
+@test
+fn aliasParametersRecordTheSourceSpellings() {
+    // This is how the golden graph learns the Luxembourgish spelling of a street or locality:
+    // an operator confirms the link and ticks the alias boxes.
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Gare-Strooss", "Gaasperech", "1234", here());
+
+    privateApi::linkRecords(nOsm, nGolden, LinkParameters { addCityAlias: true, addStreetAlias: true });
+
+    Assert::equals(nGolden->street!!->nameAliases.size(), 1);
+    Assert::equals(nGolden->street->nameAliases[0].value, "Gare-Strooss");
+    Assert::equals(nGolden->street->city->nameAliases.size(), 1);
+    Assert::equals(nGolden->street->city->nameAliases[0].value, "Gaasperech");
+
+    // And the alias immediately widens the search: the alias spelling now scores 1.0.
+    Assert::equals(GoldenServices::computeCityScore("gaasperech", nGolden->street->city), 1.0);
+}
+
+@test
+fn clearingSimilarStreetMismatchesFixesTheWholeStreetAtOnce() {
+    // An operator who confirms that "Rue de la Gara" is really "Rue de la Gare" should not
+    // have to confirm it again for every house number on that street. This flag rewrites the
+    // remaining unlinked entries on the same street pair to a single, mismatch-free candidate.
+    var nGolden = seedGolden();
+    var nStreet = nGolden->street!!;
+    var nOther = fixtures_test::goldenPoi(nStreet, 14, "", "1234", geo { 49.6117, 6.1319 });
+
+    var nSource = fixtures_test::osmSource();
+    var nOsmA = fixtures_test::osmAddress(1, "12", "Rue de la Gara", "Gasperich", "1234", here());
+    var nOsmB = fixtures_test::osmAddress(2, "14", "Rue de la Gara", "Gasperich", "1234", here());
+    fixtures_test::reportCandidate(nSource, nOsmA, nGolden, 0.9, MengplazMissmatch::STREET_MISMATCH);
+    fixtures_test::reportCandidate(nSource, nOsmB, nOther, 0.9, MengplazMissmatch::STREET_MISMATCH);
+
+    privateApi::linkRecords(nOsmA, nGolden, LinkParameters {
+        addCityAlias: false,
+        addStreetAlias: false,
+        updateSimilarStreetMismatch: true,
+    });
+
+    var remaining = nSource->reconciliationReport->unlinked.get(nOsmB);
+    Assert::isNotNull(remaining);
+    Assert::equals(remaining!!.size(), 1);
+    Assert::isNull(remaining[0].mismatch);
+    Assert::equals(remaining[0].candidateRecord, nOther as node<POIRecordProvider>);
+}
+
+// ---------------------------------------------------------- unlinkRecord
+
+@test
+fn unlinkingReversesEverySideOfTheLink() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nSource = fixtures_test::osmSource();
+    fixtures_test::reportCandidate(nSource, nOsm, nGolden, 1.0, null);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    privateApi::unlinkRecord(nOsm);
+
+    Assert::isNull(nOsm->getLinkedGolden());
+    Assert::equals(nGolden->linkedRecords.size(), 0);
+    Assert::isNull(nSource->reconciliationReport->linked.get(nOsm));
+}
+
+@test
+fn unlinkingStampsAnUnlinkQualityEventAtTheRecomputedScore() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    privateApi::unlinkRecord(nOsm);
+
+    Assert::equals(nGolden->quality.size(), 2);
+    var event = nGolden->quality.last()!!;
+    Assert::equals(event.eventType, QualityEventType::unlink);
+    // No corroborating source left.
+    Assert::equals(event.score, 0.0);
+}
+
+@test
+fn unlinkingOnlyRemovesTheRecordItWasGiven() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+    );
+    privateApi::linkRecords(nOsm, nGolden, null);
+    privateApi::linkRecords(nBda, nGolden, null);
+
+    privateApi::unlinkRecord(nOsm);
+
+    Assert::equals(nGolden->linkedRecords.size(), 1);
+    Assert::equals(nGolden->linkedRecords[0].record, nBda as node<POIRecordProvider>);
+    // BDA alone: 3 of 10.
+    Assert::equalsd(nGolden->quality.last()!!.score, 0.3, 0.0001);
+}
+
+@test
+fn unlinkingARecordThatWasNeverLinkedIsANoOp() {
+    seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+
+    privateApi::unlinkRecord(nOsm);
+
+    Assert::isNull(nOsm->getLinkedGolden());
+}
+
+@test
+fn unlinkingDoesNotPutTheRecordBackInTheUnlinkedBucket() {
+    // Pins current behaviour, flagged as a TODO in `unlinkRecord`: an unlinked record vanishes
+    // from both report buckets and only reappears after a fresh reconcile. The reconcile page
+    // shows it under no tab until then.
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nSource = fixtures_test::osmSource();
+    fixtures_test::reportCandidate(nSource, nOsm, nGolden, 1.0, null);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    privateApi::unlinkRecord(nOsm);
+
+    Assert::isNull(nSource->reconciliationReport->linked.get(nOsm));
+    Assert::isNull(nSource->reconciliationReport->unlinked.get(nOsm));
+}
+
+// ------------------------------------------------------ linkAllFullMatched
+
+@test
+fn linkAllFullMatchedOnlyLinksUnambiguousRecords() {
+    // The "link everything that matched perfectly" button. A record with two candidates is
+    // ambiguous by definition and must be left for an operator.
+    var nGolden = seedGolden();
+    var nOther = fixtures_test::goldenPoi(nGolden->street!!, 14, "", "1234", geo { 49.6117, 6.1319 });
+    var nSource = fixtures_test::osmSource();
+
+    var nSingle = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nAmbiguous = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", here());
+    var nAbsent = fixtures_test::osmAddress(3, "16", "Rue de la Gare", "Gasperich", "1234", here());
+
+    fixtures_test::reportCandidate(nSource, nSingle, nGolden, 1.0, null);
+    fixtures_test::reportCandidate(nSource, nAmbiguous, nGolden, 1.0, null);
+    fixtures_test::reportCandidate(nSource, nAmbiguous, nOther, 1.0, MengplazMissmatch::MULTIPLE_MATCHES);
+
+    privateApi::linkAllFullMatched(nSource, Array<String> { "1", "2", "3", "no-such-id" });
+
+    Assert::equals(nSingle->getLinkedGolden(), nGolden);
+    Assert::isNull(nAmbiguous->getLinkedGolden());
+    Assert::isNull(nAbsent->getLinkedGolden());
+}
+
+// -------------------------------------------------------- batchLinkByScore
+
+@test
+fn batchLinkRefusesAThresholdBelowEighty() {
+    // A hard floor in the endpoint: bulk-linking below 80% would silently write bad links
+    // across a whole source.
+    var nGolden = seedGolden();
+    var nSource = fixtures_test::osmSource();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    fixtures_test::reportCandidate(nSource, nOsm, nGolden, 0.99, null);
+
+    var threw = false;
+    try {
+        privateApi::batchLinkByScore(nSource, 50.0, null, null, null, null, null);
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+    Assert::isNull(nOsm->getLinkedGolden());
+}
+
+@test
+fn batchLinkAppliesTheGlobalScoreThreshold() {
+    var nGolden = seedGolden();
+    var nSource = fixtures_test::osmSource();
+    var nStrong = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nWeak = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", here());
+    fixtures_test::reportCandidate(nSource, nStrong, nGolden, 0.95, null);
+    fixtures_test::reportCandidate(nSource, nWeak, nGolden, 0.85, null);
+
+    // Scores are given on a 0-100 scale at the endpoint boundary.
+    var linked = privateApi::batchLinkByScore(nSource, 90.0, null, null, null, null, null);
+
+    Assert::equals(linked, 1);
+    Assert::equals(nStrong->getLinkedGolden(), nGolden);
+    Assert::isNull(nWeak->getLinkedGolden());
+}
+
+@test
+fn batchLinkAppliesPerFieldConstraintsOnTopOfTheGlobalScore() {
+    // A record can clear the overall bar on the strength of its other fields while its street
+    // score is poor; the per-field floors are what let an operator exclude exactly that.
+    var nGolden = seedGolden();
+    var nSource = fixtures_test::osmSource();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+
+    var candidates = Array<ReconciliationCandidate> {
+        ReconciliationCandidate {
+            candidateRecord: nGolden,
+            score: ReconciliationCandidateScore {
+                cityScore: 1.0,
+                streetScore: 0.6,
+                numberScore: 1.0,
+                postcodeScore: 1.0,
+                geoScore: 1.0,
+                overallScore: 0.95,
+            },
+        }
+    };
+    nSource->reconciliationReport->unlinked.set(nOsm, candidates);
+
+    Assert::equals(privateApi::batchLinkByScore(nSource, 90.0, null, null, 80.0, null, null), 0);
+    Assert::isNull(nOsm->getLinkedGolden());
+
+    Assert::equals(privateApi::batchLinkByScore(nSource, 90.0, null, null, 50.0, null, null), 1);
+    Assert::equals(nOsm->getLinkedGolden(), nGolden);
+}
+
+@test
+fn batchLinkSkipsACandidateMissingTheConstrainedField() {
+    // `geoScore` is nullable — a candidate with no geo term must fail a geo floor rather than
+    // be treated as a perfect geo match.
+    var nGolden = seedGolden();
+    var nSource = fixtures_test::osmSource();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+
+    var candidates = Array<ReconciliationCandidate> {
+        ReconciliationCandidate {
+            candidateRecord: nGolden,
+            score: ReconciliationCandidateScore {
+                cityScore: 1.0,
+                streetScore: 1.0,
+                numberScore: 1.0,
+                postcodeScore: 1.0,
+                overallScore: 0.99,
+            },
+        }
+    };
+    nSource->reconciliationReport->unlinked.set(nOsm, candidates);
+
+    Assert::equals(privateApi::batchLinkByScore(nSource, 90.0, 50.0, null, null, null, null), 0);
+    Assert::equals(privateApi::batchLinkByScore(nSource, 90.0, null, null, null, null, null), 1);
+}
+
+// -------------------------------------------------- mergePositionsToGolden
+
+@test
+fn mergingPositionsFillsAMissingPrimaryLocation() {
+    // A CACLR-derived golden POI often has no coordinates; the first linked source that does
+    // becomes its primary location, and that also puts it into `golden_pois_by_geo`.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1" });
+
+    Assert::equals(nGolden->primaryLocation, here());
+    Assert::equals(golden_pois_by_geo.get(here()), nGolden);
+    Assert::equals(nGolden->secondaryLocations.size(), 0);
+    // Only one linked source, so no geo rescore is queued.
+    Assert::equals(golden_records_geo_recompute.size(), 0);
+}
+
+@test
+fn mergingPositionsKeepsAnExistingPrimaryAndStoresTheRestAsSecondary() {
+    var nGolden = seedGolden();
+    var elsewhere = geo { 49.6117, 6.1319 };
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", elsewhere);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1" });
+
+    Assert::equals(nGolden->primaryLocation, here());
+    Assert::equals(nGolden->secondaryLocations.get(OsmSource::NAME), elsewhere);
+}
+
+@test
+fn adoptingAPositionQueuesAGeoRescoreWhenOtherSourcesAreLinked() {
+    // Once a golden POI acquires coordinates, every score already recorded against it was
+    // computed with a null geo term. `golden_records_geo_recompute` is the queue
+    // `recomputeGoldenGeoScore` drains to fix them.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+    );
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    privateApi::linkRecords(nBda, nGolden, null);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1" });
+
+    Assert::equals(nGolden->primaryLocation, here());
+    Assert::equals(golden_records_geo_recompute.size(), 1);
+
+    recomputeGoldenGeoScore();
+
+    Assert::equals(golden_records_geo_recompute.size(), 0);
+    // Both links were recorded with geoScore 0.0 by the recompute-free link path; now that the
+    // golden POI has coordinates that match, they are corrected to 1.0.
+    for (_, entry in nGolden->linkedRecords) {
+        Assert::equals(entry.detailedScore?.resolve()!!.geoScore, 1.0);
+        Assert::equals(entry.detailedScore?.resolve()!!.overallScore, 1.0);
+    }
+    Assert::equalsd(nGolden->quality.last()!!.score, 0.5, 0.0001);
+}
+
+@test
+fn mergingPositionsIgnoresUnlinkedAndUnknownRecords() {
+    var nGolden = seedGolden();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+
+    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1", "no-such-id" });
+
+    Assert::equals(nGolden->primaryLocation, here());
+    Assert::equals(nGolden->secondaryLocations.size(), 0);
+    Assert::isNull(nOsm->getLinkedGolden());
+}

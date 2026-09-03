@@ -1,0 +1,152 @@
+/// `GoldenServices::computeQuality` and the global quality roll-up.
+///
+/// Quality is the number the public API serves as the headline measure of the golden
+/// database, and `docs/golden-record-quality.md` documents the formula to end users:
+///
+///     quality = Σ(sourceWeight × avgMatchScore(source)) / Σ(weight of every registered source)
+///
+/// Two properties make it easy to get wrong and are pinned separately below: the
+/// denominator counts every *registered* source, not every *linked* one — so a record
+/// corroborated by one source out of three is capped well below 1.0 by design — and several
+/// records from the same source are averaged before weighting, so a source cannot buy
+/// influence by contributing more rows.
+
+@test
+fn qualityIsZeroWithoutLinkedRecords() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    Assert::equals(GoldenServices::computeQuality(Array<LinkedRecordEntry> {}), 0.0);
+}
+
+@test
+fn qualityIsZeroWhenNoSourceIsRegistered() {
+    // Guards the division: with an empty `sources_by_name` the total weight is 0.
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    OsmSource::init();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    var entries = Array<LinkedRecordEntry> { fixtures_test::linkedEntry(nOsm, 1.0) };
+    // Only OSM is registered, so the denominator is OSM's own weight.
+    Assert::equals(GoldenServices::computeQuality(entries), 1.0);
+}
+
+@test
+fn oneSourceOutOfThreeCannotReachFullQuality() {
+    // The headline property: a perfect OSM match on its own is 2/10, because CACLR (5) and
+    // BDA (3) have not corroborated the record.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    var entries = Array<LinkedRecordEntry> { fixtures_test::linkedEntry(nOsm, 1.0) };
+    Assert::equalsd(GoldenServices::computeQuality(entries), 0.2, 0.0001);
+}
+
+@test
+fn qualityWeightsEachSourceByItsTrust() {
+    // OSM 2 + BDA 3 out of a 10 total, both matching perfectly.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo { 49.6116, 6.1319 }
+    );
+
+    var entries = Array<LinkedRecordEntry> {
+        fixtures_test::linkedEntry(nOsm, 1.0),
+        fixtures_test::linkedEntry(nBda, 1.0),
+    };
+    Assert::equalsd(GoldenServices::computeQuality(entries), 0.5, 0.0001);
+}
+
+@test
+fn qualityScalesWithTheMatchScore() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo { 49.6116, 6.1319 }
+    );
+
+    // BDA weight 3 of 10, matched at 0.5 → 0.15.
+    var entries = Array<LinkedRecordEntry> { fixtures_test::linkedEntry(nBda, 0.5) };
+    Assert::equalsd(GoldenServices::computeQuality(entries), 0.15, 0.0001);
+}
+
+@test
+fn severalRecordsFromOneSourceAreAveragedNotSummed() {
+    // Without the averaging, two OSM rows on one golden POI would count twice OSM's weight —
+    // a source could then outvote its own trust level just by holding duplicates.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nA = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    var nB = fixtures_test::osmAddress(2, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+
+    var entries = Array<LinkedRecordEntry> {
+        fixtures_test::linkedEntry(nA, 1.0),
+        fixtures_test::linkedEntry(nB, 0.6),
+    };
+    // avg 0.8, weight 2 of 10.
+    Assert::equalsd(GoldenServices::computeQuality(entries), 0.16, 0.0001);
+}
+
+@test
+fn entriesWithoutADetailedScoreAreIgnored() {
+    // `detailedScore` is only populated on the link paths; an entry restored from an older
+    // backup can lack one, and must be skipped rather than counted as zero — counting it as
+    // zero would drag the source's average down.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nA = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    var nB = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+
+    var entries = Array<LinkedRecordEntry> {
+        fixtures_test::linkedEntry(nA, 1.0),
+        LinkedRecordEntry { record: nB, score: 0.0 },
+    };
+    // Same as the single-entry case: the scoreless entry contributes nothing at all.
+    Assert::equalsd(GoldenServices::computeQuality(entries), 0.2, 0.0001);
+}
+
+@test
+fn globalQualityAveragesEveryGoldenPoiAndIsRecorded() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nCorroborated = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    fixtures_test::goldenPoi(nStreet, 14, "", "1234", null);
+
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    nCorroborated->linkedRecords.add(fixtures_test::linkedEntry(nOsm, 1.0));
+
+    GoldenServices::computeAndRecordGlobalQuality();
+
+    // One POI at 0.2, one at 0.0, over two POIs.
+    var source = *sources_by_name.get(GoldenSource::NAME) as GoldenSource;
+    Assert::equalsd(source.qualityHistory.last()!!, 0.1, 0.0001);
+    Assert::equals(source.qualityHistory.size(), 1);
+}
+
+@test
+fn globalQualityIsZeroOnAnEmptyGoldenDatabase() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    GoldenServices::computeAndRecordGlobalQuality();
+
+    var source = *sources_by_name.get(GoldenSource::NAME) as GoldenSource;
+    Assert::equals(source.qualityHistory.last(), 0.0);
+}
+
+@test
+fn globalQualityIsSkippedWhenTheGoldenSourceIsMissing() {
+    // `bootstrap` registers the golden source before anything else; if a restore has not run
+    // it yet the roll-up must be a no-op rather than a crash in the nightly scheduler.
+    fixtures_test::reset();
+    OsmSource::init();
+    GoldenServices::computeAndRecordGlobalQuality();
+    Assert::isNull(sources_by_name.get(GoldenSource::NAME));
+}

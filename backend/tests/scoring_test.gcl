@@ -1,0 +1,352 @@
+/// The scoring primitives in `GoldenServices`.
+///
+/// These five functions decide every match in the system: reconciliation ranks candidates
+/// by them, `linkRecords` re-derives a score from them when a link comes from a free-text
+/// search rather than a report, and `computeQuality` averages their output into the number
+/// the public quality API serves. They are pure, so they are pinned here to exact values —
+/// `docs/reconciliation.md` documents the same numbers to end users, and this module is what
+/// keeps the two in step.
+
+/// Luxembourg-Ville, near the station. The offsets below are latitude-only, so the
+/// distances hold regardless of the longitude convergence factor.
+fn base(): geo {
+    return geo { 49.6116, 6.1319 };
+}
+
+/// ~100 m north of `base()`.
+fn near(): geo {
+    return geo { 49.6125, 6.1319 };
+}
+
+/// ~500 m north of `base()`.
+fn mid(): geo {
+    return geo { 49.6161, 6.1319 };
+}
+
+/// ~1000.75 m north of `base()` — just past the default 1000 m cut-off.
+fn far(): geo {
+    return geo { 49.6206, 6.1319 };
+}
+
+// ---------------------------------------------------------------- geo score
+
+@test
+fn geoScoreIsNullWhenEitherSideHasNoCoordinates() {
+    // Null is not zero: a missing coordinate must not be scored as a mismatch. Downstream,
+    // `computeOverallScore` turns this null into a neutral 1.0 rather than dragging the
+    // overall score down — see `overallScoreTreatsMissingGeoAsNeutral`.
+    var p = GeoParameters::default();
+    Assert::isNull(GoldenServices::computeGeoScore(null, base(), p));
+    Assert::isNull(GoldenServices::computeGeoScore(base(), null, p));
+    Assert::isNull(GoldenServices::computeGeoScore(null, null, p));
+}
+
+@test
+fn geoScoreIsOneAtOrBelowMinDistance() {
+    var p = GeoParameters::default();
+    Assert::equals(GoldenServices::computeGeoScore(base(), base(), p), 1.0);
+
+    // With a 200 m floor, anything inside it is a perfect geo match.
+    var lenient = GeoParameters { minDistance: 200, maxDistance: 1000 };
+    Assert::equals(GoldenServices::computeGeoScore(base(), near(), lenient), 1.0);
+}
+
+@test
+fn geoScoreIsZeroBeyondMaxDistance() {
+    Assert::equals(GoldenServices::computeGeoScore(base(), far(), GeoParameters::default()), 0.0);
+}
+
+@test
+fn geoScoreDecaysQuadraticallyBetweenTheBounds() {
+    // (1 - d/max)^2 — quadratic, not linear, so the score falls away fast once past the
+    // halfway point. At ~500 m of 1000 m that is 0.25, not 0.5.
+    var p = GeoParameters::default();
+    Assert::equalsd(GoldenServices::computeGeoScore(base(), mid(), p)!!, 0.25, 0.01);
+    Assert::equalsd(GoldenServices::computeGeoScore(base(), near(), p)!!, 0.81, 0.01);
+}
+
+@test
+fn geoScoreIsMonotonicInDistance() {
+    var p = GeoParameters::default();
+    var closer = GoldenServices::computeGeoScore(base(), near(), p)!!;
+    var further = GoldenServices::computeGeoScore(base(), mid(), p)!!;
+    Assert::isTrue(closer > further);
+}
+
+// ------------------------------------------------------------- number score
+
+@test
+fn numberScoreIsOneOnAnExactMatch() {
+    Assert::equals(GoldenServices::computeNumberScore("12", "", 12, ""), 1.0);
+    Assert::equals(GoldenServices::computeNumberScore("12", "A", 12, "A"), 1.0);
+}
+
+@test
+fn numberScoreIsPointEightWhenOnlyTheMultipleCodeDiffers() {
+    // 12A vs 12B is the same building split two ways in two registries, so it stays a
+    // candidate — but never a perfect match, which is what keeps it out of the
+    // `overallScore == 1.0` fast path in `searchPOIForItem`.
+    Assert::equals(GoldenServices::computeNumberScore("12", "A", 12, "B"), 0.8);
+    Assert::equals(GoldenServices::computeNumberScore("20", "", 20, "D"), 0.8);
+}
+
+@test
+fn numberScoreIsZeroWhenTheDigitsDiffer() {
+    // Zero here is a hard filter, not a weak score: `searchPOIForItem` skips the candidate
+    // outright. House numbers are never fuzzy-matched.
+    Assert::equals(GoldenServices::computeNumberScore("12", "", 13, ""), 0.0);
+    Assert::equals(GoldenServices::computeNumberScore("12", "A", 13, "A"), 0.0);
+}
+
+// ----------------------------------------------------------- postcode score
+
+@test
+fn postcodeScoreDecaysLinearlyWithNumericDistance() {
+    // Luxembourg postcodes are numerically close when geographically close, so the score is
+    // a linear ramp over the numeric gap rather than a string similarity.
+    Assert::equals(GoldenServices::computePostcodeScore("1234", "1234", 200), 1.0);
+    Assert::equalsd(GoldenServices::computePostcodeScore("1234", "1244", 200), 0.95, 0.0001);
+    Assert::equalsd(GoldenServices::computePostcodeScore("1234", "1334", 200), 0.5, 0.0001);
+}
+
+@test
+fn postcodeScoreIsZeroAtOrBeyondMaxDistance() {
+    Assert::equals(GoldenServices::computePostcodeScore("1234", "1434", 200), 0.0);
+    Assert::equals(GoldenServices::computePostcodeScore("1234", "9999", 200), 0.0);
+}
+
+@test
+fn postcodeScoreIsSymmetric() {
+    Assert::equals(
+        GoldenServices::computePostcodeScore("1234", "1244", 200),
+        GoldenServices::computePostcodeScore("1244", "1234", 200)
+    );
+}
+
+@test
+fn postcodeScoreFallsBackToStringSimilarityWhenNotNumeric() {
+    // Sources spell Luxembourg postcodes both as "1234" and "L-1234"; the prefixed form
+    // cannot be parsed, so the comparison degrades to Jaro-Winkler instead of throwing.
+    Assert::equals(GoldenServices::computePostcodeScore("L-1234", "L-1234", 200), 1.0);
+    Assert::isTrue(GoldenServices::computePostcodeScore("L-1234", "L-9999", 200) < 1.0);
+}
+
+// ------------------------------------------------- street and city name score
+
+@test
+fn streetScoreIsCaseInsensitiveOnTheCandidateSide() {
+    // Callers pass an already-lowercased source name (`toSearchItem` lowercases), and the
+    // candidate is lowercased inside the function — the golden graph stores display casing.
+    Assert::equals(GoldenServices::computeStreetScore("rue de la gare", "Rue de la Gare"), 1.0);
+    Assert::equals(GoldenServices::computeCityNameScore("luxembourg", "Luxembourg"), 1.0);
+}
+
+@test
+fn streetScoreToleratesSmallTypos() {
+    var s = GoldenServices::computeStreetScore("rue de la gara", "Rue de la Gare");
+    Assert::isTrue(s > SearchParameters::default().streetSimilarityThreshold);
+    Assert::isTrue(s < 1.0);
+}
+
+@test
+fn globalStreetScoreIsLengthNormalisedEditDistance() {
+    // The global variant swaps Jaro-Winkler for a length-normalised Levenshtein, because a
+    // country-wide street scan needs a metric that punishes long divergent names harder than
+    // Jaro-Winkler's shared-prefix bonus does.
+    Assert::equals(GoldenServices::computeStreetScoreGlobal("rue de la gare", "Rue de la Gare"), 1.0);
+    Assert::isTrue(GoldenServices::computeStreetScoreGlobal("rue de la gare", "Avenue Monterey") < 0.7);
+}
+
+@test
+fn cityScoreTakesTheBestOfTheNameAndItsAliases() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Luxembourg");
+    nCity->nameAliases.add(Alias { value: "Lëtzebuerg", id: "" });
+
+    // Canonical name still wins when the query matches it.
+    Assert::equals(GoldenServices::computeCityScore("luxembourg", nCity), 1.0);
+
+    // The alias lifts the score for a query that matches only the alias.
+    var viaAlias = GoldenServices::computeCityScore("lëtzebuerg", nCity);
+    Assert::equals(viaAlias, 1.0);
+    Assert::isTrue(viaAlias > GoldenServices::computeCityNameScore("lëtzebuerg", nCity->name));
+}
+
+// ------------------------------------------------------------ overall score
+
+@test
+fn overallScoreIsOneWhenEveryFieldMatches() {
+    var w = ScoringWeights::default();
+    Assert::equals(GoldenServices::computeOverallScore(1.0, 1.0, 1.0, 1.0, 1.0, w), 1.0);
+}
+
+@test
+fn overallScoreTreatsMissingGeoAsNeutral() {
+    // A record without coordinates must score the same as one whose coordinates match
+    // perfectly — otherwise every geo-less source would be permanently penalised.
+    var w = ScoringWeights::default();
+    Assert::equals(
+        GoldenServices::computeOverallScore(1.0, 1.0, 1.0, 1.0, null, w),
+        GoldenServices::computeOverallScore(1.0, 1.0, 1.0, 1.0, 1.0, w)
+    );
+}
+
+@test
+fn overallScoreIsTheWeightedMeanOfItsFields() {
+    // Defaults: city 4, street 3, postcode 3, number 1, geo 3 — total 14. Losing the number
+    // field alone therefore costs 1/14, which is why a number mismatch is filtered out
+    // upstream rather than left to the overall score to reject.
+    var w = ScoringWeights::default();
+    Assert::equals(w.total(), 14.0);
+    Assert::equalsd(GoldenServices::computeOverallScore(1.0, 1.0, 0.0, 1.0, 1.0, w), 13.0 / 14.0, 0.0001);
+    Assert::equalsd(GoldenServices::computeOverallScore(0.0, 1.0, 1.0, 1.0, 1.0, w), 10.0 / 14.0, 0.0001);
+}
+
+@test
+fn overallScoreHonoursCustomWeights() {
+    // Reconciliation is run with tuned weights from the UI; a weight of zero must fully
+    // remove a field's influence.
+    var w = ScoringWeights {
+        cityWeight: 1.0,
+        streetWeight: 0.0,
+        postcodeWeight: 0.0,
+        numberWeight: 0.0,
+        geoWeight: 0.0,
+    };
+    Assert::equals(w.total(), 1.0);
+    Assert::equals(GoldenServices::computeOverallScore(0.5, 0.0, 0.0, 0.0, 0.0, w), 0.5);
+}
+
+// ------------------------------------------------------ candidate list bound
+//
+// KNOWN DEFECT — `Array::sort_by` does not order arrays whose element type is generic.
+// `CandidateMatch<T>` and `Match<T>` are both generic, so every `sort_by` in
+// `GoldenServices` is a no-op that merely permutes. `sortByDoesNotOrderGenericTypes`
+// below pins the defect; the two `addCandidate` tests therefore assert the invariants
+// that survive it (the bound, and that a candidate is only displaced by a stronger one)
+// rather than a sorted result the runtime does not currently deliver.
+
+@test
+fn sortByDoesNotOrderGenericTypes() {
+    // Pins a GreyCat runtime defect, not intended behaviour: `sort_by` orders a
+    // non-generic element type correctly and leaves a generic one unordered.
+    //
+    // Impact here: `GoldenServices::addCandidate` keeps its list bounded by comparing the
+    // incoming candidate against `candidates[size - 1]`, assuming that slot holds the
+    // weakest entry. With an unordered array it does not, so a bounded reconciliation run
+    // can evict a strong candidate and keep a weak one. `searchCity`, `searchStreet` and
+    // `searchStreetsForItem` iterate their matches in the same unordered order.
+    //
+    // WHEN THIS TEST FAILS, `sort_by` has been fixed: delete this test and restore the
+    // ordering assertions in the two tests below.
+    var vals = Array<float> { 0.4, 0.9, 0.6, 0.1, 0.8 };
+
+    var plain = Array<GoldenRecordScore> {};
+    for (_, v in vals) {
+        plain.add(GoldenRecordScore {
+            uid: "u", number: "1", postcode: "1234", linkedCount: 0, quality: v
+        });
+    }
+    plain.sort_by(GoldenRecordScore::quality, SortOrder::desc);
+    Assert::equals(plain[0].quality, 0.9);
+    Assert::equals(plain[4].quality, 0.1);
+
+    var generic = Array<Match<String>> {};
+    for (_, v in vals) {
+        generic.add(Match<String> { score: v, elem: "x" });
+    }
+    generic.sort_by(Match::score, SortOrder::desc);
+    var ordered = true;
+    for (var i = 1; i < generic.size(); i++) {
+        if (generic[i].score > generic[i - 1].score) {
+            ordered = false;
+        }
+    }
+    Assert::isFalse(ordered);
+}
+
+@test
+fn addCandidateGrowsUntilTheBoundIsReached() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Luxembourg");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+
+    var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+    for (_, s in Array<float> { 0.4, 0.9, 0.6 }) {
+        var nPoi = fixtures_test::goldenPoi(nStreet, 1, "", "1234", null);
+        GoldenServices::addCandidate(candidates, candidate(nPoi, s), 10);
+    }
+
+    // Below the bound every candidate is kept, whatever the order ends up being.
+    Assert::equals(candidates.size(), 3);
+    var seen = 0.0;
+    for (_, c in candidates) {
+        seen = seen + c.searchOverallScore;
+    }
+    Assert::equalsd(seen, 1.9, 0.0001);
+}
+
+@test
+fn addCandidateNeverExceedsMaxCandidatesPerItem() {
+    // The bound is what stops a country-wide reconciliation from holding an unbounded
+    // candidate array per source record; it holds regardless of the ordering defect.
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Luxembourg");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+
+    var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+    for (var i = 0; i < 20; i++) {
+        var nPoi = fixtures_test::goldenPoi(nStreet, i, "", "1234", null);
+        GoldenServices::addCandidate(candidates, candidate(nPoi, i / 20.0), 5);
+    }
+    Assert::equals(candidates.size(), 5);
+}
+
+@test
+fn addCandidateKeepsASingleBestWhenTheBoundIsOne() {
+    // With a bound of one the comparison against the last slot is unambiguous, so this path
+    // is correct even with `sort_by` broken.
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Luxembourg");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nKept = fixtures_test::goldenPoi(nStreet, 1, "", "1234", null);
+    var nDropped = fixtures_test::goldenPoi(nStreet, 2, "", "1234", null);
+
+    var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+    GoldenServices::addCandidate(candidates, candidate(nKept, 0.9), 1);
+    GoldenServices::addCandidate(candidates, candidate(nDropped, 0.1), 1);
+
+    Assert::equals(candidates.size(), 1);
+    Assert::equals(candidates[0].elem, nKept as node<POIRecordProvider>);
+
+    // A stronger candidate does displace the incumbent.
+    GoldenServices::addCandidate(candidates, candidate(nDropped, 0.99), 1);
+    Assert::equals(candidates.size(), 1);
+    Assert::equals(candidates[0].elem, nDropped as node<POIRecordProvider>);
+}
+
+// ------------------------------------------------------------------- uid
+
+@test
+fn generatedUidsAreSixCharsFromTheDeclaredAlphabet() {
+    for (var i = 0; i < 50; i++) {
+        var uid = GoldenServices::generateUID();
+        Assert::equals(uid.size(), 6);
+        for (var j = 0; j < uid.size(); j++) {
+            Assert::isTrue(GoldenServices::UID_CHARS.indexOf(uid.get(j)) != -1);
+        }
+    }
+}
+
+/// A candidate carrying nothing but the score `addCandidate` sorts on.
+fn candidate(nPoi: node<GoldenPointOfInterest>, score: float): CandidateMatch<node<POIRecordProvider>> {
+    return CandidateMatch<node<POIRecordProvider>> {
+        cityScore: 1.0,
+        streetScore: 1.0,
+        numberScore: 1.0,
+        postcodeScore: 1.0,
+        searchOverallScore: score,
+        realOverallScore: score,
+        elem: nPoi,
+    };
+}

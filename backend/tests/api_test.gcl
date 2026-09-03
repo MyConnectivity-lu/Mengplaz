@@ -1,0 +1,381 @@
+/// The public read endpoints in `backend/api/api.gcl`, plus `getSources`.
+///
+/// These are the contract the frontend and the OpenAPI consumers are written against, so what
+/// is asserted here is shape and filtering rather than scoring: which records come back, in
+/// what order, with which fields populated, and what happens on a bad identifier. Two
+/// behaviours that read as surprises from the outside are pinned deliberately — the
+/// `"UNKNOWN"` sentinel that is filtered out of every index listing, and `getGoldenLocalities`
+/// taking a commune *name* where its sibling endpoint hands out a commune *id*.
+
+fn here(): geo {
+    return geo { 49.6116, 6.1319 };
+}
+
+/// Two localities in one commune, one street each, and two POIs on the first street.
+fn seedWorld(): node<GoldenStreet> {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", here());
+    fixtures_test::goldenPoi(nStreet, 14, "", "1234", geo { 49.6117, 6.1319 });
+    return nStreet;
+}
+
+// ----------------------------------------------------------- street lookup
+
+@test
+fn poisInStreetReturnsEveryRecordOnTheStreet() {
+    var nStreet = seedWorld();
+    var pois = api::getPoisInStreet(nStreet);
+
+    Assert::equals(pois.size(), 2);
+    Assert::equals(pois[0].record.street, "Rue de la Gare");
+    Assert::equals(pois[0].record.locality, "Gasperich");
+    Assert::equals(pois[0].record.commune, "Luxembourg");
+}
+
+@test
+fn streetSearchReturnsScoredStreetRecords() {
+    seedWorld();
+    var results = api::searchStreet("rue de la gare");
+
+    Assert::equals(results.size(), 1);
+    Assert::equals(results[0].record.street, "Rue de la Gare");
+    Assert::equals(results[0].record.city, "Gasperich");
+}
+
+@test
+fn streetSearchIsCappedAtFiftyOne() {
+    // The endpoint stops adding once the counter passes 50, which lets the 51st through — the
+    // loop increments before it checks. Pinned as the actual cap the frontend sees.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    for (var i = 0; i < 60; i++) {
+        fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    }
+
+    Assert::equals(api::searchStreet("rue de la gare").size(), 51);
+}
+
+@test
+fn streetSearchReturnsNothingForAnUnknownName() {
+    seedWorld();
+    Assert::equals(api::searchStreet("zzzzzzzzzzzz").size(), 0);
+}
+
+// -------------------------------------------------------------- geo lookup
+
+@test
+fn poisListsEveryGeolocatedRecord() {
+    var nStreet = seedWorld();
+    // A POI without coordinates is absent from the geo index and therefore from this listing.
+    fixtures_test::goldenPoi(nStreet, 16, "", "1234", null);
+
+    var feats = api::getPois();
+    Assert::equals(feats.size(), 2);
+}
+
+@test
+fn poiByGeoResolvesAnExactCoordinate() {
+    seedWorld();
+    var found = api::getPoisByGeo(here());
+
+    Assert::isNotNull(found);
+    Assert::equals(found!!.record.number, "12 ");
+    Assert::isNull(api::getPoisByGeo(geo { 49.9, 6.9 }));
+}
+
+@test
+fn geoJsonCarriesTheSourceIdsOfEveryLinkedRecord() {
+    // The GeoJSON export is how downstream GIS consumers join back to the source registries,
+    // so the per-source external id map is the part that matters.
+    var nStreet = seedWorld();
+    var nGolden = nStreet->pois_by_number?.get("12")!!;
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    var geojson = api::getGoldenRecordsGeoJson();
+    Assert::equals(geojson.type, "FeatureCollection");
+    Assert::equals(geojson.features.size(), 2);
+
+    var withLink = 0;
+    for (_, feature in geojson.features) {
+        Assert::equals(feature.type, "Feature");
+        Assert::equals(feature.geometry.type, "Point");
+        Assert::equals(feature.geometry.coordinates.size(), 2);
+        var externalIds = feature.properties.get("externalIds") as Map<String, any>;
+        if (externalIds.size() > 0) {
+            withLink++;
+            Assert::equals(externalIds.get(OsmSource::NAME), "1");
+            Assert::equals(feature.properties.get("goldenRecordId"), nGolden->uid);
+        }
+    }
+    Assert::equals(withLink, 1);
+}
+
+// ---------------------------------------------------------- record lookup
+
+@test
+fn recordDetailsCarryTheGoldenRowAndEveryLinkedSourceRow() {
+    var nStreet = seedWorld();
+    var nGolden = nStreet->pois_by_number?.get("12")!!;
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    var details = api::getGoldenRecordDetails(nGolden->uid);
+    Assert::equals(details.golden.ref, nGolden as node<POIRecordProvider>);
+    Assert::equals(details.associated.size(), 1);
+    Assert::equals(details.associated[0].id, "1");
+    Assert::equals(details.associated[0].ref, nOsm as node<POIRecordProvider>);
+    Assert::equals(details.associated[0].matchScore, 1.0);
+}
+
+@test
+fn recordDetailsRefuseAnUnknownUid() {
+    seedWorld();
+    var threw = false;
+    try {
+        api::getGoldenRecordDetails("no-such-uid");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+@test
+fn recordRefByUidReturnsNullRatherThanThrowing() {
+    // Unlike `getGoldenRecordDetails`, the OpenAPI-tagged lookup answers with null for an
+    // unknown uid — consumers treat it as "not found", not as an error.
+    var nStreet = seedWorld();
+    var nGolden = nStreet->pois_by_number?.get("12")!!;
+
+    Assert::equals(api::getGoldenRecordRefByUid(nGolden->uid)!!.ref, nGolden as node<POIRecordProvider>);
+    Assert::isNull(api::getGoldenRecordRefByUid("no-such-uid"));
+}
+
+@test
+fn lookupByGeoportailIdFollowsTheLinkToGolden() {
+    // The BDA cross-reference endpoint: given a geoportail id, hand back the golden record it
+    // corroborates — and nothing at all while it is still unlinked.
+    var nStreet = seedWorld();
+    var nGolden = nStreet->pois_by_number?.get("12")!!;
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+    );
+
+    Assert::isNull(api::getRecordByGeoportailID("GP-1"));
+    Assert::isNull(api::getRecordByGeoportailID("no-such-id"));
+
+    privateApi::linkRecords(nBda, nGolden, null);
+    Assert::equals(api::getRecordByGeoportailID("GP-1")!!.ref, nGolden as node<POIRecordProvider>);
+}
+
+@test
+fn goldenRecordsListsEveryPoiIncludingTheGeolessOnes() {
+    var nStreet = seedWorld();
+    fixtures_test::goldenPoi(nStreet, 16, "", "1234", null);
+
+    // Unlike `getPois`, this walks the uid index, so a POI without coordinates is included.
+    Assert::equals(api::getGoldenRecords().size(), 3);
+}
+
+// --------------------------------------------------------- index listings
+
+@test
+fn localitiesAreListedAlphabeticallyAndSkipTheUnknownSentinel() {
+    // Loaders park records they cannot place under the id "UNKNOWN"; that bucket is an
+    // internal holding pen and must never surface in a public listing.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::goldenCity("Luxembourg", "Weimerskirch");
+    fixtures_test::goldenCity("Luxembourg", "Bonnevoie");
+    var nUnknown = fixtures_test::goldenCity("Luxembourg", "Placeholder");
+    golden_cities_by_id.set("UNKNOWN", nUnknown);
+
+    var localities = api::getGoldenLocalities(null);
+    Assert::equals(localities.size(), 3);
+    Assert::equals(localities[0].name, "Bonnevoie");
+    Assert::equals(localities[1].name, "Placeholder");
+    Assert::equals(localities[2].name, "Weimerskirch");
+}
+
+@test
+fn localitiesCanBeFilteredButByCommuneNameNotCommuneId() {
+    // Pinned inconsistency: `getGoldenCommunes` hands out `{id, name}` pairs, and the natural
+    // reading of `getGoldenLocalities(communeId)` is that it takes the id — it compares
+    // against the commune's *name*. Passing the id returns nothing.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenCity("Wiltz", "Wiltz");
+
+    var communes = api::getGoldenCommunes();
+    Assert::equals(communes.size(), 2);
+    Assert::equals(communes[0].name, "Luxembourg");
+
+    Assert::equals(api::getGoldenLocalities("Luxembourg").size(), 1);
+    Assert::equals(api::getGoldenLocalities("Luxembourg")[0].name, "Gasperich");
+    Assert::equals(api::getGoldenLocalities(communes[0].id).size(), 0);
+}
+
+@test
+fn communesSkipTheUnknownSentinelToo() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    golden_municipalities_by_id.set("UNKNOWN", nCity->municipality);
+
+    Assert::equals(api::getGoldenCommunes().size(), 1);
+}
+
+@test
+fn streetsAreListedPerLocalityAlphabetically() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenStreet(nCity, "Avenue Monterey");
+
+    var streets = api::getGoldenStreetsByLocalityId(nCity->id);
+    Assert::equals(streets.size(), 2);
+    Assert::equals(streets[0].name, "Avenue Monterey");
+    Assert::equals(streets[1].name, "Rue de la Gare");
+}
+
+@test
+fn streetListingRefusesAnUnknownLocality() {
+    seedWorld();
+    var threw = false;
+    try {
+        api::getGoldenStreetsByLocalityId("no-such-city");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+@test
+fn numbersAreListedPerStreet() {
+    var nStreet = seedWorld();
+    var numbers = api::getGoldenNumbersByStreetId(nStreet->id);
+
+    Assert::equals(numbers.size(), 2);
+    Assert::equals(numbers[0].name, "12 ");
+    Assert::equals(numbers[1].name, "14 ");
+}
+
+@test
+fn numberListingRefusesAnUnknownStreet() {
+    seedWorld();
+    var threw = false;
+    try {
+        api::getGoldenNumbersByStreetId("no-such-street");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+// -------------------------------------------------------- quality history
+
+@test
+fn qualityHistoryReportsTheSeriesAsPercentagesAndEveryRecordsScore() {
+    var nStreet = seedWorld();
+    var nGolden = nStreet->pois_by_number?.get("12")!!;
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+    privateApi::computeGlobalQuality();
+
+    var history = api::getGlobalQualityHistory(null, null);
+
+    // One POI at 0.2 and one at 0.0 over two POIs; the series is scaled to a percentage while
+    // `current` stays on the 0-1 scale.
+    Assert::equals(history.history.size(), 1);
+    Assert::equalsd(history.history[0].averageQuality, 10.0, 0.01);
+    Assert::equalsd(history.current, 0.1, 0.01);
+
+    Assert::equals(history.goldenRecords.size(), 2);
+    for (_, record in history.goldenRecords) {
+        if (record.uid == nGolden->uid) {
+            Assert::equals(record.linkedCount, 1);
+            Assert::equalsd(record.quality, 0.2, 0.01);
+            Assert::equals(record.street, "Rue de la Gare");
+            Assert::equals(record.city, "Gasperich");
+        } else {
+            Assert::equals(record.linkedCount, 0);
+            Assert::equals(record.quality, 0.0);
+        }
+    }
+}
+
+@test
+fn qualityHistoryRefusesToAnswerWithoutTheGoldenSource() {
+    fixtures_test::reset();
+    OsmSource::init();
+
+    var threw = false;
+    try {
+        api::getGlobalQualityHistory(null, null);
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+// -------------------------------------------------------------- meta
+
+@test
+fn attributionNamesOpenStreetMapAndItsLicence() {
+    // The ODbL requires this notice to be conveyed with the data; it is served verbatim by the
+    // API and by the map UI, so its content is part of the contract, not decoration.
+    var attribution = api::attribution();
+
+    Assert::isTrue(attribution.notice.contains("OpenStreetMap"));
+    Assert::isTrue(attribution.notice.contains("ODbL"));
+    Assert::equals(attribution.sources.size(), 2);
+    Assert::isTrue(attribution.sources[0].contains("OpenStreetMap"));
+    Assert::isTrue(attribution.sources[1].contains("CACLR"));
+}
+
+@test
+fn sourcesListsEverySourceAndItsLockState() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var sources = privateApi::getSources();
+    Assert::equals(sources.size(), 4);
+    for (_, source in sources) {
+        // Never reconciled, so the flag has not been created yet.
+        Assert::isNull(source.locked);
+    }
+
+    privateApi::lockDatasource(OsmSource::NAME);
+    for (_, source in privateApi::getSources()) {
+        if (source.name == OsmSource::NAME) {
+            Assert::equals(source.locked, true);
+        }
+    }
+}
+
+// ------------------------------------------------------ traffic accounting
+
+@test
+fn everyEndpointCallIsRecordedAgainstItsOwnTrafficSeries() {
+    // `Traffic_Service` wraps every endpoint and is what the usage dashboard reads; an
+    // endpoint that forgets to close its span records nothing at all.
+    seedWorld();
+    Assert::equals(endpoints_by_name.size(), 0);
+
+    api::getGoldenRecords();
+    api::getGoldenRecords();
+    api::getGoldenCommunes();
+
+    // The key is the module-qualified function reference stringified, not the bare name.
+    var nRecords = endpoints_by_name.get("api::getGoldenRecords");
+    Assert::isNotNull(nRecords);
+    Assert::equals(nRecords!!->traffic.size(), 2);
+    Assert::isNotNull(endpoints_by_name.get("api::getGoldenCommunes"));
+    Assert::isNotNull(nRecords->traffic.last()!!.executionTime);
+}
