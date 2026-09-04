@@ -120,6 +120,9 @@ export class MengplazIndexPage extends GcPage {
       .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
         border-top-color: var(--gc-surface);
       }
+      .maplibregl-ctrl maplibregl-ctrl-attrib maplibregl-compact maplibregl-compact-show{
+        z-index: 999;
+      }
     `,
   ];
 
@@ -323,8 +326,6 @@ export class MengplazIndexPage extends GcPage {
           </div>
           <div class="layer-control">
             <wa-select
-              label="Basemap"
-              with-label
               size="m"
               value=${this.basemap}
               @change=${(e: Event) => this.setBasemap((e.target as HTMLSelectElement).value as Basemap)}
@@ -333,11 +334,10 @@ export class MengplazIndexPage extends GcPage {
               <wa-option value="ortho">Geoportail Orthophoto 2025</wa-option>
             </wa-select>
           </div>
-          ${
-            this.pointsLoading
-              ? html`<div class="notice"><wa-callout variant="brand">Loading map data</wa-callout></div>`
-              : ''
-          }
+          ${this.pointsLoading
+        ? html`<div class="notice"><wa-callout variant="brand">Loading map data</wa-callout></div>`
+        : ''
+      }
           <div class="map"></div>
         </div>
       </mengplaz-app-shell>

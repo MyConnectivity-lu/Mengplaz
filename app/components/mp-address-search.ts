@@ -248,8 +248,8 @@ export class MpAddressSearch extends LitElement {
     }
     return html`<div class="results" role="listbox">
       ${this.results.map((r) => {
-        const disabled = this.disableNoCoords && r.record.primaryLocation == null;
-        return html`<button
+      const disabled = this.disableNoCoords && r.record.primaryLocation == null;
+      return html`<button
           type="button"
           role="option"
           aria-selected="false"
@@ -264,15 +264,13 @@ export class MpAddressSearch extends LitElement {
             <span class="sub">L-${r.record.postcode} ${r.record.locality} ${r.record.commune}</span>
           </span>
         </button>`;
-      })}
+    })}
     </div>`;
   }
 
   render() {
     return html`
       <wa-input
-        label="Address"
-        with-label
         placeholder=${this.placeholder}
         size="m"
         with-clear
