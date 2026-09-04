@@ -702,7 +702,23 @@ type GoldenRecordScore {
 type GlobalQualityHistory {
     current: float;
     history: Array<GlobalQualityEntry>;
-    goldenRecords: Array<GoldenRecordScore>;
+}
+
+/// One page of `GoldenRecordScore`, as `getGoldenRecordScores` hands it out: the golden
+/// index runs to six figures, so the scores table is read a page at a time rather than
+/// shipped whole with the quality history.
+@volatile
+type GoldenRecordPage {
+    /// Records in the whole index, whatever this page holds.
+    total: int;
+    /// Offset this page starts at, after clamping to the index.
+    offset: int;
+    /// Page size actually applied, after clamping to `MAX_PAGE`.
+    limit: int;
+    rows: Array<GoldenRecordScore>;
+
+    /// The most rows one call will ever return.
+    static MAX_PAGE: int = 1000;
 }
 
 /// Computes and records the global quality score by looping over all golden POIs.

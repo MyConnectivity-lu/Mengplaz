@@ -496,15 +496,32 @@ declare namespace gc {
       static readonly $fields: GlobalQualityHistory.$Fields;
       current: number;
       history: globalThis.Array<gc.privateApi.GlobalQualityEntry>;
-      goldenRecords: globalThis.Array<gc.privateApi.GoldenRecordScore>;
-      constructor(current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>, goldenRecords: globalThis.Array<gc.privateApi.GoldenRecordScore>);
-      static createFrom(fields: {current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>, goldenRecords: globalThis.Array<gc.privateApi.GoldenRecordScore>}): GlobalQualityHistory;
+      constructor(current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>);
+      static createFrom(fields: {current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>}): GlobalQualityHistory;
     }
     namespace GlobalQualityHistory {
       interface $Fields {
         current: 0;
         history: 1;
-        goldenRecords: 2;
+      }
+    }
+
+    class GoldenRecordPage extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::GoldenRecordPage';
+      static readonly $fields: GoldenRecordPage.$Fields;
+      total: number | bigint;
+      offset: number | bigint;
+      limit: number | bigint;
+      rows: globalThis.Array<gc.privateApi.GoldenRecordScore>;
+      constructor(total: number | bigint, offset: number | bigint, limit: number | bigint, rows: globalThis.Array<gc.privateApi.GoldenRecordScore>);
+      static createFrom(fields: {total: number | bigint, offset: number | bigint, limit: number | bigint, rows: globalThis.Array<gc.privateApi.GoldenRecordScore>}): GoldenRecordPage;
+    }
+    namespace GoldenRecordPage {
+      interface $Fields {
+        total: 0;
+        offset: 1;
+        limit: 2;
+        rows: 3;
       }
     }
 
@@ -956,6 +973,25 @@ declare namespace gc {
       }
     }
 
+    class getGoldenRecordScores$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenRecordScores$args';
+      static readonly $fields: getGoldenRecordScores$args.$Fields;
+      offset: number | bigint;
+      limit: number | bigint;
+      sortKey: string | null;
+      sortDir: string | null;
+      constructor(offset: number | bigint, limit: number | bigint, sortKey?: string | null, sortDir?: string | null);
+      static createFrom(fields: {offset: number | bigint, limit: number | bigint, sortKey?: string | null, sortDir?: string | null}): getGoldenRecordScores$args;
+    }
+    namespace getGoldenRecordScores$args {
+      interface $Fields {
+        offset: 0;
+        limit: 1;
+        sortKey: 2;
+        sortDir: 3;
+      }
+    }
+
     class getGoldenNumbersByStreetId$args extends gc.sdk.GCObject {
       static readonly _type = 'api::getGoldenNumbersByStreetId$args';
       static readonly $fields: getGoldenNumbersByStreetId$args.$Fields;
@@ -1047,6 +1083,18 @@ declare namespace gc {
     };
     const getGlobalQualityHistory: ((from?: gc.core.time | null, to?: gc.core.time | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.GlobalQualityHistory>) & {
       spawn(from?: gc.core.time | null, to?: gc.core.time | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.GlobalQualityHistory>>;
+    };
+    /**
+     * One page of the golden records with their scores, at most `GoldenRecordPage::MAX_PAGE`
+     * rows at a time. `sortKey` is `"quality"`, `"linkedCount"`, or null for the index's own
+     * order (by uid); `sortDir` is `"asc"` or `"desc"` (default ascending).
+     *
+     * The ranking is computed live, over the whole index, so a page is always current and
+     * page N continues page N-1's order. A sorted call therefore walks every record for its
+     * sort value, but resolves addresses only for the rows it is about to return.
+     */
+    const getGoldenRecordScores: ((offset: number | bigint, limit: number | bigint, sortKey?: string | null, sortDir?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.GoldenRecordPage>) & {
+      spawn(offset: number | bigint, limit: number | bigint, sortKey?: string | null, sortDir?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.GoldenRecordPage>>;
     };
     const appInfo: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.runtime.RuntimeInfo>) & {
       spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.runtime.RuntimeInfo>>;
@@ -7112,6 +7160,8 @@ declare namespace gc {
     'privateApi::linkRecords$args': 0,
     'privateApi::QualityTrend': 0,
     'privateApi::GlobalQualityHistory': 0,
+    'privateApi::GoldenRecordPage': 0,
+    'api::getGoldenRecordScores$args': 0,
     'privateApi::mergePositionsToGolden$args': 0,
     'privateApi::LinkParameters': 0,
     'privateApi::ComparisonViewData': 0,
@@ -8140,7 +8190,14 @@ declare namespace gc {
     'privateApi::QualityTrend::linkedSourcesCount': 0,
     'privateApi::GlobalQualityHistory::current': 0,
     'privateApi::GlobalQualityHistory::history': 0,
-    'privateApi::GlobalQualityHistory::goldenRecords': 0,
+    'privateApi::GoldenRecordPage::total': 0,
+    'privateApi::GoldenRecordPage::offset': 0,
+    'privateApi::GoldenRecordPage::limit': 0,
+    'privateApi::GoldenRecordPage::rows': 0,
+    'api::getGoldenRecordScores$args::offset': 0,
+    'api::getGoldenRecordScores$args::limit': 0,
+    'api::getGoldenRecordScores$args::sortKey': 0,
+    'api::getGoldenRecordScores$args::sortDir': 0,
     'privateApi::mergePositionsToGolden$args::source': 0,
     'privateApi::mergePositionsToGolden$args::recordIds': 0,
     'privateApi::LinkParameters::addCityAlias': 0,
@@ -9324,6 +9381,7 @@ declare namespace gc {
     'api::attribution': 0,
     'api::openapi': 0,
     'api::getGlobalQualityHistory': 0,
+    'api::getGoldenRecordScores': 0,
     'api::appInfo': 0,
     'api::searchAddress': 0,
     'api::getGoldenWithLinkedRecords': 0,
@@ -9520,6 +9578,7 @@ declare namespace gc {
   export import ReconciliationReportView = gc.privateApi.ReconciliationReportView;
   export import QualityTrend = gc.privateApi.QualityTrend;
   export import GlobalQualityHistory = gc.privateApi.GlobalQualityHistory;
+  export import GoldenRecordPage = gc.privateApi.GoldenRecordPage;
   export import LinkParameters = gc.privateApi.LinkParameters;
   export import ComparisonViewData = gc.privateApi.ComparisonViewData;
   export import GeoJSONGeometry = gc.api.GeoJSONGeometry;
@@ -9856,6 +9915,7 @@ declare namespace gc {
   export import attribution = gc.api.attribution;
   export import openapi = gc.api.openapi;
   export import getGlobalQualityHistory = gc.api.getGlobalQualityHistory;
+  export import getGoldenRecordScores = gc.api.getGoldenRecordScores;
   export import appInfo = gc.api.appInfo;
   export import searchAddress = gc.api.searchAddress;
   export import getGoldenWithLinkedRecords = gc.api.getGoldenWithLinkedRecords;

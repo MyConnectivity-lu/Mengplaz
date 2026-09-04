@@ -26,6 +26,10 @@ type Row = Record<string, unknown>;
  * Columns marked `sortable` get a clickable header. Sorting is a view over
  * `rows`, never a reordering of it: `row-click` and `selected-index` keep
  * addressing rows by their index in the array the host passed in.
+ *
+ * A host whose rows come from the backend a page at a time sets `server-sort` and
+ * `has-more`: the sort then travels with the query instead of being applied here,
+ * and nearing the end of the loaded rows fires `load-more` for the next page.
  */
 @customElement('mp-virtual-table')
 export class MpVirtualTable extends LitElement {
@@ -147,6 +151,16 @@ export class MpVirtualTable extends LitElement {
   @property({ attribute: 'sort-key' }) sortKey = '';
   /** Direction of that sort. */
   @property({ attribute: 'sort-dir' }) sortDir: 'asc' | 'desc' = 'asc';
+  /**
+   * Leave the ordering to the host: headers still emit `sort-change`, but the rows
+   * are rendered in the order they arrive. For a table whose host pages a sorted
+   * result out of the backend, sorting the loaded prefix locally would be a lie.
+   */
+  @property({ type: Boolean, attribute: 'server-sort' }) serverSort = false;
+  /** Whether rows beyond the ones passed in exist; enables `load-more`. */
+  @property({ type: Boolean, attribute: 'has-more' }) hasMore = false;
+  /** How many rows from the end a `load-more` fires at. */
+  @property({ type: Number, attribute: 'load-more-threshold' }) loadMoreThreshold = 50;
 
   // Bumped by the virtualizer's onChange to drive a re-render; the virtualizer
   // itself is not reactive state.
@@ -157,6 +171,9 @@ export class MpVirtualTable extends LitElement {
 
   /** Rows in display order, each carrying its index in `rows`. */
   private view: { row: Row; index: number }[] = [];
+
+  /** `rows.length` the last `load-more` was fired at, so one page is asked for once. */
+  private requestedAt = -1;
 
   private get scrollEl(): HTMLElement {
     return this.renderRoot.querySelector('.scroll') as HTMLElement;
@@ -173,6 +190,7 @@ export class MpVirtualTable extends LitElement {
       observeElementOffset,
       onChange: () => {
         this.version++;
+        this.maybeLoadMore();
       },
     };
   }
@@ -185,7 +203,7 @@ export class MpVirtualTable extends LitElement {
   protected override willUpdate(changed: PropertyValues) {
     if (changed.has('rows') || changed.has('columns') || changed.has('sortKey') || changed.has('sortDir')) {
       this.view = this.rows.map((row, index) => ({ row, index }));
-      const col = this.columns.find((c) => c.sortable && c.key === this.sortKey);
+      const col = this.serverSort ? undefined : this.columns.find((c) => c.sortable && c.key === this.sortKey);
       if (col) {
         const dir = this.sortDir === 'desc' ? -1 : 1;
         // Array.sort is stable, so ties keep the host's original order.
@@ -205,7 +223,32 @@ export class MpVirtualTable extends LitElement {
     if (this.virtualizer && changed.has('rows')) {
       this.virtualizer.setOptions(this.options());
       this.virtualizer._willUpdate();
+      // A shorter list is a new result, not more of the old one; ask again from there.
+      if (this.rows.length < this.requestedAt) {
+        this.requestedAt = -1;
+      }
+      // The page that just arrived may not even fill the viewport.
+      this.maybeLoadMore();
     }
+  }
+
+  /**
+   * Ask the host for the next page once the rendered window comes within
+   * `loadMoreThreshold` rows of the end - with the default 50 and pages of 1000,
+   * that is row 950, then 1950, and so on. Fired at most once per `rows` length,
+   * so the scroll frames that follow stay quiet while the fetch is in flight.
+   */
+  private maybeLoadMore() {
+    if (!this.hasMore || this.rows.length === this.requestedAt) {
+      return;
+    }
+    const items = this.virtualizer?.getVirtualItems() ?? [];
+    const last = items[items.length - 1]?.index ?? -1;
+    if (last < 0 || last < this.rows.length - this.loadMoreThreshold) {
+      return;
+    }
+    this.requestedAt = this.rows.length;
+    this.dispatchEvent(new CustomEvent('load-more', { bubbles: true, composed: true }));
   }
 
   override disconnectedCallback() {

@@ -341,8 +341,20 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
 
     var history = Array<GlobalQualityEntry> {};
 
-    for (timestamp, avgQuality in source.qualityHistory[from..to]) {
-        history.add(GlobalQualityEntry { timestamp: timestamp, averageQuality: avgQuality * 100 });
+    // Down-sample so the chart gets a bounded number of points whatever the requested
+    // range. Column 0 holds the timestamp, column 1 the value of `qualityHistory`.
+    var samples = nodeTime::sample(Array<nodeTime> {
+        source.qualityHistory
+    }, from, to, 100, SamplingMode::adaptative, null, null);
+    for (var row = 0; row < samples.rows(); row++) {
+        var avgQuality = samples.get_cell(row, 1);
+        if (avgQuality == null) {
+            continue;
+        }
+        history.add(GlobalQualityEntry {
+            timestamp: samples.get_cell(row, 0) as time,
+            averageQuality: (avgQuality as float) * 100,
+        });
     }
 
     var latest = source.qualityHistory.last();
@@ -351,23 +363,107 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
         currentValue = latest;
     }
 
-    // Collect all golden records with their scores
-    var goldenRecords = Array<GoldenRecordScore> {};
-    for (_, nGolden in golden_pois_by_id) {
-        var quality = nGolden->quality.last();
-        goldenRecords.add(GoldenRecordScore {
-            uid: nGolden->uid,
-            number: "${nGolden->number}${nGolden->multipleCode}",
-            street: nGolden->street?->name,
-            city: nGolden->street?->city->name,
-            postcode: nGolden->postCode,
-            linkedCount: nGolden->linkedRecords.size(),
-            quality: (quality?.score ?? 0.0)
-        });
+    ts.end();
+    return GlobalQualityHistory { current: currentValue, history: history };
+}
+
+/// One golden record paired with the value the requested sort ranks it on. Ranking on
+/// these rather than on whole `GoldenRecordScore`s is what keeps a sorted page from
+/// resolving every record's street and locality.
+@volatile
+private type RankedGoldenRecord {
+    record: node<GoldenPointOfInterest>;
+    value: float;
+}
+
+/// One page of the golden records with their scores, at most `GoldenRecordPage::MAX_PAGE`
+/// rows at a time. `sortKey` is `"quality"`, `"linkedCount"`, or null for the index's own
+/// order (by uid); `sortDir` is `"asc"` or `"desc"` (default ascending).
+///
+/// The ranking is computed live, over the whole index, so a page is always current and
+/// page N continues page N-1's order. A sorted call therefore walks every record for its
+/// sort value, but resolves addresses only for the rows it is about to return.
+@expose
+@permission("public")
+fn getGoldenRecordScores(offset: int, limit: int, sortKey: String?, sortDir: String?): GoldenRecordPage {
+    var order = SortOrder::asc;
+    if (sortDir != null && sortDir != "asc") {
+        if (sortDir != "desc") {
+            throw "Unknown sort direction: ${sortDir}";
+        }
+        order = SortOrder::desc;
+    }
+    if (sortKey != null && sortKey != "" && sortKey != "quality" && sortKey != "linkedCount") {
+        throw "Unknown sort key: ${sortKey}";
+    }
+
+    var ts = Traffic_Service::start(getGoldenRecordScores);
+
+    var start = offset;
+    if (start < 0) {
+        start = 0;
+    }
+    var size = limit;
+    if (size > GoldenRecordPage::MAX_PAGE) {
+        size = GoldenRecordPage::MAX_PAGE;
+    }
+    if (size < 0) {
+        size = 0;
+    }
+
+    var rows = Array<GoldenRecordScore> {};
+
+    if (sortKey == null || sortKey == "") {
+        // Index order: walk to the offset without touching a record, then project the page.
+        var seen = 0;
+        for (_, nGolden in golden_pois_by_id) {
+            if (seen >= start) {
+                if (rows.size() >= size) {
+                    break;
+                }
+                rows.add(goldenRecordScore(nGolden));
+            }
+            seen = seen + 1;
+        }
+    } else {
+        var ranked = Array<RankedGoldenRecord> {};
+        for (_, nGolden in golden_pois_by_id) {
+            var value = 0.0;
+            if (sortKey == "quality") {
+                value = nGolden->quality.last()?.score ?? 0.0;
+            } else {
+                value = nGolden->linkedRecords.size() as float;
+            }
+            ranked.add(RankedGoldenRecord { record: nGolden, value: value });
+        }
+        ranked.sort_by(RankedGoldenRecord::value, order);
+
+        var end = start + size;
+        if (end > ranked.size()) {
+            end = ranked.size();
+        }
+        for (var i = start; i < end; i++) {
+            rows.add(goldenRecordScore(ranked[i].record));
+        }
     }
 
     ts.end();
-    return GlobalQualityHistory { current: currentValue, history: history, goldenRecords: goldenRecords };
+    return GoldenRecordPage { total: golden_pois_by_id.size(), offset: start, limit: size, rows: rows };
+}
+
+/// The scores table's view of one golden record: its address, how many source records are
+/// linked to it, and its latest quality score.
+private fn goldenRecordScore(nGolden: node<GoldenPointOfInterest>): GoldenRecordScore {
+    var quality = nGolden->quality.last();
+    return GoldenRecordScore {
+        uid: nGolden->uid,
+        number: "${nGolden->number}${nGolden->multipleCode}",
+        street: nGolden->street?->name,
+        city: nGolden->street?->city->name,
+        postcode: nGolden->postCode,
+        linkedCount: nGolden->linkedRecords.size(),
+        quality: (quality?.score ?? 0.0),
+    };
 }
 
 @expose
