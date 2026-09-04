@@ -43,12 +43,50 @@ fn streetSearchReturnsScoredStreetRecords() {
     Assert::equals(results.size(), 1);
     Assert::equals(results[0].record.street, "Rue de la Gare");
     Assert::equals(results[0].record.city, "Gasperich");
+    // An exact name scores 1.0 against itself.
+    Assert::equals(results[0].score, 1.0);
 }
 
 @test
-fn streetSearchIsCappedAtFiftyOne() {
-    // The endpoint stops adding once the counter passes 50, which lets the 51st through — the
-    // loop increments before it checks. Pinned as the actual cap the frontend sees.
+fn streetSearchIsCaseAndWhitespaceInsensitive() {
+    seedWorld();
+    Assert::equals(api::searchStreet("  RUE de La Gare ").size(), 1);
+    Assert::equals(api::searchStreet("").size(), 0);
+    Assert::equals(api::searchStreet("   ").size(), 0);
+}
+
+@test
+fn streetSearchReturnsEveryLocalityCarryingTheName() {
+    // The same street name recurs across localities and the index holds them under one key,
+    // so an exact query answers with all of them, not one.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Gasperich"), "Rue de la Gare");
+    fixtures_test::goldenStreet(fixtures_test::goldenCity("Wiltz", "Wiltz"), "Rue de la Gare");
+
+    Assert::equals(api::searchStreet("rue de la gare").size(), 2);
+}
+
+@test
+fn streetSearchFallsBackToFuzzyMatchingAndRanksByScore() {
+    // No name equals the query, so every hit carries a Jaro-Winkler score below 1 and the
+    // closer name has to come first.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenStreet(nCity, "Rue de la Gaure");
+
+    var results = api::searchStreet("rue de la gar");
+    Assert::equals(results.size(), 2);
+    Assert::equals(results[0].record.street, "Rue de la Gare");
+    Assert::isTrue(results[0].score < 1.0);
+    Assert::isTrue(results[0].score >= results[1].score);
+}
+
+@test
+fn streetSearchIsCappedAtFifty() {
+    // One name, sixty streets under it. The endpoint hands the search page a bounded list.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
@@ -56,12 +94,36 @@ fn streetSearchIsCappedAtFiftyOne() {
         fixtures_test::goldenStreet(nCity, "Rue de la Gare");
     }
 
-    Assert::equals(api::searchStreet("rue de la gare").size(), 51);
+    Assert::equals(api::searchStreet("rue de la gare").size(), 50);
+}
+
+@test
+fn streetSearchKeepsTheBestNamesWhenTheRankingOverflows() {
+    // Sixty-one distinct names all clear the similarity floor, so the ranked list fills up and
+    // every further name has to displace the weakest entry rather than be appended. What comes
+    // back must still be the top slice, best first, with the exact name at the head.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    for (var i = 0; i < 60; i++) {
+        fixtures_test::goldenStreet(nCity, "Rue de la Gare ${i}");
+    }
+
+    var results = api::searchStreet("rue de la gare");
+    Assert::equals(results.size(), 50);
+    Assert::equals(results[0].record.street, "Rue de la Gare");
+    Assert::equals(results[0].score, 1.0);
+    for (var i = 1; i < results.size(); i++) {
+        Assert::isTrue(results[i].score <= results[i - 1].score);
+    }
 }
 
 @test
 fn streetSearchReturnsNothingForAnUnknownName() {
     seedWorld();
+    // Every name is scored, and a query this far off leaves them all below the similarity
+    // floor.
     Assert::equals(api::searchStreet("zzzzzzzzzzzz").size(), 0);
 }
 

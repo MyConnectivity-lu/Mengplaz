@@ -2945,13 +2945,15 @@ declare namespace gc {
       static readonly $fields: StreetRecordRef.$Fields;
       ref: gc.core.node<gc.mengplaz.StreetRecordProvider>;
       record: gc.mengplaz.StreetRecord;
-      constructor(ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, record: gc.mengplaz.StreetRecord);
-      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, record: gc.mengplaz.StreetRecord}): StreetRecordRef;
+      score: number;
+      constructor(ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, record: gc.mengplaz.StreetRecord, score: number);
+      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, record: gc.mengplaz.StreetRecord, score: number}): StreetRecordRef;
     }
     namespace StreetRecordRef {
       interface $Fields {
         ref: 0;
         record: 1;
+        score: 2;
       }
     }
 
@@ -8634,6 +8636,7 @@ declare namespace gc {
     'mengplaz::ReconciliationReport::unlinked': 0,
     'mengplaz::StreetRecordRef::ref': 0,
     'mengplaz::StreetRecordRef::record': 0,
+    'mengplaz::StreetRecordRef::score': 0,
     'mengplaz::POIRecord::uid': 0,
     'mengplaz::POIRecord::number': 0,
     'mengplaz::POIRecord::postcode': 0,

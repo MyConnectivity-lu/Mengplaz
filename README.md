@@ -12,7 +12,12 @@ https://app.mengplaz.lu/
     - `edi` are all modules and functions to connect to external sources
     - `model` contains the definition of stored types and functions
     - `services` are utility services
-- `frontend` contain all the frontend-remated files
+- `app` contains the frontend:
+    - `lib` holds the shared modules: the GreyCat session gate (`gc.ts`), the `GcPage` base class, MPA routing with the legacy `?page=` shim, theme tokens and formatting helpers
+    - `components` holds the shared `mp-*` Lit components (app shell, tables, panels, address card, comparison views, dialogs)
+    - `pages` holds one directory per page, each an MPA entry point; the map lives at the root and is served at `/`
+    - `public` holds static assets served as-is, including `login.html`
+- `e2e` contains the Playwright suite
 - `package.json` defines the dependencies required by the frontend
 - `project.gcl` is the entrypoint for GreyCat and backend
 

@@ -125,7 +125,7 @@ type OsmAddress extends POIRecordProvider {
         var lat = elem.get("lat") as float?;
         var lon = elem.get("lon") as float?;
 
-        if (kind == "way") {
+        if (kind == "way" || kind == "relation") {
             lat = elem.get("center")?.get("lat") as float;
             lon = elem.get("center")?.get("lon") as float;
         }

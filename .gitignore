@@ -12,3 +12,7 @@ backup/
 /.vite/
 test
 .playwright*/
+.playwright-mcp/
+/test-results/
+/playwright-report/
+/e2e/.auth/

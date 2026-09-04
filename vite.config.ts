@@ -1,35 +1,40 @@
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, relative, resolve } from 'node:path';
+import { globSync } from 'node:fs';
 import { defineConfig } from 'vite-plus';
 import greycat from '@greycat/web/vite-plugin';
 
-const root = resolve('frontend');
+const APP = resolve('app');
+const PAGES_ROOT = resolve('app/pages');
+
+// One entry per MPA page: every app/pages/**/index.html is a page.
+const pages = globSync('**/index.html', { cwd: PAGES_ROOT }).map((p) => resolve(PAGES_ROOT, p));
 
 export default defineConfig({
   plugins: [greycat()],
   base: './', // makes generated urls relative to each file
-  appType: 'spa',
-  root: root,
+  appType: 'mpa',
+  root: PAGES_ROOT,
   resolve: {
     alias: {
       // matches the `paths` definitions in `tsconfig.json`
-      '~': root,
+      '~': APP,
     },
   },
-  publicDir: resolve('frontend', 'public'),
+  publicDir: resolve('app/public'),
   fmt: {
     // carried over from the former .prettierrc — oxfmt is prettier-compatible
     singleQuote: true,
     semi: true,
     trailingComma: 'all',
     tabWidth: 2,
-    printWidth: 150,
+    printWidth: 120,
     // build output, generated types, static assets and prose are not ours to format
-    ignorePatterns: ['webroot', 'gcdata', 'project.d.ts', 'frontend/public', '**/*.md'],
+    ignorePatterns: ['webroot', 'gcdata', 'project.d.ts', 'app/public', '**/*.md'],
   },
   lint: {
     // Only app source is type-aware linted; webroot is build output and the
     // config files use the Node environment (matches the tsconfig include).
-    ignorePatterns: ['webroot', 'gcdata', 'vite.config.ts'],
+    ignorePatterns: ['webroot', 'gcdata', 'vite.config.ts', 'playwright.config.ts'],
     plugins: ['unicorn', 'typescript', 'oxc'],
     rules: {
       'no-console': 'warn',
@@ -50,26 +55,17 @@ export default defineConfig({
   },
   build: {
     outDir: resolve('webroot'),
+    // webroot/ also holds the GreyCat explorer, which is not ours to delete.
+    emptyOutDir: false,
     target: 'esnext',
     rollupOptions: {
-      input: resolve('frontend', 'index.html'),
+      input: pages,
       output: {
-        entryFileNames: (chunk) => {
-          let dir = dirname(chunk.facadeModuleId!.slice(root.length + 1));
-          let name;
-          if (dir === '.') {
-            dir = '.';
-            name = 'index';
-          } else {
-            name = basename(dir);
-          }
-          return join(dir, `${name}.js`);
-        },
+        entryFileNames: (chunk) =>
+          chunk.facadeModuleId ? `assets/${pageName(chunk.facadeModuleId)}.js` : 'assets/[name].js',
         chunkFileNames: 'assets/[name].js',
         assetFileNames: 'assets/[name].[ext]',
         // rolldown's replacement for rollup's object-form `manualChunks`.
-        // `includeDependenciesRecursively` keeps the SDK's own deps (shoelace,
-        // echarts, d3) in the greycat chunk, the way `manualChunks` did.
         codeSplitting: {
           includeDependenciesRecursively: true,
           groups: [{ name: 'greycat', test: /[\\/]@greycat[\\/]web[\\/]/ }],
@@ -78,3 +74,16 @@ export default defineConfig({
     },
   },
 });
+
+// A page's chunk is named after its directory, since every page module is an
+// index.ts. The page at the root of PAGES_ROOT keeps the name "index".
+function pageName(moduleId: string): string {
+  const dir = dirname(moduleId);
+  if (dir === PAGES_ROOT) {
+    return 'index';
+  }
+  if (!relative(PAGES_ROOT, dir).startsWith('..')) {
+    return basename(dir);
+  }
+  return basename(moduleId).replace(/\.[^.]+$/, '');
+}

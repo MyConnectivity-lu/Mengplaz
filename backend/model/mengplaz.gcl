@@ -177,6 +177,7 @@ type ReconciliationReport {
 type StreetRecordRef {
     ref: node<StreetRecordProvider>;
     record: StreetRecord;
+    score: float;
 }
 
 @volatile

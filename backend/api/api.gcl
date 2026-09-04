@@ -7,25 +7,35 @@ fn getPoisInStreet(e: node<StreetRecordProvider>): Array<POIRecordRef> {
     return pois;
 }
 
+
 @expose
 @permission("public")
 fn searchStreet(e: String): Array<StreetRecordRef> {
+    // What the search page is willing to render.
+    var maxResults = 30;
+
     var ts = Traffic_Service::start(searchStreet);
-    var threshold = 0.7;
-    var searchResults = GoldenServices::searchStreet(e, threshold, null);
     var res = Array<StreetRecordRef> {};
-    var c = 0;
-    for (_, i in searchResults) {
-        //pprint(i);
-        res.add(StreetRecordRef {
-            ref: i.elem,
-            record: i.elem->toRecord(),
-        });
-        c++;
-        if (c > 50) {
-            break;
+    var query = e.trim().lowercase();
+
+    if (query.size() > 0) {
+        var ranked = Array<Match<Array<node<GoldenStreet>>>> {};
+        for (name, streets in golden_streets_by_name) {
+            var score = GoldenServices::computeStreetScoreGlobal(query, name);
+            ranked.add(Match<Array<node<GoldenStreet>>> { score: score, elem: streets });
+        }
+        ranked.sort_by(Match::score, SortOrder::desc);
+
+        for (_, m in ranked) {
+            for (_, nStreet in m.elem) {
+                res.add(StreetRecordRef { ref: nStreet, record: nStreet->toRecord(), score: m.score });
+            }
+            if (res.size() > maxResults) {
+                break;
+            }
         }
     }
+
     ts.end();
     return res;
 }
