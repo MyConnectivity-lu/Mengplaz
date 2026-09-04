@@ -33,16 +33,27 @@ fn main() {
 fn bootstrap() {
     createAdmin();
 
-    // loadCaclr();
-    // loadBda();
-    // loadOsm();
-
     GoldenSource::init();
 
     try {
         BackupImporter::importAll();
     } catch (err) {
         error("Restore From Backup Failed : ${err.message}");
+    }
+
+    // A missing or empty files/backup leaves the graph untouched, and a restore that threw
+    // half way may have written nothing at all. Either way a fresh install must not end up
+    // with an empty store, so fall back to the live sources. Same order as the restore's
+    // dependency chain: CACLR, then BDA, then OSM. Each load* catches its own failure, so one
+    // unreachable source does not stop the others.
+    if (BackupImporter::isGraphEmpty()) {
+        warn("Backup restored nothing: loading from the live sources instead.");
+        CaclrSource::init();
+        updateCACLR();
+        BDAddressSource::init();
+        updateBDA();
+        OsmSource::init();
+        updateOSM();
     }
 }
 

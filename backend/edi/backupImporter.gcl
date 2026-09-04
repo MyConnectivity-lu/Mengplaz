@@ -58,11 +58,12 @@ abstract type BackupImporter {
     // Empty graph guard
     // -----------------------------------------------------------------------
 
-    /// Throws unless every data root is empty, listing what was found.
+    /// Every data root that holds records, as "name=size, name=size". Empty string when the
+    /// graph holds no data at all.
     ///
-    /// `sources_by_name` is deliberately not checked: `bootstrap()` initialises the sources
+    /// `sources_by_name` is deliberately not counted: `bootstrap()` initialises the sources
     /// before restoring, and `importSources()` is keyed by source name anyway.
-    static fn assertGraphIsEmpty() {
+    static fn graphContents(): String {
         var found = "";
         found = BackupImporter::appendIfFilled(found, "caclr_consistuency_by_code", caclr_consistuency_by_code.size());
         found = BackupImporter::appendIfFilled(found, "caclr_cantons_by_id", caclr_cantons_by_id.size());
@@ -89,7 +90,18 @@ abstract type BackupImporter {
         found = BackupImporter::appendIfFilled(found, "golden_streets_by_id", golden_streets_by_id.size());
         found = BackupImporter::appendIfFilled(found, "golden_pois_by_id", golden_pois_by_id.size());
 
+        return found;
+    }
 
+    /// True when not a single data root holds a record: a fresh store, or a restore that had
+    /// nothing to read. `bootstrap()` uses it to decide whether to fall back to the loaders.
+    static fn isGraphEmpty(): bool {
+        return BackupImporter::graphContents() == "";
+    }
+
+    /// Throws unless every data root is empty, listing what was found.
+    static fn assertGraphIsEmpty() {
+        var found = BackupImporter::graphContents();
         if (found != "") {
             throw "Restore refused: the graph is not empty (${found}). Stop the server, remove the gcdata directory, run 'greycat build', then restore again.";
         }
