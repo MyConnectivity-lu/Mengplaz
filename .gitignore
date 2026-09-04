@@ -16,3 +16,5 @@ test
 /test-results/
 /playwright-report/
 /e2e/.auth/
+superpowers
+project.gcp
