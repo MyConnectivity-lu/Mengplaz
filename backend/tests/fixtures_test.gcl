@@ -9,7 +9,6 @@
 /// be there for the next — and the reconciliation search walks `golden_cities_by_id`
 /// globally, so a leftover city changes another test's candidate list. `reset()` is
 /// cheaper and far more legible than making every assertion tolerant of leftovers.
-
 /// Monotonic counter behind `nextId()`, so ids are unique across a whole run.
 var fixture_seq: node<int?>;
 
@@ -71,6 +70,7 @@ fn reset() {
 
     source_address_indexes.removeAll();
     golden_address_index.set(null);
+    golden_street_index.set(null);
 }
 
 /// Registers all four sources, so `computeQuality` sees the production weight total
@@ -197,9 +197,7 @@ fn osmAddress(
     var cityKey = cityName.lowercase();
     var nCity = osm_cities_by_name.get(cityKey);
     if (nCity == null) {
-        nCity = node<OsmCity> {
-            OsmCity { name: cityName, streets_by_name: nodeIndex<String, node<OsmStreet>> {} }
-        };
+        nCity = node<OsmCity> { OsmCity { name: cityName, streets_by_name: nodeIndex<String, node<OsmStreet>> {} } };
         nCity->indexing(nCity);
     }
 

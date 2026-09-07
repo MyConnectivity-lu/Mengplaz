@@ -16,27 +16,20 @@ fn searchStreet(e: String): Array<StreetRecordRef> {
 
     var ts = Traffic_Service::start(searchStreet);
     var res = Array<StreetRecordRef> {};
-    var query = e.trim().lowercase();
+    var query = e.trim();
 
     if (query.size() > 0) {
-        // Names too far from the query never enter the ranking - a search that matches nothing
-        // must answer with nothing rather than with the thirty least-bad names in the country.
-        var threshold = 0.5;
-        var ranked = Array<Match<Array<node<GoldenStreet>>>> {};
-        for (name, streets in golden_streets_by_name) {
-            var score = GoldenServices::computeStreetScoreGlobal(query, name);
-            if (score >= threshold) {
-                ranked.add(Match<Array<node<GoldenStreet>>> { score: score, elem: streets });
-            }
-        }
-        ranked.sort_by(Match::score, SortOrder::desc);
-
-        for (_, m in ranked) {
-            if (res.size() > maxResults) {
-                break;
-            }
-            for (_, nStreet in m.elem) {
-                res.add(StreetRecordRef { ref: nStreet, record: nStreet->toRecord(), score: m.score });
+        // Rebuild-only, so an unbuilt index warns and returns nothing rather than throwing -
+        // the search page degrades to "No matching streets", as `searchAddress` does.
+        var idx = GoldenStreetSearch::ready();
+        if (idx == null) {
+            warn("searchStreet: golden street index not built - run `greycat run buildGoldenStreetIndex`");
+        } else {
+            for (_, hit in GoldenStreetSearch::search(idx, query, maxResults)) {
+                var nStreet = GoldenStreetSearch::resolveOne(hit);
+                if (nStreet != null) {
+                    res.add(StreetRecordRef { ref: nStreet, record: nStreet->toRecord(), score: hit.score });
+                }
             }
         }
     }

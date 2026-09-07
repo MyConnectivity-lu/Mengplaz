@@ -72,6 +72,8 @@ fn updateCACLR() {
         info("${c} Addresses marked as deprecated");
     }
 
+    info("Updating golden street index");
+    buildGoldenStreetIndex();
     s->lastUpdate == time::now();
     info("Caclr Update finished");
 }

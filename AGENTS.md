@@ -63,6 +63,14 @@ Read the relevant one before touching scoring, linking, or quality code.
   `ReconciliationReport`) stay non-volatile.
 - **Backend logging uses the logger, not `println`.** `info()` / `warn()` / `error()`, so output
   carries a level and lands in the server log. Reserve `println` for a deliberate CLI dump.
+- **Comment sparingly - only where the code cannot speak for itself.** Default to none. Earn a
+  comment by explaining a *why* the reader cannot recover from the code: a non-obvious choice
+  between alternatives, a constraint imposed from outside, a trap that looks like a bug. Never
+  restate what the next line does, never narrate a function's steps, never doc-comment a name
+  that already says it (`ready()`, `docText()`, a stats struct's fields). Some older files in
+  this repo are heavily commented - do not take them as the target. Keep it to a couple of lines
+  where it is needed at all; if a comment is growing into paragraphs, the design or the naming is
+  what wants fixing. Longer background belongs in `docs/`, not inline.
 - **Call the SDK directly; never wrap it.** Reach the backend with `gc.<module>.<fn>(...)` and type
   against the generated `gc.<module>.<Type>` from `project.d.ts`. No `api.ts`, no typed-call
   wrappers, no hand-written mirrors of response types. The runtime `gc.*` bindings are built during
@@ -180,7 +188,12 @@ The e2e suite signs in as an admin, so create its user once before running (whil
 the `gcdata/` lock):
 
     bin/greycat run runtime::Identity::create e2e admin
-    bin/greycat run runtime::Identity::set_password e2e e2e-password
+    bin/greycat run runtime::Identity::set_password e2e \
+        $(printf 'e2e-password' | sha256sum | cut -d' ' -f1)
+
+`set_password` stores the string verbatim, and `login.html` sends `sha256hex(password)` - so the
+hash is what has to be stored. Passing the plaintext leaves every sign-in rejected and the whole
+admin project skipped behind a failed `auth.setup.ts`.
 
 Override with `E2E_USER` / `E2E_PASSWORD`, and the port with `E2E_PORT`. Playwright starts
 `bin/greycat serve` itself and serves the **prebuilt** `webroot/`, so run `pnpm build` first

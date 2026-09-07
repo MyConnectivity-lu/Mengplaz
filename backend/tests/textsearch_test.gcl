@@ -17,7 +17,6 @@
 /// (`GREYCAT_POSTAL_DATA_DIR`, `./files/postal-data` here). That directory is not in the
 /// repository, so those tests announce themselves as skipped rather than failing a checkout
 /// that has not downloaded it — `setup()` probes once and the rest read the flag.
-
 /// Whether libpostal answered the probe in `setup()`.
 var postal_ready: node<bool?>;
 
@@ -387,10 +386,7 @@ fn appendingASmallBatchAddsToTheLiveSourceIndex() {
     buildSourceTextIndex(OsmSource::NAME);
 
     var nNew = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
-    var added = SourceTextSearch::appendAll(
-        fixtures_test::osmSource(),
-        Array<node<POIRecordProvider>> { nNew }
-    );
+    var added = SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<POIRecordProvider>> { nNew });
 
     Assert::equals(added, 1);
     var results = api::searchAddress("14 Rue de la Gare, 1234 Gasperich", 5, OsmSource::NAME);
@@ -472,7 +468,14 @@ fn goldenWithLinkedRecordsGroupsTheCorroboratingRowsBySource() {
     var nGolden = seedGolden();
     var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", here());
     var nBda = fixtures_test::bdaAddress(
-        "GP-1", 900, "12A", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+        "GP-1",
+        900,
+        "12A",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        here()
     );
     privateApi::linkRecords(nOsm, nGolden, null);
     privateApi::linkRecords(nBda, nGolden, null);
@@ -494,4 +497,159 @@ fn goldenWithLinkedRecordsReturnsNullWhenNothingMatches() {
     fixtures_test::reset();
     fixtures_test::seedSources();
     Assert::isNull(api::getGoldenWithLinkedRecords("nowhere at all"));
+}
+
+// ---------------------------------------------- the golden STREET index (no libpostal)
+
+/// Three streets across two localities, one of them elided.
+fn seedStreets(): node<GoldenCity> {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenStreet(nCity, "Rue de l'Eglise");
+    fixtures_test::goldenStreet(fixtures_test::goldenCity("Wiltz", "Wiltz"), "Rue de la Gare");
+    return nCity;
+}
+
+/// Whether any hit resolves to a street with this exact name.
+fn hasStreetNamed(hits: Array<TextResult>, name: String): bool {
+    for (_, hit in hits) {
+        var nStreet = GoldenStreetSearch::resolveOne(hit);
+        if (nStreet != null && nStreet->name == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+@test
+fn theStreetIndexNeedsNoLibpostal() {
+    // Why this index is a plain `TextIndex` and not an `AddressIndex`: the street box must
+    // work on a checkout with no model directory. Every test below would be a skip otherwise.
+    seedStreets();
+    Assert::equals(buildGoldenStreetIndex(), 3);
+
+    var stats = goldenStreetIndexStats();
+    Assert::isTrue(stats.built);
+    Assert::equals(stats.docs, 3);
+    Assert::isTrue(stats.terms > 0);
+}
+
+@test
+fn theStreetDocumentCarriesTheNameTheAliasesAndTheCity() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    nStreet->nameAliases.add(Alias { id: "de", value: "Bahnhofstrooss" });
+
+    Assert::equals(GoldenStreetSearch::docText(nStreet), "Rue de la Gare Bahnhofstrooss Wiltz");
+}
+
+@test
+fn aStreetIsFoundByItsAlias() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    nStreet->nameAliases.add(Alias { id: "de", value: "Bahnhofstrooss" });
+    buildGoldenStreetIndex();
+
+    var idx = GoldenStreetSearch::require();
+    Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "bahnhofstrooss", 5), "Rue de la Gare"));
+}
+
+@test
+fn frenchElisionSplitsIntoItsOwnTokenRatherThanFusing() {
+    // What `address()` buys over a generic preset: the apostrophe is a separator, so
+    // "Rue de l'Eglise" indexes "eglise", not "leglise".
+    seedStreets();
+    buildGoldenStreetIndex();
+
+    var idx = GoldenStreetSearch::require();
+    Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "eglise", 5), "Rue de l'Eglise"));
+    Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "l'eglise", 5), "Rue de l'Eglise"));
+}
+
+@test
+fn theStreetIndexIsAccentInsensitive() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Gasperich"), "Rue de l'Église");
+    buildGoldenStreetIndex();
+
+    var idx = GoldenStreetSearch::require();
+    Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "eglise", 5), "Rue de l'Église"));
+}
+
+@test
+fn theCityNameRanksTheRightLocalityFirstWithoutFilteringTheOthersOut() {
+    // Why the city needs no weighted field of its own: it recurs across every street of that
+    // city, so IDF discounts it below the street tokens. It moves the rank, it does not gate.
+    seedStreets();
+    buildGoldenStreetIndex();
+
+    var idx = GoldenStreetSearch::require();
+    var hits = GoldenStreetSearch::search(idx, "rue de la gare wiltz", 10);
+    Assert::isTrue(hits.size() > 1);
+    Assert::equals(GoldenStreetSearch::resolveOne(hits[0])!!->city->name, "Wiltz");
+}
+
+@test
+fn anUnbuiltStreetIndexIsNotReady() {
+    // An index with no documents never reaches `built`, so `ready()` stays null and
+    // `require()` refuses rather than answering from an empty vocabulary.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    Assert::isNull(GoldenStreetSearch::ready());
+    Assert::isFalse(goldenStreetIndexStats().built);
+    Assert::equals(buildGoldenStreetIndex(), 0);
+    Assert::isNull(GoldenStreetSearch::ready());
+
+    var threw = false;
+    try {
+        GoldenStreetSearch::require();
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+@test
+fn aRenamedStreetIsOnlyPickedUpByARebuild() {
+    // Streets are only ever created in bulk, so there is no append hook: rebuild-only.
+    seedStreets();
+    buildGoldenStreetIndex();
+
+    var nStreet = fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Bonnevoie"), "Avenue Monterey");
+    var idx = GoldenStreetSearch::require();
+    Assert::isFalse(hasStreetNamed(GoldenStreetSearch::search(idx, "avenue monterey", 5), "Avenue Monterey"));
+
+    Assert::equals(buildGoldenStreetIndex(), 4);
+    Assert::isTrue(
+        hasStreetNamed(
+            GoldenStreetSearch::search(GoldenStreetSearch::require(), "avenue monterey", 5),
+            "Avenue Monterey"
+        )
+    );
+    Assert::isNotNull(nStreet);
+}
+
+@test
+fn aHitWhoseStreetHasDisappearedResolvesToNothing() {
+    // The index holds ids, not node references, so a dropped street leaves a hit that must be
+    // skipped rather than returned as a hole.
+    seedStreets();
+    buildGoldenStreetIndex();
+
+    var idx = GoldenStreetSearch::require();
+    var hits = GoldenStreetSearch::search(idx, "rue de la gare", 5);
+    Assert::isTrue(hits.size() > 0);
+
+    golden_streets_by_id.removeAll();
+    for (_, hit in hits) {
+        Assert::isNull(GoldenStreetSearch::resolveOne(hit));
+    }
 }

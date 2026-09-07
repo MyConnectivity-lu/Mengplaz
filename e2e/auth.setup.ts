@@ -5,7 +5,10 @@ import { expect, test as setup } from '@playwright/test';
 // reuses it via storageState. Create the user before the suite, with no server
 // holding the gcdata/ lock:
 //   bin/greycat run runtime::Identity::create e2e admin
-//   bin/greycat run runtime::Identity::set_password e2e e2e-password
+//   bin/greycat run runtime::Identity::set_password e2e \
+//       $(printf 'e2e-password' | sha256sum | cut -d' ' -f1)
+// The hash, not the plaintext: set_password stores the string verbatim and
+// login.html sends sha256hex(password), so a plaintext secret never matches.
 const AUTH_FILE = 'e2e/.auth/admin.json';
 const USER = process.env.E2E_USER ?? 'e2e';
 const PASSWORD = process.env.E2E_PASSWORD ?? 'e2e-password';
