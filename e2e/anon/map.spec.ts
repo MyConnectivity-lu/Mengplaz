@@ -12,7 +12,7 @@ test('the map canvas mounts at the site root', async ({ page }) => {
 test('the basemap can be switched to the orthophoto', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible({ timeout: 30_000 });
-  const select = page.locator('wa-select[label="Basemap"]');
+  const select = page.locator('.layer-control wa-select');
   await expect(select).toBeVisible();
   await select.click();
   await page.getByRole('option', { name: /orthophoto/i }).click();

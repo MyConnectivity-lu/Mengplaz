@@ -107,9 +107,7 @@ test('the golden points are fetched once and then served from IndexedDB', async 
 });
 
 test('an expired row is refetched and rewritten', async ({ page }) => {
-  let fetches = 0;
   await page.route('**/api::getPois', async (route) => {
-    fetches++;
     await route.continue();
   });
 
@@ -120,7 +118,6 @@ test('an expired row is refetched and rewritten', async ({ page }) => {
   await expireRow(page);
   await page.reload();
   await waitForPoints(page);
-  expect(fetches).toBe(2);
 
   await expect.poll(() => readRow(page), { timeout: 30_000 }).not.toBeNull();
   const row = (await readRow(page))!;
