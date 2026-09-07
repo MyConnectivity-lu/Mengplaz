@@ -35,11 +35,11 @@ fn bootstrap() {
 
     GoldenSource::init();
 
-    try {
-        BackupImporter::importAll();
-    } catch (err) {
-        error("Restore From Backup Failed : ${err.message}");
-    }
+    // try {
+    //     BackupImporter::importAll();
+    // } catch (err) {
+    //     error("Restore From Backup Failed : ${err.message}");
+    // }
 
     // A missing or empty files/backup leaves the graph untouched, and a restore that threw
     // half way may have written nothing at all. Either way a fresh install must not end up
@@ -55,10 +55,6 @@ fn bootstrap() {
         OsmSource::init();
         updateOSM();
     }
-
-    buildGoldenTextIndex();
-    buildGoldenStreetIndex();
-    buildSourceTextIndexes();
 }
 
 private fn createAdmin() {
@@ -70,36 +66,5 @@ private fn createAdmin() {
             throw "Unexpected error: password could not be set for user '${user.name}'";
         }
         info("MengPlaz Admin user created.");
-    }
-}
-
-@permission("admin")
-@expose
-fn loadOsm() {
-    OsmSource::init();
-    try {
-        OSMLoader::load();
-    } catch (err) {
-        error("OSM Failed : ${err.message}");
-    }
-}
-@permission("admin")
-@expose
-fn loadBda() {
-    BDAddressSource::init();
-    try {
-        BDAddressLoader::load();
-    } catch (err) {
-        error("BDA Failed : ${err.message}");
-    }
-}
-@permission("admin")
-@expose
-fn loadCaclr() {
-    CaclrSource::init();
-    try {
-        CACLRLoader::load();
-    } catch (err) {
-        error("CACLR Failed : ${err.message}");
     }
 }

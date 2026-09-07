@@ -44,6 +44,20 @@ fn updateCACLR() {
             toPromote.add(record);
         }
     }
+
+    if (golden_pois_by_id.size() == 0) {
+        // Empty Golden index, we are in a fresh bootstrap promote all CACLR to golden
+        for (record: node<CaclrBuilding>, _ in report->unlinked) {
+            toPromote.add(record);
+        }
+    } else {
+        for (record: node<CaclrBuilding>, _ in report->unlinked) {
+            if (record->validityStartDate > lastT || record->lastUpdate > lastT) {
+                toPromote.add(record);
+            }
+        }
+    }
+
     info("Found ${toPromote.size()} Records to promote");
 
     for (_, record in toPromote) {
@@ -59,7 +73,7 @@ fn updateCACLR() {
         }
     }
 
-    //TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
+    // TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
     // Don't execute if loadBuilding failed
     var c = 0;
     if (errored == false) {
@@ -71,10 +85,14 @@ fn updateCACLR() {
         }
         info("${c} Addresses marked as deprecated");
     }
-
-    info("Updating golden street index");
-    buildGoldenStreetIndex();
     s->lastUpdate == time::now();
+
+    info("Updating Golden street index");
+    buildGoldenStreetIndex();
+    info("Updating Golden address index");
+    buildGoldenTextIndex();
+    info("Updating CACLR address index");
+    buildSourceTextIndex(CaclrSource::NAME);
     info("Caclr Update finished");
 }
 
@@ -116,10 +134,12 @@ fn updateBDA() {
 
     // Loop all unlinked check if the caclr id is linked to a golden and automatically link
     var toLink = Array<node<BDAddress>> {};
+    var ids = Array<String> {};
     for (record: node<BDAddress>, _ in report->unlinked) {
         var caclrRecord = caclr_buildings_by_id.get("${record->id_caclr}");
         if (caclrRecord != null && caclrRecord->getLinkedGolden() != null) {
             toLink.add(record);
+            ids.add(record->getId());
         }
     }
 
@@ -129,6 +149,7 @@ fn updateBDA() {
             linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
         }
     }
+    mergePositionsToGolden(s, ids);
     info("Linked ${toLink.size()} Records");
 
     var c = 0;
@@ -141,6 +162,9 @@ fn updateBDA() {
     info("${c} Addresses marked as deprecated");
 
     s->lastUpdate == time::now();
+
+    info("Updating BDA address index");
+    buildSourceTextIndex(BDAddressSource::NAME);
 
     info("BDA import finished");
 }
@@ -185,10 +209,12 @@ fn updateOSM() {
 
     // Loop all unlinked check if the caclr id is linked to a golden and automatically link
     var toLink = Array<node<OsmAddress>> {};
+    var ids = Array<String> {};
     for (record: node<OsmAddress>, _ in report->unlinked) {
         var caclrRecord = caclr_buildings_by_id.get("${record->ref_caclr}");
         if (caclrRecord != null && caclrRecord->getLinkedGolden() != null) {
             toLink.add(record);
+            ids.add(record->getId());
         }
     }
 
@@ -198,6 +224,9 @@ fn updateOSM() {
             linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
         }
     }
+
+    mergePositionsToGolden(s, ids);
+
     info("Linked ${toLink.size()} Records");
 
     var c = 0;
@@ -210,6 +239,9 @@ fn updateOSM() {
     info("${c} Addresses marked as deprecated");
 
     s->lastUpdate == time::now();
+
+    info("Updating OSM address index");
+    buildSourceTextIndex(OsmSource::NAME);
 
     info("OSM import finished");
 }
