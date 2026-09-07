@@ -6,11 +6,11 @@ import { AttributionControl } from 'maplibre-gl';
 import maplibreCss from 'maplibre-gl/dist/maplibre-gl.css?inline';
 import '@awesome.me/webawesome/dist/components/select/select.js';
 import '@awesome.me/webawesome/dist/components/option/option.js';
-import '@awesome.me/webawesome/dist/components/callout/callout.js';
 import { initMode } from '~/lib/theme';
 import { colorForSource } from '~/lib/format';
 import { redirectLegacy } from '~/lib/routing';
 import { GcPage } from '~/lib/gc-page';
+import { idbGet, idbSet, ONE_DAY_MS } from '~/lib/idb-cache';
 import {
   GEOPORTAIL_STYLE,
   LUXEMBOURG_BOUNDS,
@@ -41,6 +41,49 @@ interface PoiFeature {
   type: 'Feature';
   geometry: { type: 'Point'; coordinates: [number, number] };
   properties: { streetNumber: string | null; coords: string };
+}
+
+/** Where the golden point set lives in the IndexedDB cache. */
+const POIS_KEY = 'map:pois';
+
+/**
+ * The golden point set as stored: four parallel arrays rather than an array of
+ * nested feature objects. There are on the order of 100k points, and the
+ * browser's structured clone walks every object it is handed - typed arrays
+ * cross into and out of IndexedDB in one copy, feature objects do not.
+ */
+interface PoiColumns {
+  /** Morton-encoded `geo` values, as read off the wire (unsigned 64-bit). */
+  coords: BigUint64Array;
+  lng: Float64Array;
+  lat: Float64Array;
+  numbers: string[];
+}
+
+function packPois(points: gc.api.POIFeatures[]): PoiColumns {
+  const size = points.length;
+  const coords = new BigUint64Array(size);
+  const lng = new Float64Array(size);
+  const lat = new Float64Array(size);
+  const numbers: string[] = [];
+  for (let i = 0; i < size; i++) {
+    const point = points[i];
+    // Decode once: `point.coords.lat` and `.lng` Morton-decode separately.
+    const [pointLat, pointLng] = point.coords.latlng;
+    coords[i] = point.coords.value;
+    lng[i] = pointLng;
+    lat[i] = pointLat;
+    numbers.push(point.number);
+  }
+  return { coords, lng, lat, numbers };
+}
+
+function toFeatures(columns: PoiColumns): PoiFeature[] {
+  return columns.numbers.map((streetNumber, i) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [columns.lng[i], columns.lat[i]] },
+    properties: { streetNumber, coords: columns.coords[i].toString() },
+  }));
 }
 
 /**
@@ -86,12 +129,21 @@ export class MengplazIndexPage extends GcPage {
         width: 250px;
         max-width: calc(100% - 1rem);
       }
+      /* Sits over the map tiles, so it paints an opaque ground of its own: dark
+         panel with light text in dark mode, and the inverse in light mode. */
       .notice {
         position: absolute;
         top: 0.5rem;
         right: 0.5rem;
         z-index: 10;
         max-width: 300px;
+        background: var(--gc-surface);
+        color: var(--gc-text);
+        border: 1px solid var(--gc-border);
+        border-radius: var(--gc-radius);
+        box-shadow: var(--gc-shadow);
+        padding: 0.5rem 0.75rem;
+        font-size: var(--wa-font-size-s);
       }
       .error {
         color: var(--gc-bad);
@@ -120,7 +172,7 @@ export class MengplazIndexPage extends GcPage {
       .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
         border-top-color: var(--gc-surface);
       }
-      .maplibregl-ctrl maplibregl-ctrl-attrib maplibregl-compact maplibregl-compact-show{
+      .maplibregl-ctrl maplibregl-ctrl-attrib maplibregl-compact maplibregl-compact-show {
         z-index: 999;
       }
     `,
@@ -265,9 +317,11 @@ export class MengplazIndexPage extends GcPage {
   }
 
   /**
-   * Load every golden point once and cache it on `window`: the payload is large
-   * and unchanging within a session, and re-fetching it on every visit to the
-   * map made navigation feel slow.
+   * Load every golden point once and keep it in IndexedDB for a day.
+   *
+   * The payload is large and barely moves day to day, and this is an MPA - an
+   * in-memory memo is dropped by the first navigation away from the map, so
+   * every return trip paid for the full fetch again.
    */
   private async updatePOIs() {
     const map = this.map;
@@ -277,20 +331,17 @@ export class MengplazIndexPage extends GcPage {
     const attribution = map._controls.find((c) => c instanceof AttributionControl);
     attribution?._updateCompactMinimize();
 
-    const cache = window as unknown as { _gc_pois?: PoiFeature[] };
-    let features = cache._gc_pois;
-    if (!features) {
-      const points = await gc.api.getPois();
-      features = points.map<PoiFeature>((p) => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [p.coords.lng, p.coords.lat] },
-        properties: { streetNumber: p.number, coords: p.coords.value.toString() },
-      }));
-      cache._gc_pois = features;
+    // A miss here is also what an expired, unavailable or unreadable cache
+    // looks like, so the fetch below is the answer to all four.
+    let columns = await idbGet<PoiColumns>(POIS_KEY);
+    if (!columns) {
+      columns = packPois(await gc.api.getPois());
+      // Not awaited: the map has no reason to wait on the write.
+      void idbSet(POIS_KEY, columns, ONE_DAY_MS);
     }
     void (map.getSource('points') as maplibregl.GeoJSONSource).setData({
       type: 'FeatureCollection',
-      features,
+      features: toFeatures(columns),
     });
   }
 
@@ -334,10 +385,7 @@ export class MengplazIndexPage extends GcPage {
               <wa-option value="ortho">Geoportail Orthophoto 2025</wa-option>
             </wa-select>
           </div>
-          ${this.pointsLoading
-        ? html`<div class="notice"><wa-callout variant="brand">Loading map data</wa-callout></div>`
-        : ''
-      }
+          ${this.pointsLoading ? html`<div class="notice">Loading map data</div>` : ''}
           <div class="map"></div>
         </div>
       </mengplaz-app-shell>
