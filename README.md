@@ -65,7 +65,7 @@ Otherwise `npm install -g pnpm`, or the standalone installers:
 ```sh
 greycat install                    # backend deps + the pinned greycat binary into bin/
 ./scripts/download-postal-data.sh  # libpostal models, once per machine (see below)
-greycat run bootstrap              # create the admin user and initialize the database
+greycat run bootstrap              # create the admin user and initialize the database may take a few minutes
 pnpm i                             # frontend deps
 pnpm run gen                       # greycat codegen -> project.d.ts
 pnpm build                         # build app/ into webroot/
@@ -74,6 +74,10 @@ greycat dev                        # API + frontend on http://localhost:8080
 
 `greycat dev` serves the API and the frontend together: frontend changes need a page reload, backend
 changes need a restart. Use `greycat serve` to serve the prebuilt `webroot/` without the watcher.
+
+`greycat run bootstrap` restores from `./backup` when one is there, and otherwise falls back to the
+live sources - which needs **CACLR API credentials**. They are also required for every later data
+refresh. See [CACLR API credentials](#caclr-api-credentials).
 
 #### Windows specifics
 
@@ -113,10 +117,10 @@ The file should be placed at the root of the project.
 | GREYCAT_STORE           | Size  (in Mb) max of GreyCat metadata file. Grows with the data. 1Gb if not specified.                                                                                                                           | 100                 |
 | GREYCAT_USER            | Executes all functions as the specified user ID. With ID=1, executes all as root (shuts off all security). <!> For Development easiness only <!>                                                                 | 1                   |
 | GREYCAT_WORKERS         | Sets the maximum number of parallel workers of GreyCat. Linked to the CACHE size, workers share the cache equaly, each should have a decent amount of cache to work                                              | 4                   |
-|                         |                                                                                                                                                                                                                  |
-| CACLR_API_CLIENT_ID     | ClientID to connect to CACLR datasource                                                                                                                                                                          | String              |
-| CACLR_API_CLIENT_SECRET | Client Secret to connect to CACLR datasource                                                                                                                                                                     | String              |
-|                         |                                                                                                                                                                                                                  |
+|                         |                                                                                                                                                                                                                  |                     |
+| CACLR_API_CLIENT_ID     | Client ID for the CACLR datasource. **Required** - see [CACLR API credentials](#caclr-api-credentials).                                                                                                          | String              |
+| CACLR_API_CLIENT_SECRET | Client secret for the CACLR datasource. **Required** - see [CACLR API credentials](#caclr-api-credentials).                                                                                                      | String              |
+|                         |                                                                                                                                                                                                                  |                     |
 | MENGPLAZ_ADMIN_LOGIN    | Login of first administrator                                                                                                                                                                                     | String              |
 | MENGPLAZ_ADMIN_PASS     | Pass of first administrator, SHA256 encoded                                                                                                                                                                      | String              |
 |                         |                                                                                                                                                                                                                  |                     |
@@ -183,6 +187,25 @@ tar -zxf libpostal_data.tar.gz && tar -zxf language_classifier.tar.gz && tar -zx
 rm -f ./*.tar.gz
 ```
 
+### CACLR API credentials
+
+CACLR - the national street and address register - is the authoritative source MengPlaz reconciles
+everything else against. The project therefore **requires a CACLR API client id and secret**.
+
+Declare them in `.env` at the project root:
+
+```bash, .env
+CACLR_API_CLIENT_ID=xxxx
+CACLR_API_CLIENT_SECRET=xxxx
+```
+
+Without them every CACLR call throws `No credentials provided to conect to CACLR source.`, which
+means:
+
+- `greycat run bootstrap` on a store with no `./backup` to restore from ends up with no CACLR data -
+  and since BDA and OSM records are reconciled onto the CACLR skeleton, effectively no golden
+  records either.
+
 ### Backend
 
 The backend runs with GreyCat, installed as described in [Local development](#local-development).
@@ -198,7 +221,7 @@ The frontend is build with pure WebComponents (no framework). An SDK must be gen
 
 1. `pnpm i` to install the frontend depenedencies
 2. `greycat codegen` or `pnpm run gen` to generate the TypeScript typing file
-3. `pnpm run dev` to lauch the development server of the fronten.
+3. `pnpm run dev` to lauch the development server of the frontend.
 
 ### Production builds
 
@@ -213,7 +236,7 @@ Folders and files that can be safely deleted:
 - `gcdata` => hosts the files of the database. <!> This removes all data, and you'll need `greycat run bootstrap` to re-initialize the DB <!>
 - `lib` => hosts GreyCat libs, run `greycat install` to restore.
 - `node_modules` working forlder to the frontened packaging system. Can be restored with `pnpm i`
-- `webroot` contains the production versions of frontend tools. Can be restires with `greycat install` and `pnpm build`
+- `webroot` contains the production versions of frontend tools. Can be restored with `pnpm build`
 - `project.gcp` is the compiled version of the backend program. Can be restored with `greycat build`
 
 

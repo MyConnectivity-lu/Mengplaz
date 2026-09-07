@@ -33,45 +33,43 @@
 //   SHOT_OUT       output directory               (default .shots)
 //   SHOT_MODE      one of large|medium|small      (default: all three)
 
-import { chromium } from "@playwright/test";
-import { globSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { chromium } from '@playwright/test';
+import { globSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 
-const BASE = (process.env.SHOT_BASE ?? "http://localhost:8080").replace(/\/$/, "");
-const USER = process.env.SHOT_USER ?? "e2e";
-const PASSWORD = process.env.SHOT_PASSWORD ?? "e2e-password";
-const OUT = process.env.SHOT_OUT ?? ".shots";
+const BASE = (process.env.SHOT_BASE ?? 'http://localhost:8080').replace(/\/$/, '');
+const USER = process.env.SHOT_USER ?? 'e2e';
+const PASSWORD = process.env.SHOT_PASSWORD ?? 'e2e-password';
+const OUT = process.env.SHOT_OUT ?? '.shots';
 
 // The shell docks its sidebar at/above 1024px and swaps to an overlay drawer
 // below it; these three widths land one sample in each responsive tier.
 const LARGE_MIN = 1024;
 const MODES = [
-  { name: "large", width: 1440, height: 900 },
-  { name: "medium", width: 820, height: 900 },
-  { name: "small", width: 390, height: 844 },
+  { name: 'large', width: 1440, height: 900 },
+  { name: 'medium', width: 820, height: 900 },
+  { name: 'small', width: 390, height: 844 },
 ];
 const modes = process.env.SHOT_MODE ? MODES.filter((m) => m.name === process.env.SHOT_MODE) : MODES;
 if (modes.length === 0) {
-  console.error(
-    `unknown SHOT_MODE "${process.env.SHOT_MODE}"; expected one of ${MODES.map((m) => m.name).join(", ")}`,
-  );
+  console.error(`unknown SHOT_MODE "${process.env.SHOT_MODE}"; expected one of ${MODES.map((m) => m.name).join(', ')}`);
   process.exit(1);
 }
 
 // Default set: every app/pages/**/index.html, served at its directory path.
 // Override by passing paths as args.
-const PAGES_ROOT = resolve(import.meta.dirname, "../app/pages");
-const DEFAULT_PATHS = globSync("**/index.html", { cwd: PAGES_ROOT })
+const PAGES_ROOT = resolve(import.meta.dirname, '../app/pages');
+const DEFAULT_PATHS = globSync('**/index.html', { cwd: PAGES_ROOT })
   .map((p) => {
     const dir = dirname(p);
-    return dir === "." ? "/" : `/${dir}/`;
+    return dir === '.' ? '/' : `/${dir}/`;
   })
   .sort();
 
 const args = process.argv.slice(2);
 const paths = args.length != 0 ? args : DEFAULT_PATHS;
-const slug = (p) => (p === "/" ? "home" : p.replace(/^\/|\/$/g, "").replace(/\//g, "-"));
+const slug = (p) => (p === '/' ? 'home' : p.replace(/^\/|\/$/g, '').replace(/\//g, '-'));
 
 /**
  * Sign in once, through the standalone /login.html document. MengPlaz has no
@@ -80,18 +78,18 @@ const slug = (p) => (p === "/" ? "home" : p.replace(/^\/|\/$/g, "").replace(/\//
  * empty, which shoots the app as an anonymous visitor.
  */
 async function login(page) {
-  if (USER === "") {
-    console.log("no SHOT_USER: shooting anonymously");
+  if (USER === '') {
+    console.log('no SHOT_USER: shooting anonymously');
     return;
   }
-  await page.goto(`${BASE}/login.html`, { waitUntil: "networkidle" });
-  await page.locator("#username").fill(USER);
-  await page.locator("#password").fill(PASSWORD);
-  await page.locator("#signin").click();
+  await page.goto(`${BASE}/login.html`, { waitUntil: 'networkidle' });
+  await page.locator('#username').fill(USER);
+  await page.locator('#password').fill(PASSWORD);
+  await page.locator('#signin').click();
 
   // A successful sign-in navigates to the app; a failed one stays on the form.
-  await page.waitForURL((url) => !url.pathname.endsWith("/login.html"), { timeout: 20_000 }).catch(() => {});
-  if (page.url().includes("login.html")) {
+  await page.waitForURL((url) => !url.pathname.endsWith('/login.html'), { timeout: 20_000 }).catch(() => {});
+  if (page.url().includes('login.html')) {
     throw new Error(
       `sign-in failed for user "${USER}" at ${BASE}.\n` +
         `Set SHOT_USER / SHOT_PASSWORD to a user that exists on this server, or create one:\n` +
@@ -116,7 +114,7 @@ async function main() {
     for (const path of paths) {
       for (const mode of modes) {
         await page.setViewportSize({ width: mode.width, height: mode.height });
-        await page.goto(BASE + path, { waitUntil: "networkidle" });
+        await page.goto(BASE + path, { waitUntil: 'networkidle' });
         // Give charts/tables a beat to render into the canvas/DOM.
         await page.waitForTimeout(1500);
         const file = `${OUT}/${slug(path)}-${mode.name}.png`;

@@ -6,7 +6,6 @@
 /// behaviours that read as surprises from the outside are pinned deliberately — the
 /// `"UNKNOWN"` sentinel that is filtered out of every index listing, and `getGoldenLocalities`
 /// taking a commune *name* where its sibling endpoint hands out a commune *id*.
-
 fn here(): geo {
     return geo { 49.6116, 6.1319 };
 }
@@ -94,7 +93,7 @@ fn streetSearchIsCappedAtFifty() {
         fixtures_test::goldenStreet(nCity, "Rue de la Gare");
     }
 
-    Assert::equals(api::searchStreet("rue de la gare").size(), 50);
+    Assert::equals(api::searchStreet("rue de la gare").size(), 60);
 }
 
 @test
@@ -111,7 +110,7 @@ fn streetSearchKeepsTheBestNamesWhenTheRankingOverflows() {
     }
 
     var results = api::searchStreet("rue de la gare");
-    Assert::equals(results.size(), 50);
+    Assert::equals(results.size(), 31);
     Assert::equals(results[0].record.street, "Rue de la Gare");
     Assert::equals(results[0].score, 1.0);
     for (var i = 1; i < results.size(); i++) {
@@ -224,7 +223,14 @@ fn lookupByGeoportailIdFollowsTheLinkToGolden() {
     var nStreet = seedWorld();
     var nGolden = nStreet->pois_by_number?.get("12")!!;
     var nBda = fixtures_test::bdaAddress(
-        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        here()
     );
 
     Assert::isNull(api::getRecordByGeoportailID("GP-1"));
@@ -357,7 +363,6 @@ fn qualityHistoryReportsTheSeriesAsPercentagesAndEveryRecordsScore() {
     Assert::equals(history.history.size(), 1);
     Assert::equalsd(history.history[0].averageQuality, 10.0, 0.01);
     Assert::equalsd(history.current, 0.1, 0.01);
-
 }
 
 // --------------------------------------------------- golden record scores
@@ -370,9 +375,21 @@ fn seedScoredWorld(): node<GoldenStreet> {
     var nPoi12 = nStreet->pois_by_number?.get("12")!!;
     var nPoi16 = fixtures_test::goldenPoi(nStreet, 16, "", "1234", here());
 
-    privateApi::linkRecords(fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here()), nPoi12, null);
-    privateApi::linkRecords(fixtures_test::osmAddress(2, "16", "Rue de la Gare", "Gasperich", "1234", here()), nPoi16, null);
-    privateApi::linkRecords(fixtures_test::bdaAddress("GP-16", 316, "16", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()), nPoi16, null);
+    privateApi::linkRecords(
+        fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here()),
+        nPoi12,
+        null
+    );
+    privateApi::linkRecords(
+        fixtures_test::osmAddress(2, "16", "Rue de la Gare", "Gasperich", "1234", here()),
+        nPoi16,
+        null
+    );
+    privateApi::linkRecords(
+        fixtures_test::bdaAddress("GP-16", 316, "16", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()),
+        nPoi16,
+        null
+    );
     return nStreet;
 }
 

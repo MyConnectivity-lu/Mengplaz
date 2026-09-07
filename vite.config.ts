@@ -29,12 +29,12 @@ export default defineConfig({
     tabWidth: 2,
     printWidth: 120,
     // build output, generated types, static assets and prose are not ours to format
-    ignorePatterns: ['webroot', 'gcdata', 'project.d.ts', 'app/public', '**/*.md'],
+    ignorePatterns: ['webroot', 'gcdata', 'project.d.ts', 'app/public', '**/*.md', 'scripts'],
   },
   lint: {
     // Only app source is type-aware linted; webroot is build output and the
     // config files use the Node environment (matches the tsconfig include).
-    ignorePatterns: ['webroot', 'gcdata', 'vite.config.ts', 'playwright.config.ts'],
+    ignorePatterns: ['webroot', 'gcdata', 'vite.config.ts', 'playwright.config.ts', 'scripts'],
     plugins: ['unicorn', 'typescript', 'oxc'],
     rules: {
       'no-console': 'warn',

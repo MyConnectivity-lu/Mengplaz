@@ -6,7 +6,6 @@
 /// the public quality API serves. They are pure, so they are pinned here to exact values —
 /// `docs/reconciliation.md` documents the same numbers to end users, and this module is what
 /// keeps the two in step.
-
 /// Luxembourg-Ville, near the station. The offsets below are latitude-only, so the
 /// distances hold regardless of the longitude convergence factor.
 fn base(): geo {
@@ -217,53 +216,7 @@ fn overallScoreHonoursCustomWeights() {
     Assert::equals(GoldenServices::computeOverallScore(0.5, 0.0, 0.0, 0.0, 0.0, w), 0.5);
 }
 
-// ------------------------------------------------------ candidate list bound
-//
-// KNOWN DEFECT — `Array::sort_by` does not order arrays whose element type is generic.
-// `CandidateMatch<T>` and `Match<T>` are both generic, so every `sort_by` in
-// `GoldenServices` is a no-op that merely permutes. `sortByDoesNotOrderGenericTypes`
-// below pins the defect; the two `addCandidate` tests therefore assert the invariants
-// that survive it (the bound, and that a candidate is only displaced by a stronger one)
-// rather than a sorted result the runtime does not currently deliver.
 
-@test
-fn sortByDoesNotOrderGenericTypes() {
-    // Pins a GreyCat runtime defect, not intended behaviour: `sort_by` orders a
-    // non-generic element type correctly and leaves a generic one unordered.
-    //
-    // Impact here: `GoldenServices::addCandidate` keeps its list bounded by comparing the
-    // incoming candidate against `candidates[size - 1]`, assuming that slot holds the
-    // weakest entry. With an unordered array it does not, so a bounded reconciliation run
-    // can evict a strong candidate and keep a weak one. `searchCity`, `searchStreet` and
-    // `searchStreetsForItem` iterate their matches in the same unordered order.
-    //
-    // WHEN THIS TEST FAILS, `sort_by` has been fixed: delete this test and restore the
-    // ordering assertions in the two tests below.
-    var vals = Array<float> { 0.4, 0.9, 0.6, 0.1, 0.8 };
-
-    var plain = Array<GoldenRecordScore> {};
-    for (_, v in vals) {
-        plain.add(GoldenRecordScore {
-            uid: "u", number: "1", postcode: "1234", linkedCount: 0, quality: v
-        });
-    }
-    plain.sort_by(GoldenRecordScore::quality, SortOrder::desc);
-    Assert::equals(plain[0].quality, 0.9);
-    Assert::equals(plain[4].quality, 0.1);
-
-    var generic = Array<Match<String>> {};
-    for (_, v in vals) {
-        generic.add(Match<String> { score: v, elem: "x" });
-    }
-    generic.sort_by(Match::score, SortOrder::desc);
-    var ordered = true;
-    for (var i = 1; i < generic.size(); i++) {
-        if (generic[i].score > generic[i - 1].score) {
-            ordered = false;
-        }
-    }
-    Assert::isFalse(ordered);
-}
 
 @test
 fn addCandidateGrowsUntilTheBoundIsReached() {

@@ -19,19 +19,24 @@ fn searchStreet(e: String): Array<StreetRecordRef> {
     var query = e.trim().lowercase();
 
     if (query.size() > 0) {
+        // Names too far from the query never enter the ranking - a search that matches nothing
+        // must answer with nothing rather than with the thirty least-bad names in the country.
+        var threshold = 0.5;
         var ranked = Array<Match<Array<node<GoldenStreet>>>> {};
         for (name, streets in golden_streets_by_name) {
             var score = GoldenServices::computeStreetScoreGlobal(query, name);
-            ranked.add(Match<Array<node<GoldenStreet>>> { score: score, elem: streets });
+            if (score >= threshold) {
+                ranked.add(Match<Array<node<GoldenStreet>>> { score: score, elem: streets });
+            }
         }
         ranked.sort_by(Match::score, SortOrder::desc);
 
         for (_, m in ranked) {
-            for (_, nStreet in m.elem) {
-                res.add(StreetRecordRef { ref: nStreet, record: nStreet->toRecord(), score: m.score });
-            }
             if (res.size() > maxResults) {
                 break;
+            }
+            for (_, nStreet in m.elem) {
+                res.add(StreetRecordRef { ref: nStreet, record: nStreet->toRecord(), score: m.score });
             }
         }
     }
