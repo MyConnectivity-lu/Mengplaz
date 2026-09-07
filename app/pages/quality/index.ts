@@ -4,6 +4,7 @@ import '@awesome.me/webawesome/dist/components/spinner/spinner.js';
 import { initMode } from '~/lib/theme';
 import { GcPage } from '~/lib/gc-page';
 import { recordHref } from '~/lib/routing';
+import { formatNumber } from '~/lib/format';
 import type { Column } from '~/lib/columns';
 import type { EChartsOption } from '~/lib/echarts';
 import '~/components/mengplaz-app-shell';
@@ -82,6 +83,11 @@ export class MengplazQualityPage extends GcPage {
     mp-data-table a,
     mp-virtual-table a {
       color: var(--gc-accent);
+    }
+    .pcount {
+      font-family: var(--gc-mono);
+      font-size: var(--wa-font-size-xs);
+      color: var(--gc-muted);
     }
   `;
 
@@ -188,6 +194,7 @@ export class MengplazQualityPage extends GcPage {
                   </mp-panel>
 
                   <mp-panel heading="Golden Records">
+                    <span slot="actions" class="pcount">${formatNumber(this.total)} records</span>
                     <mp-virtual-table
                       .columns=${COLUMNS}
                       .rows=${this.rows}
