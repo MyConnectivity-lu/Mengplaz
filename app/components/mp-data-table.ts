@@ -31,6 +31,7 @@ export class MpDataTable extends LitElement {
     }
     table {
       width: 100%;
+      min-width: var(--mp-table-min-width, 0);
       border-collapse: collapse;
       table-layout: fixed;
       font-size: var(--wa-font-size-s);

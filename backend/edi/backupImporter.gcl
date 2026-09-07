@@ -48,6 +48,7 @@ abstract type BackupImporter {
         info("Restore: golden streets=${BackupImporter::importGoldenStreets()}");
         info("Restore: golden POIs=${BackupImporter::importGoldenPois()}");
         info("Restore: golden quality history=${BackupImporter::importGoldenQualityHistory()}");
+        info("Restore: source count history=${BackupImporter::importSourceCountHistory(null)}");
 
         info("Restore: traffic=${BackupImporter::importTraffic()}");
 
@@ -336,6 +337,7 @@ abstract type BackupImporter {
                     lastUpdate: l.lastUpdate,
                     street: nStreet,
                     lastSeenAt: l.lastSeenAt,
+                    createdAt: l.createdAt,
                     deprecated: l.deprecated
                 }
             };
@@ -480,6 +482,7 @@ abstract type BackupImporter {
                     city: nCity,
                     municipatlity: nMunicipality,
                     lastSeenAt: l.lastSeenAt,
+                    createdAt: l.createdAt,
                     deprecated: l.deprecated
                 }
             };
@@ -565,6 +568,7 @@ abstract type BackupImporter {
                     kind: l.kind,
                     streetRef: nStreetRef,
                     lastSeenAt: l.lastSeenAt,
+                    createdAt: l.createdAt,
                     deprecated: l.deprecated
                 }
             };
@@ -771,6 +775,7 @@ abstract type BackupImporter {
                     primaryLocation: l.primaryLocation,
                     secondaryLocations: l.secondaryLocations,
                     lastUpdate: l.lastUpdate,
+                    createdAt: l.createdAt,
                     street: nStreet,
                     linkedRecords: Array<LinkedRecordEntry> {},
                     quality: nodeTime<QualityEvent> {}
@@ -864,6 +869,33 @@ abstract type BackupImporter {
             var l = fr.read();
             goldenSource.qualityHistory.setAt(l.t, l.score);
             count++;
+        }
+        return count;
+    }
+
+    static fn importSourceCountHistory(path: String?): int {
+        var target = path ?? BackupExporter::sourceCountHistoryPath;
+        // Absent from every backup written before this feature existed, so a missing file is
+        // the normal case on restore, not an error.
+        if (File::open(target) == null) {
+            return 0;
+        }
+        var fr = CsvReader<BkSourceCountHistoryDTO> { path: target, format: CsvFormat { header_lines: 1 } };
+        var count = 0;
+        var skipped = 0;
+        while (fr.can_read()) {
+            var l = fr.read();
+            var nSource = sources_by_name.get(l.sourceName);
+            if (nSource == null) {
+                skipped++;
+                continue;
+            }
+            var history = DataSource::countHistoryOrCreate(nSource);
+            history.setAt(l.t, SourceCountSnapshot { total: l.total, active: l.active, linked: l.linked });
+            count++;
+        }
+        if (skipped > 0) {
+            warn("Restore: ${skipped} count-history rows for unknown sources, skipped");
         }
         return count;
     }

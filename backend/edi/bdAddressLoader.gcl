@@ -19,7 +19,7 @@ type BDAddressLine {
 }
 
 abstract type BDAddressLoader {
-    static fn load() {
+    static fn load(): int {
         var total = 0;
         // Records created by this run, handed to the text index in one batch at the end.
         var newAddresses = Array<node<POIRecordProvider>> {};
@@ -93,13 +93,14 @@ abstract type BDAddressLoader {
                     street: nStreet,
                     city: nCity,
                     municipatlity: nMunicipality,
+                    createdAt: time::now(),
                 };
                 nAddress = node<BDAddress> { address };
                 nAddress->indexing(nAddress);
                 newAddresses.add(nAddress);
                 info("Created new address: ${record.numero} ${record.rue}, ${record.code_postal} ${record.localite}");
             }
-            nAddress->lastSeenAt = time::now();
+            nAddress->markSeen();
 
             total++;
         }
@@ -111,5 +112,6 @@ abstract type BDAddressLoader {
         }
 
         info("Processed ${total} records.");
+        return total;
     }
 }

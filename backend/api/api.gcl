@@ -572,4 +572,9 @@ fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
 
 @expose
 @permission("public")
-fn publicStats() {}
+fn getSourceStats(from: time?, to: time?): SourceStats {
+    var ts = Traffic_Service::start(getSourceStats);
+    var stats = StatsService::build(from, to);
+    ts.end();
+    return stats;
+}

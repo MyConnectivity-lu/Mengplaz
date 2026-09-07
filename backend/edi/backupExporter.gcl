@@ -95,6 +95,7 @@ type BkGoldenPoiDTO {
     secondaryLocations: Map<String, geo>;
     streetId: String?;
     lastUpdate: time;
+    createdAt: time?;
 
     linkedRecords: Array<BkGoldenLinkedRecordDTO>?;
 
@@ -105,6 +106,15 @@ type BkGoldenPoiDTO {
 type BkGoldenQualityHistoryDTO {
     t: time;
     score: float;
+}
+
+@volatile
+type BkSourceCountHistoryDTO {
+    sourceName: String;
+    t: time;
+    total: int;
+    active: int;
+    linked: int;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,6 +198,7 @@ type BkCaclrBuildingDTO {
     streetId: String?;
     goldenUid: String?;
     lastSeenAt: time?;
+    createdAt: time?;
     deprecated: bool?;
 }
 
@@ -227,6 +238,7 @@ type BkBdaAddressDTO {
     municipalityName: String;
     goldenUid: String?;
     lastSeenAt: time?;
+    createdAt: time?;
     deprecated: bool?;
 }
 
@@ -260,6 +272,7 @@ type BkOsmAddressDTO {
     streetRefCity: String?;
     goldenUid: String?;
     lastSeenAt: time?;
+    createdAt: time?;
     deprecated: bool?;
 }
 
@@ -333,6 +346,7 @@ abstract type BackupExporter {
     static osmPartialAddressPath: String = "files/backup/osm_partial_address.ndjson";
 
     static sourcePath: String = "files/backup/sources.csv";
+    static sourceCountHistoryPath: String = "files/backup/source_count_history.csv";
     static trafficPath: String = "files/backup/traffic.csv";
     static manifestPath: String = "files/backup/manifest.csv";
 
@@ -371,6 +385,10 @@ abstract type BackupExporter {
         manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenStreetPath, records: BackupExporter::exportGoldenStreets() });
         manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenPoiPath, records: BackupExporter::exportGoldenPois() });
         manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenQualityHistoryPath, records: BackupExporter::exportGoldenQualityHistory() });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::sourceCountHistoryPath,
+            records: BackupExporter::exportSourceCountHistory(null)
+        });
 
         var fw = CsvWriter<BkManifestEntryDTO> { path: BackupExporter::manifestPath, format: CsvFormat { header_lines: 1 } };
         var total = 0;
@@ -523,6 +541,7 @@ abstract type BackupExporter {
                 secondaryLocations: nPOI->secondaryLocations,
                 streetId: nPOI->street?->id,
                 lastUpdate: nPOI->lastUpdate,
+                createdAt: nPOI->createdAt,
                 linkedRecords: linkedRecords,
                 quality: quality
             });
@@ -549,6 +568,33 @@ abstract type BackupExporter {
                     fw.write(BkGoldenQualityHistoryDTO { t: t, score: score });
                     count++;
                 }
+            }
+        }
+        fw.flush();
+        return count;
+    }
+
+    static fn exportSourceCountHistory(path: String?): int {
+        var target = path ?? BackupExporter::sourceCountHistoryPath;
+        var fw = CsvWriter<BkSourceCountHistoryDTO> { path: target, format: CsvFormat { header_lines: 1 } };
+        // Written explicitly so the file exists even when no source has a series yet:
+        // the automatic header is only emitted on the first `write()`.
+        fw.write_line("sourceName,t,total,active,linked");
+        var count = 0;
+        for (name, nSource in sources_by_name) {
+            var history = nSource->countHistory;
+            if (history == null) {
+                continue;
+            }
+            for (t, snapshot in history) {
+                fw.write(BkSourceCountHistoryDTO {
+                    sourceName: name,
+                    t: t,
+                    total: snapshot.total,
+                    active: snapshot.active,
+                    linked: snapshot.linked,
+                });
+                count++;
             }
         }
         fw.flush();
@@ -676,6 +722,7 @@ abstract type BackupExporter {
                 streetId: nBuilding->street?->id,
                 goldenUid: nBuilding->goldenRef?->uid,
                 lastSeenAt: nBuilding->lastSeenAt,
+                createdAt: nBuilding->createdAt,
                 deprecated: nBuilding->deprecated
             });
             count++;
@@ -757,6 +804,7 @@ abstract type BackupExporter {
                 municipalityName: nAddress->municipatlity->name,
                 goldenUid: nAddress->goldenRef?->uid,
                 lastSeenAt: nAddress->lastSeenAt,
+                createdAt: nAddress->createdAt,
                 deprecated: nAddress->deprecated
             });
             count++;
@@ -821,6 +869,7 @@ abstract type BackupExporter {
                 streetRefCity: nAddress->streetRef?->city->name,
                 goldenUid: nAddress->goldenRef?->uid,
                 lastSeenAt: nAddress->lastSeenAt,
+                createdAt: nAddress->createdAt,
                 deprecated: nAddress->deprecated
             });
             count++;

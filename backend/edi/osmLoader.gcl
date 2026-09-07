@@ -84,7 +84,8 @@ abstract type OSMLoader {
                                 ref_caclr: parsed.ref_caclr,
                                 building: parsed.building,
                                 streetRef: nStreet,
-                                kind: parsed.kind
+                                kind: parsed.kind,
+                                createdAt: time::now(),
                             }
                         };
                         nAddr->indexing(nAddr);
@@ -96,7 +97,7 @@ abstract type OSMLoader {
                     if (nAddr->kind == null && parsed.kind != null) {
                         nAddr->kind = parsed.kind;
                     }
-                    nAddr->lastSeenAt = time::now();
+                    nAddr->markSeen();
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
                     var addr = OsmPartialAddress::parse(elem);
@@ -116,6 +117,13 @@ abstract type OSMLoader {
             info("Parsed ${(osm_by_id).size()} addresses.");
             info("Parsed ${(osm_partial_by_id).size()} partial addresses.");
             // info("Issues ${issues}.");
+            // Overpass answers 200 with an empty `elements` array when it is overloaded. Read
+            // that as a failed load: a caller that took it for a good one would deprecate the
+            // whole index and write a false cliff into the append-only growth series.
+            if (elements.size() == 0) {
+                warn("Overpass returned 200 with no elements, treating as a failed load");
+                return false;
+            }
             return true;
         } else {
             error(response);

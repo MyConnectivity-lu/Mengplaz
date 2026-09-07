@@ -102,6 +102,8 @@ type OsmAddress extends POIRecordProvider {
 
     lastSeenAt: time?;
 
+    createdAt: time?;
+
     deprecated: bool?;
 
     private goldenRef: node<GoldenPointOfInterest>?;
@@ -181,7 +183,8 @@ type OsmAddress extends POIRecordProvider {
                 lastUpdate: time::now(),
                 linkedRecords: Array<LinkedRecordEntry> {},
                 street: nGoldenStreet,
-                quality: nodeTime<QualityEvent> {}
+                quality: nodeTime<QualityEvent> {},
+                createdAt: time::now(),
             }
         };
         nGoldenPOI->indexing(nGoldenPOI);
@@ -193,6 +196,19 @@ type OsmAddress extends POIRecordProvider {
 
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
+    }
+
+    fn isDeprecated(): bool {
+        return this.deprecated ?? false;
+    }
+
+    fn markSeen() {
+        this.lastSeenAt = time::now();
+        this.deprecated = false;
+    }
+
+    fn isLinked(): bool {
+        return this.getLinkedGolden() != null;
     }
 
     fn toFullRecord(): OSMFullRecord {

@@ -1,0 +1,421 @@
+/// Per-source record counting and the statistics endpoint.
+///
+/// The counts are recorded going forward, never reconstructed: no record type carries a
+/// creation date, and `lastSeenAt` is rewritten on every import, so it cannot tell a new
+/// record from a re-seen one. Everything here therefore tests what a snapshot *writes*,
+/// not what can be derived after the fact.
+@test
+fn linkedIsReadFromEachSourcesOwnSide() {
+    // A golden POI's `getLinkedGolden()` is null by definition, so "linked" has to mean
+    // "backed by at least one source record" on that side and "points at a golden" on the
+    // source side. Both readings answer the same question; neither works for both types.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", geo { 49.6116, 6.1319 });
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    Assert::isFalse(nOsm->isLinked());
+    Assert::isFalse(nGolden->isLinked());
+
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    Assert::isTrue(nOsm->isLinked());
+    Assert::isTrue(nGolden->isLinked());
+}
+
+@test
+fn deprecatedDefaultsToFalseAndGoldenIsNeverDeprecated() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    // `deprecated` is null until an import marks it; null must read as "not deprecated".
+    Assert::isFalse(nOsm->isDeprecated());
+    Assert::isFalse(nGolden->isDeprecated());
+
+    nOsm->deprecated = true;
+    Assert::isTrue(nOsm->isDeprecated());
+    // Golden has no `deprecated` attribute at all.
+    Assert::isFalse(nGolden->isDeprecated());
+}
+
+@test
+fn countRecordsSeparatesTotalActiveAndLinked() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", geo { 49.6116, 6.1319 });
+
+    var nLinked = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+    var nGone = fixtures_test::osmAddress(3, "16", "Rue de la Gare", "Gasperich", "1234", geo { 49.6118, 6.1319 });
+
+    privateApi::linkRecords(nLinked, nGolden, null);
+    nGone->deprecated = true;
+
+    var counts = DataSource::countRecords(fixtures_test::osmSource());
+    Assert::equals(counts.total, 3);
+    Assert::equals(counts.active, 2);
+    Assert::equals(counts.linked, 1);
+}
+
+@test
+fn recordCountsCreatesTheSeriesOnFirstWrite() {
+    // countHistory is nullable because the four DataSource objects in an existing store
+    // predate the field and every init() is guarded by `if (source == null)`, so nothing
+    // retrofits them. The series has to appear on first write instead.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nSource = fixtures_test::osmSource();
+
+    Assert::isNull(nSource->countHistory);
+
+    DataSource::recordCounts(nSource, SourceCountSnapshot { total: 7, active: 5, linked: 3 });
+
+    var history = nSource->countHistory;
+    Assert::isNotNull(history);
+    var last = history!!.last();
+    Assert::isNotNull(last);
+    Assert::equals(last!!.total, 7);
+    Assert::equals(last.active, 5);
+    Assert::equals(last.linked, 3);
+}
+
+@test
+fn recordCountsAppendsRatherThanReplaces() {
+    // Seeded at an explicit past timestamp rather than by a second recordCounts call:
+    // setAt overwrites on an exact-timestamp collision, and two back-to-back calls land on
+    // the same microsecond. Production writes a source once per import run, so what matters
+    // is appending to history that already exists.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nSource = fixtures_test::osmSource();
+
+    var history = nodeTime<SourceCountSnapshot> {};
+    history.setAt(time::parse("2026-01-01", null), SourceCountSnapshot { total: 1, active: 1, linked: 0 });
+    nSource->countHistory = history;
+
+    DataSource::recordCounts(nSource, SourceCountSnapshot { total: 2, active: 2, linked: 1 });
+
+    Assert::equals(nSource->countHistory.size(), 2);
+    Assert::equals(nSource->countHistory.last()!!.total, 2);
+}
+
+@test
+fn promotedGoldenRecordsAreStampedWithCreatedAt() {
+    // Existing records keep a null createdAt forever — there is nothing to backfill from.
+    // Only records created after this ships carry a date.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    var before = time::now();
+    privateApi::promoteRecord(nOsm, nStreet->id);
+
+    var nGolden = nOsm->getLinkedGolden()!!;
+    Assert::isNotNull(nGolden->createdAt);
+    Assert::isTrue(nGolden->createdAt!! >= before);
+}
+
+@test
+fn finalizeUpdateStampsLastUpdate() {
+    // Regression test for `s->lastUpdate == time::now()` — a comparison, not an
+    // assignment, so no scheduled import ever wrote lastUpdate and every run compared
+    // against the hardcoded 2025-12-15 fallback instead.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nSource = fixtures_test::osmSource();
+
+    Assert::isNull(nSource->lastUpdate);
+
+    var before = time::now();
+    StatsService::finalizeUpdate(nSource, true);
+
+    Assert::isNotNull(nSource->lastUpdate);
+    Assert::isTrue(nSource->lastUpdate!! >= before);
+}
+
+@test
+fn finalizeUpdateRecordsASnapshotOfTheSource() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    var nGone = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+    nGone->deprecated = true;
+
+    var nSource = fixtures_test::osmSource();
+    var written = StatsService::finalizeUpdate(nSource, true);
+
+    Assert::equals(written.total, 2);
+    Assert::equals(written.active, 1);
+    Assert::equals(nSource->countHistory!!.last()!!.total, 2);
+    Assert::equals(nSource->countHistory.last()!!.active, 1);
+}
+
+@test
+fn finalizeUpdateOnAFailedLoadLeavesLastUpdateNullButStillRecordsACount() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nSource = fixtures_test::osmSource();
+
+    StatsService::finalizeUpdate(nSource, false);
+
+    Assert::isNull(nSource->lastUpdate);
+    Assert::isNotNull(nSource->countHistory);
+}
+
+@test
+fn markSeenClearsDeprecatedAndAdvancesLastSeenAt() {
+    // osmLoader, caclrLoader and bdAddressLoader all call `markSeen()` on every record they
+    // still see, so a record deprecated during one missed run heals itself once the source
+    // reports it again. This pins `markSeen()`'s own contract - deleting either write inside
+    // it fails this test - which is the regression that actually matters; it cannot prove
+    // the loaders call it, since that needs a live network fetch.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    nOsm->deprecated = true;
+    var before = time::parse("2020-01-01", null);
+    nOsm->lastSeenAt = before;
+    Assert::isTrue(nOsm->isDeprecated());
+
+    nOsm->markSeen();
+
+    Assert::isFalse(nOsm->isDeprecated());
+    Assert::isTrue(nOsm->lastSeenAt > before);
+}
+
+@test
+fn theDailyQualityRunAlsoSnapshotsGolden() {
+    // Golden has no updateX to hang a snapshot off, so it rides the job that already
+    // walks every golden POI.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", geo { 49.6116, 6.1319 });
+    fixtures_test::goldenPoi(nStreet, 14, "", "1234", geo { 49.6117, 6.1319 });
+
+    privateApi::computeGlobalQuality();
+
+    var nGolden = sources_by_name.get(GoldenSource::NAME)!!;
+    var last = nGolden->countHistory!!.last();
+    Assert::isNotNull(last);
+    Assert::equals(last!!.total, 2);
+    // Golden carries no `deprecated` flag, so active is always the whole index.
+    Assert::equals(last.active, 2);
+    // Golden never imports, so the stats table's "Last import" column stays empty for it.
+    Assert::isNull(nGolden->lastUpdate);
+}
+
+@test
+fn countHistorySurvivesABackupRoundTrip() {
+    // bootstrap restores from ./backup, so a series that is not exported is wiped on
+    // every restore and never accumulates anything.
+    // A scratch path, never the real BackupExporter::sourceCountHistoryPath: from the
+    // first real exportAll() onward that file holds genuine, unreconstructable history,
+    // and greycat test is part of the definition of done.
+    var scratchPath = "files/backup/test_source_count_history.csv";
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nSource = fixtures_test::osmSource();
+    DataSource::recordCounts(nSource, SourceCountSnapshot { total: 11, active: 9, linked: 4 });
+    var t0 = fixtures_test::osmSource()->countHistory!!.lastTime()!!;
+    var exported = BackupExporter::exportSourceCountHistory(scratchPath);
+    Assert::equals(exported, 1);
+
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    Assert::isNull(fixtures_test::osmSource()->countHistory);
+
+    var imported = BackupImporter::importSourceCountHistory(scratchPath);
+    Assert::equals(imported, 1);
+
+    var last = fixtures_test::osmSource()->countHistory!!.last();
+    Assert::isNotNull(last);
+    Assert::equals(last!!.total, 11);
+    Assert::equals(last.active, 9);
+    Assert::equals(last.linked, 4);
+    Assert::equals(fixtures_test::osmSource()->countHistory!!.lastTime()!!, t0);
+
+    File::delete(scratchPath);
+}
+
+@test
+fn importSourceCountHistoryToleratesAMissingBackupFile() {
+    // source_count_history.csv is absent from every backup written before this feature
+    // existed, so a missing file on restore is the normal case, not an error.
+    var scratchPath = "files/backup/test_source_count_history.csv";
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    if (File::open(scratchPath) != null) {
+        File::delete(scratchPath);
+    }
+
+    var imported = BackupImporter::importSourceCountHistory(scratchPath);
+    Assert::equals(imported, 0);
+}
+
+@test
+fn sourceStatsReportsOneRowPerRegisteredSource() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    var nGone = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+    nGone->deprecated = true;
+    StatsService::finalizeUpdate(fixtures_test::osmSource(), true);
+
+    var stats = api::getSourceStats(null, null);
+    Assert::equals(stats.rows.size(), 4);
+
+    var osm: SourceStatsRow? = null;
+    for (_, row in stats.rows) {
+        if (row.source == OsmSource::NAME) {
+            osm = row;
+        }
+    }
+    Assert::isNotNull(osm);
+    Assert::equals(osm!!.total, 2);
+    Assert::equals(osm.active, 1);
+    Assert::equals(osm.linked, 0);
+    Assert::isNotNull(osm.asOf);
+}
+
+@test
+fn sourceStatsFallsBackToALiveCountBeforeTheFirstSnapshot() {
+    // On a store that has not run an import since this shipped, every countHistory is
+    // null. The table must still show something rather than four blank rows.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    var stats = api::getSourceStats(null, null);
+
+    for (_, row in stats.rows) {
+        if (row.source == OsmSource::NAME) {
+            Assert::equals(row.total, 1);
+            // Unknown, not zero: counting them means scanning the whole index.
+            Assert::isNull(row.active);
+            Assert::isNull(row.linked);
+            Assert::isNull(row.asOf);
+        }
+    }
+}
+
+@test
+fn sourceStatsSharesSumToOne() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
+        49.6116,
+        6.1319
+    });
+
+    var stats = api::getSourceStats(null, null);
+    var sum = 0.0;
+    for (_, row in stats.rows) {
+        sum = sum + row.share;
+    }
+    Assert::equalsd(sum, 1.0, 0.0001);
+}
+
+@test
+fn sourceStatsReturnsOneSeriesPerSourceWithHistory() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    DataSource::recordCounts(fixtures_test::osmSource(), SourceCountSnapshot { total: 3, active: 3, linked: 1 });
+
+    var stats = api::getSourceStats(null, null);
+
+    var osmSeries: SourceCountSeries? = null;
+    for (_, series in stats.series) {
+        if (series.source == OsmSource::NAME) {
+            osmSeries = series;
+        }
+    }
+    Assert::isNotNull(osmSeries);
+    Assert::equals(osmSeries!!.points.size(), 1);
+    Assert::equals(osmSeries.points[0].total, 3);
+}
+
+@test
+fn sourceStatsRowDistinguishesLastUpdateFromAsOf() {
+    // lastUpdate is the source's own import cutoff (null forever for Golden, which never
+    // imports); asOf is when the snapshot was counted. A failed load records a snapshot
+    // without advancing the cutoff, so the two must diverge here.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+
+    StatsService::finalizeUpdate(fixtures_test::osmSource(), false);
+
+    var stats = api::getSourceStats(null, null);
+    var osm: SourceStatsRow? = null;
+    for (_, row in stats.rows) {
+        if (row.source == OsmSource::NAME) {
+            osm = row;
+        }
+    }
+    Assert::isNotNull(osm);
+    Assert::isNull(osm!!.lastUpdate);
+    Assert::isNotNull(osm.asOf);
+}
+
+@test
+fn sourceStatsSeriesIsDownsampledAndRangeNarrows() {
+    // The one thing protecting this public, unauthenticated endpoint from an unbounded
+    // response is the MAX_POINTS cap on samplePoints; exercise it for real rather than
+    // with the single-point series every other test writes.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nSource = fixtures_test::osmSource();
+
+    var history = nodeTime<SourceCountSnapshot> {};
+    var t = time::parse("2020-01-01", null);
+    var i = 0;
+    while (i < 150) {
+        history.setAt(t, SourceCountSnapshot { total: i, active: i, linked: 0 });
+        t = t + 1hour;
+        i = i + 1;
+    }
+    nSource->countHistory = history;
+
+    var full = api::getSourceStats(null, null);
+    var fullSeries: SourceCountSeries? = null;
+    for (_, series in full.series) {
+        if (series.source == OsmSource::NAME) {
+            fullSeries = series;
+        }
+    }
+    Assert::isNotNull(fullSeries);
+    Assert::isTrue(fullSeries!!.points.size() <= StatsService::MAX_POINTS);
+
+    var windowStart = time::parse("2020-01-01", null);
+    var narrowed = api::getSourceStats(windowStart, windowStart + 5hour);
+    var narrowSeries: SourceCountSeries? = null;
+    for (_, series in narrowed.series) {
+        if (series.source == OsmSource::NAME) {
+            narrowSeries = series;
+        }
+    }
+    Assert::isNotNull(narrowSeries);
+    Assert::isTrue(narrowSeries!!.points.size() < fullSeries.points.size());
+}

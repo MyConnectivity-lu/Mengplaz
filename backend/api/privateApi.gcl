@@ -704,6 +704,39 @@ type GlobalQualityHistory {
     history: Array<GlobalQualityEntry>;
 }
 
+/// One source's headline figures, as `getSourceStats` hands them out. `active` and
+/// `linked` are null until the source has recorded its first snapshot: counting them
+/// live means walking the whole index, which a public endpoint must not do per request.
+@volatile
+type SourceStatsRow {
+    source: String;
+    total: int;
+    active: int?;
+    linked: int?;
+    share: float;
+    lastUpdate: time?;
+    asOf: time?;
+}
+
+@volatile
+type SourceCountPoint {
+    timestamp: time;
+    total: int;
+    active: int;
+}
+
+@volatile
+type SourceCountSeries {
+    source: String;
+    points: Array<SourceCountPoint>;
+}
+
+@volatile
+type SourceStats {
+    rows: Array<SourceStatsRow>;
+    series: Array<SourceCountSeries>;
+}
+
 /// One page of `GoldenRecordScore`, as `getGoldenRecordScores` hands it out: the golden
 /// index runs to six figures, so the scores table is read a page at a time rather than
 /// shipped whole with the quality history.
@@ -728,6 +761,10 @@ type GoldenRecordPage {
 fn computeGlobalQuality() {
     var ts = Traffic_Service::start(computeGlobalQuality);
     GoldenServices::computeAndRecordGlobalQuality();
+    var nGolden = sources_by_name.get(GoldenSource::NAME);
+    if (nGolden != null) {
+        DataSource::recordCounts(nGolden, DataSource::countRecords(nGolden));
+    }
     ts.end();
 }
 

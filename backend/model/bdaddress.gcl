@@ -90,6 +90,8 @@ type BDAddress extends POIRecordProvider {
 
     lastSeenAt: time?;
 
+    createdAt: time?;
+
     deprecated: bool?;
 
     fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
@@ -103,6 +105,20 @@ type BDAddress extends POIRecordProvider {
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return this.goldenRef;
     }
+
+    fn isDeprecated(): bool {
+        return this.deprecated ?? false;
+    }
+
+    fn markSeen() {
+        this.lastSeenAt = time::now();
+        this.deprecated = false;
+    }
+
+    fn isLinked(): bool {
+        return this.getLinkedGolden() != null;
+    }
+
     fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest> {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
@@ -128,7 +144,8 @@ type BDAddress extends POIRecordProvider {
                 lastUpdate: time::now(),
                 linkedRecords: Array<LinkedRecordEntry> {},
                 street: nGoldenStreet,
-                quality: nodeTime<QualityEvent> {}
+                quality: nodeTime<QualityEvent> {},
+                createdAt: time::now(),
             }
         };
         nGoldenPOI->indexing(nGoldenPOI);

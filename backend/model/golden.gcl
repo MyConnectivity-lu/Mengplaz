@@ -328,6 +328,8 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     lastUpdate: time;
 
+    createdAt: time?;
+
     street: node<GoldenStreet>?;
 
     linkedRecords: Array<LinkedRecordEntry>;
@@ -344,6 +346,14 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
         return null;
+    }
+
+    fn isDeprecated(): bool {
+        return false;
+    }
+
+    fn isLinked(): bool {
+        return this.linkedRecords.size() > 0;
     }
 
     fn toFullRecord(): any {

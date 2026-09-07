@@ -13,6 +13,14 @@ type QualityEvent {
     eventType: QualityEventType;
 }
 
+/// A source's record count at one instant. Persisted, not `@volatile`: it is what the
+/// growth series stores.
+type SourceCountSnapshot {
+    total: int;
+    active: int;
+    linked: int;
+}
+
 type LinkedRecordEntry {
     record: node<POIRecordProvider>;
     @precision(0.01)
@@ -26,6 +34,8 @@ abstract type DataSource {
 
     // Timestamp of last import
     lastUpdate: time?;
+
+    countHistory: nodeTime<SourceCountSnapshot>?;
 
     abstract fn name(): String;
     abstract fn getWeight(): float;
@@ -44,6 +54,35 @@ abstract type DataSource {
         max: int,
         distanceThreshold: int
     ): Array<ScoredPoi>;
+
+    static fn countRecords(nSource: node<DataSource>): SourceCountSnapshot {
+        var total = 0;
+        var active = 0;
+        var linked = 0;
+        for (_, nRecord in nSource->getIndex()) {
+            total++;
+            if (!nRecord->isDeprecated()) {
+                active++;
+            }
+            if (nRecord->isLinked()) {
+                linked++;
+            }
+        }
+        return SourceCountSnapshot { total: total, active: active, linked: linked };
+    }
+
+    static fn countHistoryOrCreate(nSource: node<DataSource>): nodeTime<SourceCountSnapshot> {
+        var history = nSource->countHistory;
+        if (history == null) {
+            history = nodeTime<SourceCountSnapshot> {};
+            nSource->countHistory = history;
+        }
+        return history;
+    }
+
+    static fn recordCounts(nSource: node<DataSource>, snapshot: SourceCountSnapshot) {
+        DataSource::countHistoryOrCreate(nSource).setAt(time::now(), snapshot);
+    }
 
     static fn reconcile(
         nSource: node<DataSource>,
@@ -215,6 +254,8 @@ abstract type POIRecordProvider {
     abstract fn linkToGolden(nGolden: node<GoldenPointOfInterest>);
     abstract fn unlinkGolden();
     abstract fn getLinkedGolden(): node<GoldenPointOfInterest>?;
+    abstract fn isDeprecated(): bool;
+    abstract fn isLinked(): bool;
     abstract fn toMengplazRecord(): POIRecord;
     abstract fn toFullRecord(): any;
     abstract fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest>;

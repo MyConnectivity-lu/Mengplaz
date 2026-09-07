@@ -566,6 +566,7 @@ abstract type CACLRLoader {
                                         validityEndDate: elem.validityEndDate,
                                         lastUpdate: elem.lastUpdate,
                                         street: nStreet,
+                                        createdAt: time::now(),
                                     }
                                 };
                                 result.add(nBuilding);
@@ -578,7 +579,7 @@ abstract type CACLRLoader {
                                     "Record has been updated. Not supported yet. Our record: ${*record}, New record: ${elem}"
                                 );
                             }
-                            record->lastSeenAt = time::now();
+                            record->markSeen();
                         }
                     }
                 } catch (err) {

@@ -37,14 +37,7 @@ fn updateCACLR() {
     }
 
     var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
-    // Verify if reconciled Record is unmatched and newer than lastUpdate
     var toPromote = Array<node<CaclrBuilding>> {};
-    for (record: node<CaclrBuilding>, _ in report->unlinked) {
-        if (record->validityStartDate > lastT || record->lastUpdate > lastT) {
-            toPromote.add(record);
-        }
-    }
-
     if (golden_pois_by_id.size() == 0) {
         // Empty Golden index, we are in a fresh bootstrap promote all CACLR to golden
         for (record: node<CaclrBuilding>, _ in report->unlinked) {
@@ -60,17 +53,27 @@ fn updateCACLR() {
 
     info("Found ${toPromote.size()} Records to promote");
 
+    var skipped = 0;
+    var failed = 0;
     for (_, record in toPromote) {
         try {
             if (record->street != null) {
                 var streetIdx = record->street->goldenStreet?.resolve().id;
                 if (streetIdx != null) {
                     promoteRecord(record, streetIdx);
+                } else {
+                    skipped++;
                 }
+            } else {
+                skipped++;
             }
         } catch (err) {
             error("Failed promoting ${record->id}  \n ${err}");
+            failed++;
         }
+    }
+    if (skipped + failed > 0) {
+        warn("Promotion: ${skipped} skipped (no golden street), ${failed} failed");
     }
 
     // TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
@@ -85,7 +88,7 @@ fn updateCACLR() {
         }
         info("${c} Addresses marked as deprecated");
     }
-    s->lastUpdate == time::now();
+    StatsService::finalizeUpdate(s, errored == false);
 
     info("Updating Golden street index");
     buildGoldenStreetIndex();
@@ -102,7 +105,7 @@ fn updateCACLR() {
 @expose
 fn updateBDA() {
     info("Started BDA Import");
-    BDAddressLoader::load();
+    var loaded = BDAddressLoader::load();
 
     // PostProcessing to handle new records
 
@@ -152,16 +155,20 @@ fn updateBDA() {
     mergePositionsToGolden(s, ids);
     info("Linked ${toLink.size()} Records");
 
+    // An empty CSV is indistinguishable from a good one until it is counted, and deprecating on
+    // it would flag the whole index. Same shape as updateCACLR's `errored` guard.
     var c = 0;
-    for (_, nRecord in bda_address_by_geoportalid) {
-        if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
-            nRecord->deprecated = true;
-            c++;
+    if (loaded > 0) {
+        for (_, nRecord in bda_address_by_geoportalid) {
+            if (nRecord->lastSeenAt == null || lastT > nRecord->lastSeenAt) {
+                nRecord->deprecated = true;
+                c++;
+            }
         }
+        info("${c} Addresses marked as deprecated");
     }
-    info("${c} Addresses marked as deprecated");
 
-    s->lastUpdate == time::now();
+    StatsService::finalizeUpdate(s, loaded > 0);
 
     info("Updating BDA address index");
     buildSourceTextIndex(BDAddressSource::NAME);
@@ -238,7 +245,7 @@ fn updateOSM() {
     }
     info("${c} Addresses marked as deprecated");
 
-    s->lastUpdate == time::now();
+    StatsService::finalizeUpdate(s, true);
 
     info("Updating OSM address index");
     buildSourceTextIndex(OsmSource::NAME);

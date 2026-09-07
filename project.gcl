@@ -13,9 +13,6 @@ fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
-    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions {
-        immediate: false
-    });
     Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 6 }, PeriodicOptions { immediate: false });
 
     Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 1 }, PeriodicOptions { immediate: false });
@@ -28,6 +25,9 @@ fn main() {
     Scheduler::add(updateCACLR, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
     Scheduler::add(updateBDA, DailyPeriodicity { hour: 23, minute: 15 }, PeriodicOptions { immediate: false });
     Scheduler::add(updateOSM, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
+    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions {
+        immediate: false
+    });
 }
 
 fn bootstrap() {

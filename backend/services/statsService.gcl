@@ -1,0 +1,94 @@
+type StatsService {
+    /// Closes out an import run: stamps the source's `lastUpdate`, counts its records and
+    /// appends the snapshot to its growth series. Extracted from the three `updateX`
+    /// functions, which call live external loaders and so cannot be exercised by the suite.
+    /// `lastUpdate` only advances when `loadSucceeded` - otherwise the next run's cutoff
+    /// would move past records the failed load never got to see.
+    static fn finalizeUpdate(nSource: node<DataSource>, loadSucceeded: bool): SourceCountSnapshot {
+        if (loadSucceeded) {
+            nSource->lastUpdate = time::now();
+        } else {
+            warn("${nSource->name()}: load failed, lastUpdate cutoff not advanced");
+        }
+        var snapshot = DataSource::countRecords(nSource);
+        DataSource::recordCounts(nSource, snapshot);
+        info("${nSource->name()}: ${snapshot.total} records (${snapshot.active} active, ${snapshot.linked} linked)");
+        return snapshot;
+    }
+
+    static MAX_POINTS: int = 100;
+
+    static fn build(from: time?, to: time?): SourceStats {
+        // Two passes: every row's share needs the grand total, which is only known once
+        // every source has been read.
+        var totals = Map<String, int> {};
+        var grandTotal = 0;
+        for (name, nSource in sources_by_name) {
+            var last = nSource->countHistory?.last();
+            var total = 0;
+            if (last == null) {
+                total = nSource->getIndex().size();
+            } else {
+                total = last.total;
+            }
+            totals.set(name, total);
+            grandTotal = grandTotal + total;
+        }
+
+        var rows = Array<SourceStatsRow> {};
+        var series = Array<SourceCountSeries> {};
+        for (name, nSource in sources_by_name) {
+            var last = nSource->countHistory?.last();
+            var total = totals.get(name) ?? 0;
+            var share = 0.0;
+            if (grandTotal > 0) {
+                share = total * 1.0 / grandTotal;
+            }
+
+            rows.add(SourceStatsRow {
+                source: name,
+                total: total,
+                active: last?.active,
+                linked: last?.linked,
+                share: share,
+                lastUpdate: nSource->lastUpdate,
+                asOf: nSource->countHistory?.lastTime(),
+            });
+
+            var history = nSource->countHistory;
+            if (history != null) {
+                series.add(SourceCountSeries { source: name, points: StatsService::samplePoints(history, from, to) });
+            }
+        }
+
+        return SourceStats { rows: rows, series: series };
+    }
+
+    /// Down-samples so the chart gets a bounded number of points whatever the requested
+    /// range — the same treatment `getGlobalQualityHistory` gives the quality series.
+    static fn samplePoints(history: nodeTime<SourceCountSnapshot>, from: time?, to: time?): Array<SourceCountPoint> {
+        var points = Array<SourceCountPoint> {};
+        var samples = nodeTime::sample(
+            Array<nodeTime> { history },
+            from,
+            to,
+            StatsService::MAX_POINTS,
+            SamplingMode::adaptative,
+            null,
+            null
+        );
+        for (var row = 0; row < samples.rows(); row++) {
+            var snapshot = samples.get_cell(row, 1);
+            if (snapshot == null) {
+                continue;
+            }
+            var s = snapshot as SourceCountSnapshot;
+            points.add(SourceCountPoint {
+                timestamp: samples.get_cell(row, 0) as time,
+                total: s.total,
+                active: s.active,
+            });
+        }
+        return points;
+    }
+}
