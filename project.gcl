@@ -1,6 +1,6 @@
 @include("backend");
 
-@library("std", "8.2.177-stable");
+@library("std", "8.2.179-stable");
 @library("explorer", "8.2.9-stable");
 @library("http", "8.2.13-stable");
 @library("postal", "8.2.47-dev");
