@@ -2,9 +2,9 @@
 
 @library("std", "8.2.179-stable");
 @library("explorer", "8.2.9-stable");
-@library("http", "8.2.13-stable");
-@library("postal", "8.2.47-dev");
-@library("text_search", "8.2.10-dev");
+@library("http", "8.3.3-dev");
+@library("postal", "8.3.9-dev");
+@library("text_search", "8.3.5-dev");
 
 @role("public", "api");
 
@@ -35,11 +35,11 @@ fn bootstrap() {
 
     GoldenSource::init();
 
-    // try {
-    //     BackupImporter::importAll();
-    // } catch (err) {
-    //     error("Restore From Backup Failed : ${err.message}");
-    // }
+    try {
+        BackupImporter::importAll();
+    } catch (err) {
+        error("Restore From Backup Failed : ${err.message}");
+    }
 
     // A missing or empty files/backup leaves the graph untouched, and a restore that threw
     // half way may have written nothing at all. Either way a fresh install must not end up
@@ -54,6 +54,13 @@ fn bootstrap() {
         updateBDA();
         OsmSource::init();
         updateOSM();
+    } else {
+        info("Updating Golden street index");
+        buildGoldenStreetIndex();
+        info("Updating Golden address index");
+        buildGoldenTextIndex();
+        info("Updating Sources address index");
+        buildSourceTextIndexes();
     }
 }
 
