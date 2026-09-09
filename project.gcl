@@ -2,9 +2,9 @@
 
 @library("std", "8.2.179-stable");
 @library("explorer", "8.2.9-stable");
-@library("http", "8.3.3-dev");
-@library("postal", "8.3.9-dev");
-@library("text_search", "8.3.5-dev");
+@library("http", "8.3.5-dev");
+@library("text_search", "8.3.8-dev");
+@library("postal", "8.3.26-dev");
 
 @role("public", "api");
 

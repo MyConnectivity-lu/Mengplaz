@@ -125,7 +125,11 @@ fn rank_of(idx: AddressIndex<String>, hits: Array<AddressSearchHit>, want: Strin
     for (var i = 0; i < hits.size(); i++) {
         var doc = idx.doc_of(hits[i]);
         if (doc != null) {
-            if (doc.raw.lowercase().contains(needle)) {
+            if (
+                "${doc.houseNumberText} ${doc.street}  ${doc.cityText}  ${doc.postalCodeText}  ${doc.country}"
+                    .lowercase()
+                    .contains(needle)
+            ) {
                 return i + 1;
             }
         }
