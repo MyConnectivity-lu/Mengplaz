@@ -66,7 +66,6 @@ type OsmPartialAddress {
     }
 }
 
-
 @volatile
 type OSMFullRecord {
     id: String;
@@ -188,8 +187,7 @@ type OsmAddress extends POIRecordProvider {
             }
         };
         nGoldenPOI->indexing(nGoldenPOI);
-        // Newly created, so there is no earlier document to retract: append it to the live
-        // text index instead of leaving it unsearchable until the nightly rebuild.
+        // Newly created, so there is no earlier document to retract.
         GoldenTextSearch::append(nGoldenPOI);
         return nGoldenPOI;
     }
@@ -300,7 +298,6 @@ type OsmSource extends DataSource {
     static WEIGHT: float = 2.0;
 
     static fn init() {
-        //Declare the source
         var source = sources_by_name.get(OsmSource::NAME);
         if (source == null) {
             var source = OsmSource { reconciliationReport: node<ReconciliationReport> {
@@ -321,8 +318,6 @@ type OsmSource extends DataSource {
     fn getReconciliationReport(): ReconciliationReport? {
         return *this.reconciliationReport;
     }
-
-    // fn search(req: SearchRequest): mengplaz::SearchResult {}
 
     fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
         return osm_by_id;

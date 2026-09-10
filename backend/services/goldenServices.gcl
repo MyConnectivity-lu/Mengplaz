@@ -20,7 +20,6 @@ type GoldenServices {
         if (geoDistance <= geoParams.minDistance) {
             return 1_f;
         }
-        // Decay from 1.0 to 0.0 between minDistance and maxDistance
         var effectiveDistance = geoDistance - geoParams.minDistance;
         var effectiveRange = geoParams.maxDistance - geoParams.minDistance;
         return pow(1 - (effectiveDistance / effectiveRange), 2.0);
@@ -130,9 +129,7 @@ type GoldenServices {
         return citiesMatches;
     }
 
-    /// Tries to find matches and computes similarity with street names.
-    /// If nCity is provided, restricts the search to the streets of the given city.
-    /// Otherwise, global search.
+    /// A null `nCity` searches every street rather than one city's.
     static fn searchStreet(
         streetName: String,
         threshold: float,
@@ -174,7 +171,6 @@ type GoldenServices {
         return streetsMatches;
     }
 
-    /// Adds a candidate to the bounded candidates list, keeping only the top maxCandidatesPerItem entries.
     static fn addCandidate(
         candidates: Array<CandidateMatch<node<POIRecordProvider>>>,
         candidate: CandidateMatch<node<POIRecordProvider>>,
@@ -190,9 +186,8 @@ type GoldenServices {
         candidates.sort_by(CandidateMatch::searchOverallScore, SortOrder::desc);
     }
 
-    /// Searches POIs for matches, populates candidates, and returns perfect matches.
-    /// If nStreet is provided, restricts the search to that street's POIs.
-    /// Otherwise, searches globally and computes city/street scores from each POI's own street.
+    /// Populates `candidates` and returns the perfect matches. A null `nStreet` searches
+    /// every POI and derives the city/street scores from each POI's own street.
     static fn searchPOIForItem(
         item: SearchItem,
         nStreet: node<GoldenStreet>?,
@@ -234,7 +229,6 @@ type GoldenServices {
             );
             var geoScore = GoldenServices::computeGeoScore(item.coordinates, nBuilding->primaryLocation, defGeoParams);
 
-            // Compute city/street scores: use provided values, or derive from the POI's street
             var cScore = cityScore ?? 0.0;
             var sScore = streetScore ?? 0.0;
             if (cityScore == null && nBuilding->street != null) {
@@ -290,8 +284,7 @@ type GoldenServices {
         return results;
     }
 
-    /// Searches streets and POIs within a city (or globally if nCity is null).
-    /// Returns a SearchResult if a perfect match is found, otherwise returns null and populates candidates.
+    /// Null unless a perfect match is found; `candidates` holds what was gathered either way.
     static fn searchStreetsForItem(
         nRecord: node<POIRecordProvider>,
         item: SearchItem,
@@ -345,10 +338,9 @@ type GoldenServices {
         var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
         var item = nRecord->toSearchItem();
 
-        // Search city first to scope street search
+        // City first, to scope the street search.
         var cityMatches = GoldenServices::searchCity(item.city, params.citySimilarityThreshold);
         if (cityMatches.size() == 0) {
-            // No city matches - do global street search
             var result = GoldenServices::searchStreetsForItem(nRecord, item, null, params, candidates);
             if (result != null) {
                 return result;
@@ -362,7 +354,6 @@ type GoldenServices {
             }
         }
 
-        // Deep search: global POI search when no street-level candidates found (heavy)
         if (params.deepSearch && candidates.size() == 0) {
             var perfectMatches = GoldenServices::searchPOIForItem(item, null, params, candidates, null, null);
             if (perfectMatches.size() > 0) {
@@ -373,7 +364,6 @@ type GoldenServices {
             }
         }
 
-        // Still no candidates - try geo-circle fallback
         if (candidates.size() == 0 && item.coordinates != null) {
             var defWeights = ScoringWeights::default();
             var defGeoParams = GeoParameters::default();
@@ -564,48 +554,10 @@ type GoldenServices {
                                 nGoldenStreet->caclrStreet = nStreet;
                                 info("New GoldenStreet added: id=${nGoldenStreet->id} name=${nGoldenStreet->name}");
                             }
-
-                            // for (buildingId, nBuilding in nStreet->buildings_by_id) {
-                            //     var newUID: String;
-                            //     do {
-                            //         newUID = GoldenServices::generateUID();
-                            //     } while (golden_pois_by_id.get(newUID) != null);
-
-                            //     var nGoldenPOI = node<GoldenPointOfInterest> {
-                            //         GoldenPointOfInterest {
-                            //             uid: newUID,
-                            //             number: nBuilding->number,
-                            //             multipleCode: nBuilding->multipleCode,
-                            //             postCode: nBuilding->postalCode,
-                            //             secondaryLocations: Map<String, geo> {},
-                            //             lastUpdate: nBuilding->lastUpdate,
-                            //             street: nGoldenStreet,
-                            //             linkedRecords: Array<LinkedRecordEntry> {},
-                            //             quality: nodeTime<QualityEvent> {}
-                            //         }
-                            //     };
-                            //     nGoldenPOI->indexing(nGoldenPOI);
-                            // }
                         }
                     }
                 }
             }
-        }
-    }
-
-    static fn createBbackup() {
-        var writer = GcbWriter<GoldenConstituency> { path: "./backups/${time::now()}.gcb" };
-        for (_, v in golden_constituency_by_code) {
-            writer.write(*v);
-        }
-        writer.flush();
-    }
-
-    static fn restoreFromBackup(path: String) {
-        var reader = GcbReader<GoldenConstituency> { path: path };
-        while (reader.can_read()) {
-            var constutiency = reader.read();
-            golden_constituency_by_code.set(constutiency.code, node<GoldenConstituency> { constutiency });
         }
     }
 
@@ -614,7 +566,6 @@ type GoldenServices {
             return 0.0;
         }
 
-        // Calculate total weight of all available sources
         var totalAvailableWeight = 0.0;
         for (_, nSource in sources_by_name) {
             totalAvailableWeight = totalAvailableWeight + nSource->getWeight();
@@ -623,7 +574,6 @@ type GoldenServices {
         if (totalAvailableWeight == 0.0) {
             return 0.0;
         }
-        // Group records by source and average scores for same-source records
         var scoresBySource = Map<node<DataSource>, Array<float>> {};
         for (_, entry in linkedRecords) {
             var nSource = entry.record->getSource();
@@ -653,8 +603,7 @@ type GoldenServices {
         return weightedSum / totalAvailableWeight;
     }
 
-    /// Computes and records the global quality score by looping over all golden POIs.
-    /// This should be called periodically to update the global quality history.
+    /// Walks every golden POI; called periodically to extend the quality history.
     static fn computeAndRecordGlobalQuality() {
         var nSource = sources_by_name.get(GoldenSource::NAME);
         if (nSource == null) {

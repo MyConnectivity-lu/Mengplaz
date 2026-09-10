@@ -1,11 +1,9 @@
 /// The golden graph itself: how `indexing()` wires a record into the ten module-level
 /// indices, and how a golden POI projects back out as a record.
 ///
-/// `indexing()` is the only place those indices are written, and it is called from the
-/// loaders, from `fillFromCaclr`, from every `promoteToGolden`, and from the backup
-/// importer. A missing `set()` there does not fail anything loudly — it just makes a record
-/// invisible to one lookup path, which is exactly the kind of defect that reaches
-/// production. Hence one assertion per index.
+/// `indexing()` is the only place those indices are written, and a missing `set()` there
+/// fails nothing loudly - it just makes a record invisible to one lookup path. Hence one
+/// assertion per index.
 @test
 fn municipalityIndexingRegistersItByIdAndByName() {
     fixtures_test::reset();
@@ -196,16 +194,9 @@ fn removingAnAliasDropsExactlyOneEntry() {
 
 @test
 fn aGoldenPoiRefusesToBePromoted() {
-    // `GoldenPointOfInterest` implements `POIRecordProvider` so it can be searched, linked and
-    // reported on like any source record — but it is the *target* of promotion, so its own
-    // `promoteToGolden` throws.
-    //
-    // Driven through `promoteRecord` rather than by calling the method directly, because
-    // `GoldenPointOfInterest` overrides `promoteToGolden` with a signature that contradicts
-    // the one `POIRecordProvider` declares (`(node<POIRecordProvider>)` returning nothing,
-    // against the base's `(String)` returning a node), so a direct call does not typecheck on
-    // either the concrete or the abstract type. `promoteRecord` takes the abstract type and
-    // dispatches at run time, which is how the override is actually reached.
+    // A golden POI is the *target* of promotion, so its own `promoteToGolden` throws.
+    // Driven through `promoteRecord` because the override's signature contradicts the one
+    // `POIRecordProvider` declares, so a direct call typechecks on neither type.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");

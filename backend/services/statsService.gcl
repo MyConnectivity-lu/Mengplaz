@@ -1,7 +1,4 @@
 type StatsService {
-    /// Closes out an import run: stamps the source's `lastUpdate`, counts its records and
-    /// appends the snapshot to its growth series. Extracted from the three `updateX`
-    /// functions, which call live external loaders and so cannot be exercised by the suite.
     /// `lastUpdate` only advances when `loadSucceeded` - otherwise the next run's cutoff
     /// would move past records the failed load never got to see.
     static fn finalizeUpdate(nSource: node<DataSource>, loadSucceeded: bool): SourceCountSnapshot {
@@ -19,8 +16,7 @@ type StatsService {
     static MAX_POINTS: int = 100;
 
     static fn build(from: time?, to: time?): SourceStats {
-        // Two passes: every row's share needs the grand total, which is only known once
-        // every source has been read.
+        // Two passes: a row's share needs the grand total.
         var totals = Map<String, int> {};
         var grandTotal = 0;
         for (name, nSource in sources_by_name) {
@@ -64,8 +60,7 @@ type StatsService {
         return SourceStats { rows: rows, series: series };
     }
 
-    /// Down-samples so the chart gets a bounded number of points whatever the requested
-    /// range — the same treatment `getGlobalQualityHistory` gives the quality series.
+    /// Down-sampled so the chart gets a bounded number of points whatever the range.
     static fn samplePoints(history: nodeTime<SourceCountSnapshot>, from: time?, to: time?): Array<SourceCountPoint> {
         var points = Array<SourceCountPoint> {};
         var samples = nodeTime::sample(

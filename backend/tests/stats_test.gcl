@@ -179,11 +179,9 @@ fn finalizeUpdateOnAFailedLoadLeavesLastUpdateNullButStillRecordsACount() {
 
 @test
 fn markSeenClearsDeprecatedAndAdvancesLastSeenAt() {
-    // osmLoader, caclrLoader and bdAddressLoader all call `markSeen()` on every record they
-    // still see, so a record deprecated during one missed run heals itself once the source
-    // reports it again. This pins `markSeen()`'s own contract - deleting either write inside
-    // it fails this test - which is the regression that actually matters; it cannot prove
-    // the loaders call it, since that needs a live network fetch.
+    // Every loader calls `markSeen()` on a record it still sees, so one deprecated during a
+    // missed run heals itself. This pins `markSeen()`'s own contract; that the loaders call
+    // it cannot be tested without a live fetch.
     fixtures_test::reset();
     fixtures_test::seedSources();
 
@@ -225,11 +223,9 @@ fn theDailyQualityRunAlsoSnapshotsGolden() {
 
 @test
 fn countHistorySurvivesABackupRoundTrip() {
-    // bootstrap restores from ./backup, so a series that is not exported is wiped on
-    // every restore and never accumulates anything.
-    // A scratch path, never the real BackupExporter::sourceCountHistoryPath: from the
-    // first real exportAll() onward that file holds genuine, unreconstructable history,
-    // and greycat test is part of the definition of done.
+    // bootstrap restores from ./backup, so a series that is not exported never accumulates.
+    // Written to a scratch path: the real one holds genuine, unreconstructable history and
+    // `greycat test` is part of the definition of done.
     var scratchPath = "files/backup/test_source_count_history.csv";
     fixtures_test::reset();
     fixtures_test::seedSources();

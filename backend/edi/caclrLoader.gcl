@@ -73,8 +73,6 @@ type CaclrResponseCityItem {
     validityStartDate: time;
     validityEndDate: time?;
     lastUpdate: time;
-
-    //cantonId: String;
     municipalityId: String;
 }
 
@@ -100,9 +98,6 @@ type CaclrResponseStreetItem {
     validityStartDate: time;
     validityEndDate: time?;
     lastUpdate: time;
-
-    //cantonId: String;
-    //municipalityId: String;
     cityId: String;
 }
 
@@ -128,17 +123,12 @@ type CaclrResponseBuildingItem {
     validityStartDate: time;
     validityEndDate: time?;
     lastUpdate: time;
-
-    //cantonId: String;
-    //municipalityId: String;
-    //cityId: String;
     streetId: String;
 }
 
 abstract type CACLRLoader {
     static base_url: String = "https://caclr.api.etat.lu/caclr-rest-ws/consultation";
     static fn load() {
-        //Set dummies
         var nDummyConstituency = node<CaclrConstituency> {
             CaclrConstituency {
                 name: "UNKNOWN",

@@ -116,10 +116,8 @@ abstract type OSMLoader {
 
             info("Parsed ${(osm_by_id).size()} addresses.");
             info("Parsed ${(osm_partial_by_id).size()} partial addresses.");
-            // info("Issues ${issues}.");
-            // Overpass answers 200 with an empty `elements` array when it is overloaded. Read
-            // that as a failed load: a caller that took it for a good one would deprecate the
-            // whole index and write a false cliff into the append-only growth series.
+            // Overpass answers 200 with an empty `elements` array when it is overloaded.
+            // Reading that as a good load would deprecate the whole index.
             if (elements.size() == 0) {
                 warn("Overpass returned 200 with no elements, treating as a failed load");
                 return false;

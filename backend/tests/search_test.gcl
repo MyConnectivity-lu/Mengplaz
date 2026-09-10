@@ -18,11 +18,9 @@ fn here(): geo {
     return geo { 49.6116, 6.1319 };
 }
 
-/// ~2.2 km north of `here()` — outside the default 1 km geo-fallback radius.
-///
-/// Several tests below need a source record that stage 4 cannot rescue. `OsmAddress.position`
-/// is non-nullable, so "this record has no usable coordinates" is spelled as "its coordinates
-/// are out of reach" rather than as a null.
+/// ~2.2 km north of `here()`, outside the default 1 km geo-fallback radius.
+/// `OsmAddress.position` is non-nullable, so a record stage 4 cannot rescue is spelled as
+/// out-of-reach coordinates rather than as a null.
 fn outOfGeoReach(): geo {
     return geo { 49.6316, 6.1319 };
 }

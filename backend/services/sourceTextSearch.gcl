@@ -1,41 +1,19 @@
-/// Full-text index over the raw addresses of every NON-golden source.
+/// Full-text index over the raw addresses of every non-golden source: the `AddressIndex`
+/// pipeline `GoldenTextSearch` runs, pointed at the source records and reusing its parser
+/// hints and address-line shape. The document payload is the record's `getId()`.
 ///
-/// Exactly the `AddressIndex` pipeline `GoldenTextSearch` runs over `golden_pois_by_id`,
-/// pointed at the source records instead: libpostal parses and canonicalizes each address
-/// line at index and query time, and `text_search`'s `address()` preset ranks it. The
-/// parser hints and the address-line shape are taken from `GoldenTextSearch` so a golden
-/// index and a source index are built the same way — only the record walk differs.
+/// One index per source rather than one shared: the three sources describe the same
+/// addresses, so a merged index would rank three near-identical documents against each
+/// other, and a caller asking what CACLR holds wants CACLR rows only.
 ///
-/// One index per source, keyed by `DataSource::name()`, rather than one shared index: a
-/// caller asking "what does CACLR hold for this line" wants CACLR rows only, and the three
-/// sources describe the same addresses, so a merged index would rank three near-identical
-/// documents against each other.
-///
-/// Each document carries the record's `getId()` as its `AddressDoc.payload`, which
-/// `resolve()` looks back up through the source's own `getIndex()`.
-///
-/// STALENESS: edits are rebuild-only, for the reason spelled out in `goldenTextSearch.gcl`
-/// — `AddressIndex::add()` returns no doc-id, so an indexed document cannot be retracted.
-/// CREATION is the exception, exactly as on the golden side: a record the loaders have
-/// just created has no earlier document to layer over, so each loader hands its batch of
-/// new records to `appendAll()` and they are searchable without waiting for the next
-/// build. Unlike golden, where records are created one at a time from the reconciliation
-/// UI, the source loaders can produce a whole country in one run — see `appendAll` for
-/// why that batch is rebuilt rather than appended past a threshold.
-///
-/// COST: one libpostal `parseStructured` per source record, so this needs
-/// `GREYCAT_POSTAL_DATA_DIR` pointing at the libpostal model directory, same as golden.
-
-/// One index per source name. `node<...?>` because the value is set by `reset()`.
-/// `AddressIndex<String>` — the payload type is the source record's id.
+/// Edits are rebuild-only and creations append, for the reason spelled out in
+/// `goldenTextSearch.gcl`. A source load can create a whole country in one run, so loaders
+/// hand their batch to `appendAll` rather than appending inside their record loop.
 var source_address_indexes: nodeIndex<String, node<AddressIndex<String>?>>;
 
 type SourceTextSearch {
-    /// The raw address line handed to libpostal, in the shape a client would type.
-    ///
-    /// `toSearchItem()` is the one address view every `POIRecordProvider` implements, and
-    /// it already splits the house number from its multiple code. A record with no street
-    /// still gets a line — its postcode is the only thing that can match it.
+    /// A record with no street still gets a line — its postcode is the only thing that can
+    /// match it.
     static fn rawAddress(nRecord: node<POIRecordProvider>): String {
         var item = nRecord->toSearchItem();
         if (item.street == "") {
@@ -44,10 +22,6 @@ type SourceTextSearch {
         return "${item.number}${item.multipleCode} ${item.street}, ${item.postcode} ${item.city}";
     }
 
-    /// Drops one source's index and re-creates it empty, returning the holding node.
-    ///
-    /// The literal rather than `AddressIndex::create`, for the reason given in
-    /// `GoldenTextSearch::reset`.
     static fn reset(sourceName: String): node<AddressIndex<String>?> {
         var nIdx = source_address_indexes.get(sourceName);
         if (nIdx == null) {
@@ -60,7 +34,6 @@ type SourceTextSearch {
         return nIdx;
     }
 
-    /// One source's index if it has been built, `null` otherwise.
     static fn ready(sourceName: String): AddressIndex<String>? {
         var idx = source_address_indexes.get(sourceName)?.resolve();
         if (idx == null || (idx.index.built ?? false) == false) {
@@ -69,7 +42,6 @@ type SourceTextSearch {
         return idx;
     }
 
-    /// Same, but refuses to answer instead of returning nothing.
     static fn require(sourceName: String): AddressIndex<String> {
         var idx = SourceTextSearch::ready(sourceName);
         if (idx == null) {
@@ -78,8 +50,6 @@ type SourceTextSearch {
         return idx;
     }
 
-    /// Rebuilds one source's index from its `getIndex()`. Re-runnable, and the only way an
-    /// edit reaches the index.
     static fn rebuild(nSource: node<DataSource>): int {
         var sourceName = nSource->name();
         var t0 = time::now().to(DurationUnit::milliseconds);
@@ -106,17 +76,7 @@ type SourceTextSearch {
         return n;
     }
 
-    /// Appends one newly-created source record to its own source's live index, so it is
-    /// searchable without waiting for the next `rebuild()`.
-    ///
-    /// Creation-only, by design — see the file header. Returns whether the document was
-    /// added; `false` means either that this source has no index yet (nothing to keep in
-    /// sync — the first `buildSourceTextIndex` reads the record straight out of
-    /// `getIndex()`) or that libpostal refused the line. A loader must not abort over a
-    /// record it cannot index, so a parse error is logged, not raised.
-    ///
-    /// COST: an append to a BUILT index walks every entry once inside the library. Fine per
-    /// record, quadratic in bulk — go through `appendAll`, which caps that.
+    /// Creation-only, and quadratic in bulk — go through `appendAll`, which caps that.
     static fn append(nRecord: node<POIRecordProvider>): bool {
         var sourceName = nRecord->getSourceName();
         var idx = source_address_indexes.get(sourceName)?.resolve();
@@ -134,21 +94,11 @@ type SourceTextSearch {
         return true;
     }
 
-    /// Above this many new records in one load, rebuilding the whole index costs less than
-    /// appending them one by one: an append to a built index is O(docs) inside the library,
-    /// so a batch is O(new * docs), while a rebuild is one libpostal parse per record.
+    /// Past this many new records, a rebuild (one libpostal parse per record) costs less
+    /// than the batch of appends (O(new * docs)).
     static APPEND_LIMIT: int = 1000;
 
-    /// Puts one loader's batch of newly-created records into that source's index.
-    ///
-    /// This is the source-side entry point — loaders call it once per run rather than
-    /// appending inside their record loop, because the batch size is what decides between
-    /// the two strategies:
-    ///   - no index for this source yet -> nothing to do, the first build reads `getIndex()`
-    ///   - batch over `APPEND_LIMIT`    -> one `rebuild()` (a fresh full load lands here)
-    ///   - otherwise                    -> append each (the nightly delta lands here)
-    ///
-    /// Returns the number of records now in the index because of this call.
+    /// A source with no index yet needs nothing: its first build reads `getIndex()`.
     static fn appendAll(nSource: node<DataSource>, records: Array<node<POIRecordProvider>>): int {
         if (records.size() == 0) {
             return 0;
@@ -173,8 +123,7 @@ type SourceTextSearch {
         return n;
     }
 
-    /// Rebuilds every source except golden, which has its own `GoldenTextSearch::rebuild`
-    /// over the golden graph.
+    /// Golden has its own `GoldenTextSearch::rebuild` over the golden graph.
     static fn rebuildAll(): int {
         var total = 0;
         for (name, nSource in sources_by_name) {
@@ -186,13 +135,11 @@ type SourceTextSearch {
         return total;
     }
 
-    /// One query against one source's index. See `GoldenTextSearch::search`.
     static fn search(idx: AddressIndex<String>, query: String, k: int): Array<AddressSearchHit> {
         return idx.search(query, k, GoldenTextSearch::hints());
     }
 
-    /// Resolves search hits back to source record nodes, dropping any entry whose record has
-    /// since disappeared. Relevance order is preserved.
+    /// Drops any hit whose record has since disappeared; relevance order is preserved.
     static fn resolve(
         nSource: node<DataSource>,
         idx: AddressIndex<String>,
@@ -214,7 +161,6 @@ type SourceTextSearch {
     }
 }
 
-/// What one source's index currently holds.
 @volatile
 type SourceTextIndexStats {
     source: String;
@@ -225,18 +171,12 @@ type SourceTextIndexStats {
     dirty: int;
 }
 
-/// Rebuilds the text index of every source except golden. Re-runnable.
 @permission("admin")
 @expose
 fn buildSourceTextIndexes(): int {
     return SourceTextSearch::rebuildAll();
 }
 
-/// Rebuilds one source's text index. Re-runnable, and the per-source entry point when one
-/// index has to be built — or its cost measured — on its own.
-///
-/// Keyed by source name like `reconcile`, so it is callable from `greycat run` as well as
-/// over HTTP.
 @permission("admin")
 @expose
 fn buildSourceTextIndex(source: String): int {
@@ -247,7 +187,6 @@ fn buildSourceTextIndex(source: String): int {
     return SourceTextSearch::rebuild(nSource);
 }
 
-/// Index size and staleness per source, for the explorer and for checking a build landed.
 @permission("admin")
 @expose
 fn sourceTextIndexStats(): Array<SourceTextIndexStats> {

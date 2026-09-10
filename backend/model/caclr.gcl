@@ -276,8 +276,7 @@ type CaclrBuilding extends POIRecordProvider {
             }
         };
         nGoldenPOI->indexing(nGoldenPOI);
-        // Newly created, so there is no earlier document to retract: append it to the live
-        // text index instead of leaving it unsearchable until the nightly rebuild.
+        // Newly created, so there is no earlier document to retract.
         GoldenTextSearch::append(nGoldenPOI);
 
         return nGoldenPOI;
@@ -477,7 +476,6 @@ type CaclrSource extends DataSource {
     static WEIGHT: float = 5.0;
 
     static fn init() {
-        //Declare the source
         var source = sources_by_name.get(CaclrSource::NAME);
         if (source == null) {
             var source = CaclrSource { reconciliationReport: node<ReconciliationReport> {

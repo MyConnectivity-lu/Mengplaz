@@ -1,29 +1,15 @@
-// Full graph backup.
+// Full graph backup: every persisted root dumped to portable text under `files/backup/`.
+// NDJSON for anything nested, optional or `geo`; CSV for flat tabular and time-series data.
 //
-// Dumps every persisted root of the graph to portable text files under `files/backup/`.
+// Relations are exported as business keys, never node references, so the dump stays valid
+// across store rebuilds. Name-keyed roots (BDA/OSM cities and streets) accumulate duplicate
+// bucket entries across reloads, so those exports deduplicate on node identity.
 //
-// Format rules:
-//  - NDJSON (JsonWriter): entities with nested structures, arrays (aliases), optionals or `geo`.
-//  - CSV (CsvWriter): flat tabular / time series data (source metadata, traffic, quality history).
-//
-// Relations are exported as business keys (ids or names), never as node references,
-// so the dump stays valid across store rebuilds.
-//
-// Roots keyed by name (BDA/OSM cities & streets) can reference the same node from several
-// keys, and their `Array<node<T>>` buckets accumulate duplicates across reloads, so those
-// exports deduplicate on node identity. Id-keyed roots (CACLR, golden) are unique already.
-//
-// The golden export is the restore counterpart of `GoldenLoader`, used by `bootstrap()`.
-//
-// NOT exported on purpose:
-//  - `caclr_token`  : short lived OAuth credential, must never leave the store.
-//  - reconciliation reports & `golden_records_geo_recompute` : recomputable working state.
-//  - security entities (users/groups) : live in the security store, not in the graph.
-// For a byte exact restore use `runtime::Runtime::backup_full` (backup/*.gcbkp) instead.
+// Deliberately not exported: `caclr_token` (a credential), reconciliation reports and
+// `golden_records_geo_recompute` (recomputable), users and groups (they live in the security
+// store). For a byte-exact restore use `runtime::Runtime::backup_full` instead.
 
-// ---------------------------------------------------------------------------
 // Golden DTOs
-// ---------------------------------------------------------------------------
 
 @volatile
 type BkGoldenLinkedRecordDTO {
@@ -117,9 +103,7 @@ type BkSourceCountHistoryDTO {
     linked: int;
 }
 
-// ---------------------------------------------------------------------------
 // CACLR DTOs
-// ---------------------------------------------------------------------------
 
 @volatile
 type BkCaclrConstituencyDTO {
@@ -202,9 +186,7 @@ type BkCaclrBuildingDTO {
     deprecated: bool?;
 }
 
-// ---------------------------------------------------------------------------
 // BDA DTOs
-// ---------------------------------------------------------------------------
 
 @volatile
 type BkBdaMunicipalityDTO {
@@ -242,9 +224,7 @@ type BkBdaAddressDTO {
     deprecated: bool?;
 }
 
-// ---------------------------------------------------------------------------
 // OSM DTOs
-// ---------------------------------------------------------------------------
 
 @volatile
 type BkOsmCityDTO {
@@ -288,9 +268,7 @@ type BkOsmPartialAddressDTO {
     map: Map;
 }
 
-// ---------------------------------------------------------------------------
 // Cross cutting DTOs
-// ---------------------------------------------------------------------------
 
 @volatile
 type BkSourceDTO {
@@ -313,9 +291,7 @@ type BkManifestEntryDTO {
     records: int;
 }
 
-// ---------------------------------------------------------------------------
 // Exporter
-// ---------------------------------------------------------------------------
 
 abstract type BackupExporter {
     static dir: String = "files/backup";
@@ -402,9 +378,7 @@ abstract type BackupExporter {
         info("Backup: done, ${total} records in ${(time::now() - start).to(DurationUnit::seconds)}s");
     }
 
-    // -----------------------------------------------------------------------
     // Sources
-    // -----------------------------------------------------------------------
 
     static fn exportSources(): int {
         var fw = CsvWriter<BkSourceDTO> { path: BackupExporter::sourcePath, format: CsvFormat { header_lines: 1 } };
@@ -421,9 +395,7 @@ abstract type BackupExporter {
         return count;
     }
 
-    // -----------------------------------------------------------------------
     // Golden
-    // -----------------------------------------------------------------------
 
     static fn exportGoldenConstituencies(): int {
         var fw = JsonWriter<BkGoldenConstituencyDTO> { path: BackupExporter::goldenConstituencyPath };
@@ -553,13 +525,12 @@ abstract type BackupExporter {
 
     static fn exportGoldenQualityHistory(): int {
         var fw = CsvWriter<BkGoldenQualityHistoryDTO> { path: BackupExporter::goldenQualityHistoryPath, format: CsvFormat { header_lines: 1 } };
-        // Written explicitly so the file exists even when the history is empty:
-        // the automatic header is only emitted on the first `write()`.
-        // Note: scores are serialised to 10 decimals, both here and by `JsonWriter`.
+        // Written explicitly so the file exists even when the history is empty - the
+        // automatic header is only emitted on the first `write()`.
         fw.write_line("t,score");
         var count = 0;
-        // The value has to be dereferenced before the type test: `nSource is node<GoldenSource>`
-        // tests the reference, not what it points at, and never matches.
+        // Dereference before the type test: `nSource is node<GoldenSource>` tests the
+        // reference, not what it points at, and never matches.
         var nGoldenSource = sources_by_name.get(GoldenSource::NAME);
         if (nGoldenSource != null) {
             var goldenSource = *nGoldenSource;
@@ -577,8 +548,7 @@ abstract type BackupExporter {
     static fn exportSourceCountHistory(path: String?): int {
         var target = path ?? BackupExporter::sourceCountHistoryPath;
         var fw = CsvWriter<BkSourceCountHistoryDTO> { path: target, format: CsvFormat { header_lines: 1 } };
-        // Written explicitly so the file exists even when no source has a series yet:
-        // the automatic header is only emitted on the first `write()`.
+        // Written explicitly so the file exists even when no source has a series yet.
         fw.write_line("sourceName,t,total,active,linked");
         var count = 0;
         for (name, nSource in sources_by_name) {
@@ -601,9 +571,7 @@ abstract type BackupExporter {
         return count;
     }
 
-    // -----------------------------------------------------------------------
     // CACLR
-    // -----------------------------------------------------------------------
 
     static fn exportCaclrConstituencies(): int {
         var fw = JsonWriter<BkCaclrConstituencyDTO> { path: BackupExporter::caclrConstituencyPath };
@@ -731,9 +699,7 @@ abstract type BackupExporter {
         return count;
     }
 
-    // -----------------------------------------------------------------------
     // BDA
-    // -----------------------------------------------------------------------
 
     static fn exportBdaMunicipalities(): int {
         var fw = JsonWriter<BkBdaMunicipalityDTO> { path: BackupExporter::bdaMunicipalityPath };
@@ -813,9 +779,7 @@ abstract type BackupExporter {
         return count;
     }
 
-    // -----------------------------------------------------------------------
     // OSM
-    // -----------------------------------------------------------------------
 
     static fn exportOsmCities(): int {
         var fw = JsonWriter<BkOsmCityDTO> { path: BackupExporter::osmCityPath };
@@ -898,9 +862,7 @@ abstract type BackupExporter {
         return count;
     }
 
-    // -----------------------------------------------------------------------
     // Traffic
-    // -----------------------------------------------------------------------
 
     static fn exportTraffic(): int {
         var fw = CsvWriter<BkTrafficDTO> { path: BackupExporter::trafficPath, format: CsvFormat { header_lines: 1 } };

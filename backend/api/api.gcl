@@ -7,7 +7,6 @@ fn getPoisInStreet(e: node<StreetRecordProvider>): Array<POIRecordRef> {
     return pois;
 }
 
-
 @expose
 @permission("public")
 fn searchStreet(e: String): Array<StreetRecordRef> {
@@ -19,8 +18,7 @@ fn searchStreet(e: String): Array<StreetRecordRef> {
     var query = e.trim();
 
     if (query.size() > 0) {
-        // Rebuild-only, so an unbuilt index warns and returns nothing rather than throwing -
-        // the search page degrades to "No matching streets", as `searchAddress` does.
+        // The index is rebuild-only, so an unbuilt one degrades to "No matching streets".
         var idx = GoldenStreetSearch::ready();
         if (idx == null) {
             warn("searchStreet: golden street index not built - run `greycat run buildGoldenStreetIndex`");
@@ -293,11 +291,8 @@ type DataAttribution {
     sources: Array<String>;
 }
 
-/// Attribution notice for the data exposed by this API.
-///
-/// The address data is derived in part from OpenStreetMap and is therefore subject to the
-/// ODbL (Open Database License). This notice satisfies the ODbL attribution requirement for
-/// data conveyed via the API.
+/// Attribution notice for the data exposed by this API. The address data derives in part
+/// from OpenStreetMap, so this notice is what satisfies the ODbL attribution requirement.
 @expose
 @permission("public")
 @tag("openapi")
@@ -339,8 +334,7 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
 
     var history = Array<GlobalQualityEntry> {};
 
-    // Down-sample so the chart gets a bounded number of points whatever the requested
-    // range. Column 0 holds the timestamp, column 1 the value of `qualityHistory`.
+    // Down-sampled to a bounded number of points; column 1 holds the value.
     var samples = nodeTime::sample(Array<nodeTime> {
         source.qualityHistory
     }, from, to, 100, SamplingMode::adaptative, null, null);
@@ -365,8 +359,7 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
     return GlobalQualityHistory { current: currentValue, history: history };
 }
 
-/// One golden record paired with the value the requested sort ranks it on. Ranking on
-/// these rather than on whole `GoldenRecordScore`s is what keeps a sorted page from
+/// Ranking on these rather than on whole `GoldenRecordScore`s keeps a sorted page from
 /// resolving every record's street and locality.
 @volatile
 private type RankedGoldenRecord {
@@ -374,13 +367,12 @@ private type RankedGoldenRecord {
     value: float;
 }
 
-/// One page of the golden records with their scores, at most `GoldenRecordPage::MAX_PAGE`
-/// rows at a time. `sortKey` is `"quality"`, `"linkedCount"`, or null for the index's own
-/// order (by uid); `sortDir` is `"asc"` or `"desc"` (default ascending).
+/// One page of the golden records with their scores. `sortKey` is `"quality"`,
+/// `"linkedCount"`, or null for the index's own order (by uid); `sortDir` is `"asc"` or
+/// `"desc"` (default ascending).
 ///
-/// The ranking is computed live, over the whole index, so a page is always current and
-/// page N continues page N-1's order. A sorted call therefore walks every record for its
-/// sort value, but resolves addresses only for the rows it is about to return.
+/// The ranking is computed live over the whole index, so page N continues page N-1's order
+/// even as records change; only the returned rows have their addresses resolved.
 @expose
 @permission("public")
 fn getGoldenRecordScores(offset: int, limit: int, sortKey: String?, sortDir: String?): GoldenRecordPage {
@@ -449,8 +441,7 @@ fn getGoldenRecordScores(offset: int, limit: int, sortKey: String?, sortDir: Str
     return GoldenRecordPage { total: golden_pois_by_id.size(), offset: start, limit: size, rows: rows };
 }
 
-/// The scores table's view of one golden record: its address, how many source records are
-/// linked to it, and its latest quality score.
+/// The scores table's view of one golden record.
 private fn goldenRecordScore(nGolden: node<GoldenPointOfInterest>): GoldenRecordScore {
     var quality = nGolden->quality.last();
     return GoldenRecordScore {
@@ -487,10 +478,8 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     var pois = Array<node<POIRecordProvider>> {};
     var results = Array<POIRecordRef> {};
 
-    // Golden answers from its own index over the golden graph; every other source answers
-    // from the per-source index `SourceTextSearch` builds over its own records. Both are
-    // rebuild-only, so an unbuilt index warns and returns nothing rather than throwing —
-    // the reconcile page degrades to "No results" instead of erroring.
+    // Both indexes are rebuild-only, so an unbuilt one degrades to "No results" rather
+    // than erroring.
     if (srcName == GoldenSource::NAME) {
         var idx = GoldenTextSearch::ready();
         if (idx == null) {
@@ -517,7 +506,6 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> 
     }
 
     var _t = ts.end();
-    // address_searches.setAt(time::now(), AddressSearchInput { input: addr, source: srcName, results: pois });
     return results;
 }
 

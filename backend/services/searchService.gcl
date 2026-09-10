@@ -23,17 +23,3 @@ type ScoredPoi {
     poi: node<POIRecordProvider>;
     distance: float;
 }
-
-fn iter(arr: Array<String>?): Array<String> {
-    var out = Array<String> {};
-    if (arr == null) {
-        return out;
-    }
-    for (_, v in arr) {
-        var s = v.trim().lowercase();
-        if (s.size() > 0) {
-            out.add(s);
-        }
-    }
-    return out;
-}

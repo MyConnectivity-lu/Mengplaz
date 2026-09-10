@@ -2,18 +2,14 @@
 @expose
 fn updateCACLR() {
     info("Started CACLR Import");
-    // Import
     CACLRLoader::loadCantons();
     CACLRLoader::loadMunicipalities();
     CACLRLoader::loadCities();
     CACLRLoader::loadStreets();
     var errored = CACLRLoader::loadBuildings();
 
-    // Create New Golden Mun, City and Streets except Pois
     info("Filling Golden from fresh CACLR Import");
     GoldenServices::fillFromCaclr();
-
-    // PostProcessing to handle new records
 
     var s = sources_by_name.get(CaclrSource::NAME);
     if (s == null) {
@@ -22,16 +18,12 @@ fn updateCACLR() {
     var report = s->reconciliationReport;
     var toReconcile = Array<node<POIRecordProvider>> {};
     for (_, nBuilding in caclr_buildings_by_id) {
-        // neither linked to golden or in unlinked report index  ->  new record
         if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
             toReconcile.add(nBuilding);
         }
     }
     info("Found ${toReconcile.size()} Records to reconcile");
-    // Reconcile newly created CALCR Records
-    // `!= true`, not `== false`: `isReconciling` is null until a reconcile has run at least
-    // once, and `null == false` is false — which silently skipped this reconcile on every
-    // update and left new records in neither side of the report.
+    // `!= true`, not `== false`: `isReconciling` is null before the first reconcile.
     if (s->isReconciling?.resolve() != true) {
         DataSource::reconcile(s, null, toReconcile);
     }
@@ -77,7 +69,6 @@ fn updateCACLR() {
     }
 
     // TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
-    // Don't execute if loadBuilding failed
     var c = 0;
     if (errored == false) {
         for (_, nRecord in caclr_buildings_by_id) {
@@ -99,15 +90,12 @@ fn updateCACLR() {
     info("Caclr Update finished");
 }
 
-
-// This function shoud ideally be run once Caclr has finished to correctly update linked records
+/// Run this once CACLR has finished, so linked records update against a current CACLR.
 @permission("admin")
 @expose
 fn updateBDA() {
     info("Started BDA Import");
     var loaded = BDAddressLoader::load();
-
-    // PostProcessing to handle new records
 
     var s = sources_by_name.get(BDAddressSource::NAME);
     if (s == null) {
@@ -117,16 +105,12 @@ fn updateBDA() {
     var report = s->reconciliationReport;
     var toReconcile = Array<node<POIRecordProvider>> {};
     for (_, nBuilding in bda_address_by_geoportalid) {
-        // neither linked to golden or in unlinked report index  ->  new record
         if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
             toReconcile.add(nBuilding);
         }
     }
     info("Found ${toReconcile.size()} Records to reconcile");
-    // Reconcile newly created CALCR Records
-    // `!= true`, not `== false`: `isReconciling` is null until a reconcile has run at least
-    // once, and `null == false` is false — which silently skipped this reconcile on every
-    // update and left new records in neither side of the report.
+    // `!= true`, not `== false`: `isReconciling` is null before the first reconcile.
     if (s->isReconciling?.resolve() != true) {
         try {
             DataSource::reconcile(s, null, toReconcile);
@@ -135,7 +119,6 @@ fn updateBDA() {
         }
     }
 
-    // Loop all unlinked check if the caclr id is linked to a golden and automatically link
     var toLink = Array<node<BDAddress>> {};
     var ids = Array<String> {};
     for (record: node<BDAddress>, _ in report->unlinked) {
@@ -155,8 +138,8 @@ fn updateBDA() {
     mergePositionsToGolden(s, ids);
     info("Linked ${toLink.size()} Records");
 
-    // An empty CSV is indistinguishable from a good one until it is counted, and deprecating on
-    // it would flag the whole index. Same shape as updateCACLR's `errored` guard.
+    // An empty CSV is indistinguishable from a good one until it is counted, and deprecating
+    // on it would flag the whole index.
     var c = 0;
     if (loaded > 0) {
         for (_, nRecord in bda_address_by_geoportalid) {
@@ -185,8 +168,6 @@ fn updateOSM() {
         return;
     }
 
-    // PostProcessing to handle new records
-
     var s = sources_by_name.get(OsmSource::NAME);
     if (s == null) {
         return;
@@ -196,16 +177,12 @@ fn updateOSM() {
     var report = s->reconciliationReport;
     var toReconcile = Array<node<POIRecordProvider>> {};
     for (_, nBuilding in osm_by_id) {
-        // neither linked to golden or in unlinked report index  ->  new record
         if (nBuilding->getLinkedGolden() == null && report->unlinked.get(nBuilding) == null) {
             toReconcile.add(nBuilding);
         }
     }
     info("Found ${toReconcile.size()} Records to reconcile");
-    // Reconcile newly created CALCR Records
-    // `!= true`, not `== false`: `isReconciling` is null until a reconcile has run at least
-    // once, and `null == false` is false — which silently skipped this reconcile on every
-    // update and left new records in neither side of the report.
+    // `!= true`, not `== false`: `isReconciling` is null before the first reconcile.
     if (s->isReconciling?.resolve() != true) {
         try {
             DataSource::reconcile(s, null, toReconcile);
@@ -214,7 +191,6 @@ fn updateOSM() {
         }
     }
 
-    // Loop all unlinked check if the caclr id is linked to a golden and automatically link
     var toLink = Array<node<OsmAddress>> {};
     var ids = Array<String> {};
     for (record: node<OsmAddress>, _ in report->unlinked) {

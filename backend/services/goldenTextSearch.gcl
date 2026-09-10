@@ -1,50 +1,19 @@
-/// Full-text index over the golden addresses.
+/// Full-text index over the golden addresses: an `AddressIndex` from the `postal` library,
+/// carrying the POI `uid` as its document payload.
 ///
-/// A thin wrapper around `AddressIndex` from the `postal` library: libpostal parses and
-/// canonicalizes every address line (both at index time and at query time), and
-/// `text_search`'s `address()` preset does the elision-aware, typo-tolerant ranking.
-/// Everything this file used to tune by hand — synonyms, tokenizer separators, typo
-/// budgets, BM25 knobs — now lives in `address_index_config()` inside the library.
-///
-/// Each document carries the POI's `uid` as its `AddressDoc.payload`. The payload is
-/// deliberately absent from the library's indexed field list, so it round-trips without
-/// polluting the term vocabulary — `resolve()` reads it back and looks the node up in
-/// `golden_pois_by_id`.
-///
-/// This is deliberately NOT the `findLocalityScopes -> findStreetsInCity ->
-/// findPoisInStreet` chain in `GoldenSource`. That chain walks the golden graph by
-/// parsed parts; this one answers a whole raw string the way a client typed it.
-///
-/// STALENESS: `AddressIndex::add()` returns no doc-id, so a previously indexed document
-/// cannot be retracted, which means a POI EDITED after a build cannot be re-indexed in
-/// place without layering a second document on top of the first. Rather than keep doc-id
-/// bookkeeping the library does not expose, edits are not indexed at all: an edit becomes
-/// visible at the next `buildGoldenTextIndex`, which the nightly schedule already runs.
-///
-/// CREATION is the exception, and the retraction limit does not apply to it: a brand-new
-/// POI has no earlier document to layer over. `promoteToGolden` calls `append()`, so a
-/// record created from the reconciliation UI is searchable straight away instead of
-/// waiting for the nightly build. That path is single-record only — bulk paths (loaders,
-/// backup restore) still reset and `rebuild()`, because one post-build append costs
-/// O(docs) inside the library.
-///
-/// COST: `rebuild()` runs one libpostal `parseStructured` per golden POI, so it needs
-/// `GREYCAT_POSTAL_DATA_DIR` pointing at the libpostal model directory. Without it the
-/// parser is disarmed and every call raises.
-/// The index. `node<...?>` because the value is set by `reset()`, not at declaration.
-/// `AddressIndex<String>` — the payload type is the golden POI's `uid`.
+/// `AddressIndex::add()` returns no doc-id, so an indexed document can never be retracted.
+/// Edits are therefore rebuild-only, which the nightly schedule runs; a creation has no
+/// earlier document to layer over, so `promoteToGolden` appends it live. `rebuild()` runs
+/// one libpostal parse per POI and needs `GREYCAT_POSTAL_DATA_DIR`.
 var golden_address_index: node<AddressIndex<String>?>;
 
 type GoldenTextSearch {
-    /// Parser hints. Luxembourg addresses are predominantly French-language, and pinning
-    /// the country stops libpostal reading a trailing "Luxembourg" as a country when it is
-    /// the city (the two share a name — see the postal library README).
+    /// Pinning the country stops libpostal reading a trailing "Luxembourg" as the country
+    /// when it is the city — the two share a name.
     static fn hints(): PostalOptions {
         return PostalOptions { language: "fr", country: "lu" };
     }
 
-    /// The raw address line handed to libpostal, in the shape a client would type.
-    ///
     /// A POI with no street still gets a line — its postcode is the only thing that can
     /// match it.
     static fn rawAddress(nPoi: node<GoldenPointOfInterest>): String {
@@ -56,18 +25,14 @@ type GoldenTextSearch {
         return "${nPoi->number}${nPoi->multipleCode} ${nStreet->name}, ${nPoi->postCode} ${nCity->name}";
     }
 
-    /// Drops the index and re-creates it empty.
-    ///
-    /// The literal rather than `AddressIndex::create` — GCL rejects generic arguments on a
-    /// static access, and the library documents this spelling as the typed-payload path.
+    /// The literal rather than `AddressIndex::create`: GCL rejects generic arguments on a
+    /// static access.
     static fn reset() {
         golden_address_index.set(AddressIndex<String> { index: TextIndex<AddressDoc> {
             config: address_index_config(TextSearchLanguage::fr)
         }, lang: TextSearchLanguage::fr });
     }
 
-    /// The index if it has been built, `null` otherwise. Callers that can degrade
-    /// gracefully (the public endpoints) use this; tooling uses `require`.
     static fn ready(): AddressIndex<String>? {
         var idx = golden_address_index.resolve();
         if (idx == null || (idx.index.built ?? false) == false) {
@@ -76,7 +41,6 @@ type GoldenTextSearch {
         return idx;
     }
 
-    /// Same, but refuses to answer instead of returning nothing.
     static fn require(): AddressIndex<String> {
         var idx = GoldenTextSearch::ready();
         if (idx == null) {
@@ -85,8 +49,6 @@ type GoldenTextSearch {
         return idx;
     }
 
-    /// Rebuilds the whole index from `golden_pois_by_id`. Re-runnable, and the only way an
-    /// edit reaches the index (see the file header).
     static fn rebuild(): int {
         var t0 = time::now().to(DurationUnit::milliseconds);
         GoldenTextSearch::reset();
@@ -113,25 +75,9 @@ type GoldenTextSearch {
         return n;
     }
 
-    /// Appends one newly-created golden POI to the live index, so it is searchable without
-    /// waiting for the next `rebuild()`.
-    ///
-    /// Creation-only, by design — see the file header: a new POI has no earlier document
-    /// to retract, whereas an edit would leave the stale one behind. The library supports
-    /// adding after `build()` (it refreshes IDF and drops the trigram/trie/phonetic
-    /// accelerators, which then fall back to a scan), so the document is immediately
-    /// reachable by every engine; the nightly `rebuild()` restores exact IDF and the
-    /// accelerators.
-    ///
-    /// COST: an append to a BUILT index walks every entry once to rebuild the doc-length
-    /// scratch. Fine per record, quadratic in bulk — never call this in a loop over a
-    /// whole source, use `rebuild()`.
-    ///
-    /// Returns whether the document was added. Two ways it is not, both non-fatal:
-    /// the index has never been created (nothing to keep in sync — `rebuild()` will pick
-    /// the POI up from `golden_pois_by_id`), or libpostal refused the line. A record must
-    /// still be created when its indexing fails, so the parse error is logged, not raised;
-    /// the POI then becomes searchable at the next nightly build, as edits already do.
+    /// Creation-only — an edit would leave the stale document behind. An append to a built
+    /// index walks every entry, so this is fine per record and quadratic in bulk: never
+    /// call it in a loop over a whole source, use `rebuild()`.
     static fn append(nPoi: node<GoldenPointOfInterest>): bool {
         var idx = golden_address_index.resolve();
         if (idx == null) {
@@ -146,20 +92,11 @@ type GoldenTextSearch {
         return true;
     }
 
-    /// One query.
-    ///
-    /// `AddressIndex::search` parses the query the same way the documents were parsed,
-    /// then runs bm25 + fuzzy + exact over the combined street/city/postcode text. A house
-    /// number, when the query has one, is a hard two-tier filter rather than a fuzzy
-    /// match: exact first, and only if that is empty a same-street fallback whose hits
-    /// carry `houseNumberMatch: false`. Both tiers come back in one array here — the API
-    /// does not surface the distinction.
     static fn search(idx: AddressIndex<String>, query: String, k: int): Array<AddressSearchHit> {
         return idx.search(query, k, GoldenTextSearch::hints());
     }
 
-    /// Resolves search hits back to golden POI nodes, dropping any entry whose POI has
-    /// since disappeared. Relevance order is preserved.
+    /// Drops any hit whose POI has since disappeared; relevance order is preserved.
     static fn resolve(idx: AddressIndex<String>, hits: Array<AddressSearchHit>): Array<node<GoldenPointOfInterest>> {
         var out = Array<node<GoldenPointOfInterest>> {};
         for (_, hit in hits) {
@@ -176,7 +113,6 @@ type GoldenTextSearch {
     }
 }
 
-/// What the index currently holds.
 @volatile
 type GoldenTextIndexStats {
     built: bool;
@@ -186,14 +122,12 @@ type GoldenTextIndexStats {
     dirty: int;
 }
 
-/// Rebuilds the golden text index from scratch. Re-runnable, and scheduled nightly.
 @permission("admin")
 @expose
 fn buildGoldenTextIndex(): int {
     return GoldenTextSearch::rebuild();
 }
 
-/// Index size and staleness, for the explorer and for checking a build landed.
 @permission("admin")
 @expose
 fn goldenTextIndexStats(): GoldenTextIndexStats {

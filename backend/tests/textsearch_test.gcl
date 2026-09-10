@@ -1,22 +1,11 @@
-/// The two full-text indexes: `GoldenTextSearch` over the golden graph, `SourceTextSearch`
-/// over each source's raw records, and the `searchAddress` endpoint that fronts both.
+/// The two full-text indexes and the `searchAddress` endpoint that fronts both. Both wrap
+/// the `postal` library's `AddressIndex`, so what is tested here is not the ranking - that
+/// belongs to the library - but this project's contract around it: the address line each
+/// index feeds libpostal, the unbuilt-index states every caller has to degrade through, the
+/// create-vs-edit staleness rule, and `appendAll`'s append-or-rebuild choice.
 ///
-/// This is the "type an address the way a client would" path, and it is deliberately not the
-/// parts-based `findLocalityScopes -> findStreetsInCity -> findPoisInStreet` chain. Both
-/// indexes are wrappers around the `postal` library's `AddressIndex`, so what is worth
-/// testing here is not the ranking — that belongs to the library — but this project's
-/// contract around it:
-///
-///   - the exact address line each index feeds libpostal (`rawAddress`);
-///   - the unbuilt-index states, which every caller has to degrade through rather than crash;
-///   - the create-vs-edit staleness rule: a *new* record is appended to the live index, an
-///     *edited* one is not, and only a rebuild picks the edit up;
-///   - `appendAll`'s choice between appending a batch and rebuilding for it.
-///
-/// The tests that actually build an index need libpostal's model directory
-/// (`GREYCAT_POSTAL_DATA_DIR`, `./files/postal-data` here). That directory is not in the
-/// repository, so those tests announce themselves as skipped rather than failing a checkout
-/// that has not downloaded it — `setup()` probes once and the rest read the flag.
+/// The tests that build an index need `GREYCAT_POSTAL_DATA_DIR`, which is not in the
+/// repository, so they announce themselves skipped rather than failing a fresh checkout.
 /// Whether libpostal answered the probe in `setup()`.
 var postal_ready: node<bool?>;
 
@@ -36,8 +25,7 @@ fn setup() {
     fixtures_test::reset();
 }
 
-/// True when the index-building tests can run. Announces the skip so a green run cannot be
-/// mistaken for full coverage.
+/// Announces the skip so a green run cannot be mistaken for full coverage.
 fn withPostal(testName: String): bool {
     if (postal_ready.resolve() == true) {
         return true;
@@ -83,9 +71,8 @@ fn aGoldenPoiWithoutAStreetIsIndexedByItsPostcodeAlone() {
 
 @test
 fn theSourceAddressLineComesFromTheSearchItemAndIsLowercased() {
-    // `SourceTextSearch` builds its line from `toSearchItem()`, which lowercases street and
-    // city — unlike the golden side, which reads the display casing straight off the graph.
-    // libpostal normalises case anyway, but the asymmetry is real and worth pinning.
+    // `toSearchItem()` lowercases street and city, unlike the golden side which reads the
+    // display casing off the graph. libpostal normalises it away, but pin the asymmetry.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", here());
@@ -213,10 +200,7 @@ fn appendingAnEmptyBatchDoesNothing() {
 
 @test
 fn theAppendLimitIsWhatDecidesBetweenAppendingAndRebuilding() {
-    // Above this many new records in one load, `appendAll` rebuilds instead of appending:
-    // an append to a built index is O(docs) inside the library, so a batch of n appends is
-    // O(n * docs) while a rebuild is one libpostal parse per record. Pinned because the
-    // constant is the whole of the policy — a nightly delta appends, a full load rebuilds.
+    // The constant is the whole of the policy: a nightly delta appends, a full load rebuilds.
     Assert::equals(SourceTextSearch::APPEND_LIMIT, 1000);
 }
 
@@ -270,8 +254,7 @@ fn aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild() {
     if (!withPostal("aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild")) {
         return;
     }
-    // Built over an existing POI, so the index is live before the promotion — an index built
-    // over an empty graph never reaches `built`, and `searchAddress` then declines to answer.
+    // Built over an existing POI: an index built over an empty graph never reaches `built`.
     var nGolden = seedGolden();
     var nStreet = nGolden->street!!;
     Assert::equals(buildGoldenTextIndex(), 1);
@@ -279,9 +262,8 @@ fn aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild() {
     var nOsm = fixtures_test::osmAddress(1, "30", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
     privateApi::promoteRecord(nOsm, nStreet->id);
 
-    // Reachability is the contract, not rank: an append to a built index drops the library's
-    // trigram/trie accelerators and refreshes IDF, so the new document is findable but its
-    // scoring against the pre-existing ones is the library's business.
+    // Reachability is the contract, not rank: how an appended document scores against the
+    // pre-existing ones is the library's business.
     var results = api::searchAddress("30 Rue de la Gare, 1234 Gasperich", 5, null);
     var nPromoted = nOsm->getLinkedGolden()!! as node<POIRecordProvider>;
     var found = false;
@@ -295,9 +277,8 @@ fn aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild() {
 
 @test
 fn anIndexBuiltOverAnEmptyGraphNeverBecomesReady() {
-    // Pins the degenerate case the previous test has to avoid: with no documents there is
-    // nothing to build, `ready()` stays null, and `searchAddress` returns nothing rather than
-    // throwing. It is the same fallback path as a nightly build that has not run yet.
+    // The degenerate case the previous test has to avoid: with no documents `ready()` stays
+    // null, and `searchAddress` returns nothing rather than throwing.
     if (!withPostal("anIndexBuiltOverAnEmptyGraphNeverBecomesReady")) {
         return;
     }
@@ -312,9 +293,8 @@ fn anIndexBuiltOverAnEmptyGraphNeverBecomesReady() {
 
 @test
 fn anEditedRecordIsOnlyPickedUpByARebuild() {
-    // The other half of the staleness rule, and the reason `buildGoldenTextIndex` is
-    // scheduled nightly: `AddressIndex::add()` returns no doc id, so an indexed document
-    // cannot be retracted and an edit is deliberately not indexed in place.
+    // The other half of the staleness rule: an indexed document cannot be retracted, so an
+    // edit is deliberately not indexed in place.
     if (!withPostal("anEditedRecordIsOnlyPickedUpByARebuild")) {
         return;
     }
@@ -356,9 +336,8 @@ fn buildingASourceIndexMakesItsOwnRecordsSearchable() {
 
 @test
 fn eachSourceGetsItsOwnIndexAndGoldenIsExcludedFromTheBulkBuild() {
-    // One index per source, so a caller asking what CACLR holds for a line gets CACLR rows —
-    // a merged index would rank three near-identical documents against each other. Golden has
-    // its own builder over the golden graph and is skipped here.
+    // One index per source: a merged one would rank three near-identical documents against
+    // each other. Golden has its own builder and is skipped here.
     if (!withPostal("eachSourceGetsItsOwnIndexAndGoldenIsExcludedFromTheBulkBuild")) {
         return;
     }
@@ -585,8 +564,8 @@ fn theStreetIndexIsAccentInsensitive() {
 
 @test
 fn theCityNameRanksTheRightLocalityFirstWithoutFilteringTheOthersOut() {
-    // Why the city needs no weighted field of its own: it recurs across every street of that
-    // city, so IDF discounts it below the street tokens. It moves the rank, it does not gate.
+    // The city needs no weighted field: it recurs across every street there, so IDF discounts
+    // it below the street tokens. It moves the rank, it does not gate.
     seedStreets();
     buildGoldenStreetIndex();
 

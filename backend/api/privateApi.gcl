@@ -26,7 +26,6 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
 
     nGolden->linkedRecords.add(LinkedRecordEntry { record: sourceRecord, score: 1.0, detailedScore: reconScore });
 
-    // Record quality event
     var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
     nGolden->quality.setAt(time::now(), QualityEvent {
         score: newQuality,
@@ -80,7 +79,7 @@ fn linkRecords(
         }
     }
 
-    // No candidate the source comes from a search, we need to calculate a score
+    // The record came from a search rather than a reconciliation, so it carries no score.
     if (foundCandidate == false) {
         var searchParams = SearchParameters::default();
         var item = sourceRecord->toSearchItem();
@@ -139,7 +138,6 @@ fn linkRecords(
 
     var golden = *candidateRecord;
     if (golden is GoldenPointOfInterest) {
-        // Check if already linked
         var found = false;
         for (_, entry in golden.linkedRecords) {
             if (entry.record == sourceRecord) {
@@ -149,14 +147,12 @@ fn linkRecords(
         }
 
         if (!found) {
-            // Add to linkedRecords with score
             golden.linkedRecords.add(LinkedRecordEntry {
                 record: sourceRecord,
                 score: score,
                 detailedScore: reconScore
             });
 
-            // Handle aliases
             if (params?.addStreetAlias == true) {
                 var street = sourceRecord->getStreet();
                 if (street != null) {
@@ -170,7 +166,6 @@ fn linkRecords(
                 }
             }
 
-            // Record quality event
             var newQuality = GoldenServices::computeQuality(golden.linkedRecords);
             golden.quality.setAt(time::now(), QualityEvent {
                 score: newQuality,
@@ -210,18 +205,8 @@ fn unlinkRecord(sourceRecord: node<POIRecordProvider>) {
 
     var nGolden = sourceRecord->getLinkedGolden();
     if (nGolden != null) {
-        //TODO Should we remove Remove aliases ? we need to track if the linked record added the alias
-        // var sourceData = sourceRecord->toMengplazRecord();
-        // var street = sourceData.street;
-        // if (street != null) {
-        //     golden.removeStreetAlias(street);
-        // }
-        // var city = sourceData.city;
-        // if (city != null) {
-        //     golden.removeCityAlias(city);
-        // }
-
-        // Remove from linkedRecords
+        // TODO Should the aliases be removed? That needs tracking which linked record added
+        // the alias.
         for (i, entry in nGolden->linkedRecords) {
             if (entry.record == sourceRecord) {
                 nGolden->linkedRecords.remove(i);
@@ -229,7 +214,6 @@ fn unlinkRecord(sourceRecord: node<POIRecordProvider>) {
             }
         }
 
-        // Record quality event
         var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
         nGolden->quality.setAt(time::now(), QualityEvent {
             score: newQuality,
@@ -416,7 +400,6 @@ fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters
     try {
         var ts = Traffic_Service::start(reconcilePOIs);
 
-        // Convert IDs to node refs
         var index = nSource->getIndex();
         var pois = Array<node<POIRecordProvider>> {};
         for (_, poiId in poiIds) {
@@ -704,9 +687,8 @@ type GlobalQualityHistory {
     history: Array<GlobalQualityEntry>;
 }
 
-/// One source's headline figures, as `getSourceStats` hands them out. `active` and
-/// `linked` are null until the source has recorded its first snapshot: counting them
-/// live means walking the whole index, which a public endpoint must not do per request.
+/// `active` and `linked` are null until the source's first snapshot: counting them live
+/// walks the whole index, which a public endpoint must not do per request.
 @volatile
 type SourceStatsRow {
     source: String;
@@ -737,25 +719,18 @@ type SourceStats {
     series: Array<SourceCountSeries>;
 }
 
-/// One page of `GoldenRecordScore`, as `getGoldenRecordScores` hands it out: the golden
-/// index runs to six figures, so the scores table is read a page at a time rather than
-/// shipped whole with the quality history.
+/// The golden index runs to six figures, so the scores table is read a page at a time.
 @volatile
 type GoldenRecordPage {
-    /// Records in the whole index, whatever this page holds.
     total: int;
-    /// Offset this page starts at, after clamping to the index.
     offset: int;
-    /// Page size actually applied, after clamping to `MAX_PAGE`.
     limit: int;
     rows: Array<GoldenRecordScore>;
 
-    /// The most rows one call will ever return.
     static MAX_PAGE: int = 1000;
 }
 
-/// Computes and records the global quality score by looping over all golden POIs.
-/// Call this periodically to update the global quality history.
+/// Walks every golden POI; call periodically to extend the global quality history.
 @expose
 @permission("admin")
 fn computeGlobalQuality() {

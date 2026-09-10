@@ -65,12 +65,21 @@ Read the relevant one before touching scoring, linking, or quality code.
   carries a level and lands in the server log. Reserve `println` for a deliberate CLI dump.
 - **Comment sparingly - only where the code cannot speak for itself.** Default to none. Earn a
   comment by explaining a *why* the reader cannot recover from the code: a non-obvious choice
-  between alternatives, a constraint imposed from outside, a trap that looks like a bug. Never
-  restate what the next line does, never narrate a function's steps, never doc-comment a name
-  that already says it (`ready()`, `docText()`, a stats struct's fields). Some older files in
-  this repo are heavily commented - do not take them as the target. Keep it to a couple of lines
-  where it is needed at all; if a comment is growing into paragraphs, the design or the naming is
-  what wants fixing. Longer background belongs in `docs/`, not inline.
+  between alternatives, a constraint imposed from outside, a trap that looks like a bug. Some
+  older files in this repo are heavily commented - do not take them as the target. Concretely:
+  - **Three lines is the ceiling**, one or two the norm, and a file header caps at ~8. A comment
+    growing into paragraphs means the design or the naming is what wants fixing; longer
+    background belongs in `docs/`, not inline.
+  - **Never restate what the code does** - no narrating a function's steps, no label comments
+    (`// Record quality event`, `// Convert IDs to node refs`), no section banners.
+  - **Never doc-comment a name that already says it** - `ready()`, `docText()`, a stats struct's
+    fields, a `build*` endpoint. An empty doc comment is the right amount for most declarations.
+  - **Say a thing once.** Point at the file that owns the explanation rather than repeating it,
+    and never repeat the same paragraph across sibling modules.
+  - **No commented-out code.** Delete it; git remembers. A `TODO` stands on its own line, in
+    prose, without the dead code it refers to.
+  - Comments are code: when you change a line, re-read the comment above it, and when you delete
+    code delete its comment with it.
 - **Call the SDK directly; never wrap it.** Reach the backend with `gc.<module>.<fn>(...)` and type
   against the generated `gc.<module>.<Type>` from `project.d.ts`. No `api.ts`, no typed-call
   wrappers, no hand-written mirrors of response types. The runtime `gc.*` bindings are built during

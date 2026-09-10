@@ -1,16 +1,14 @@
 /// The linking write paths: `linkRecords`, `unlinkRecord`, and the two batch endpoints
 /// (`linkAllFullMatched`, `batchLinkByScore`), plus `mergePositionsToGolden`.
 ///
-/// Linking is how a source record corroborates an existing golden POI, and it writes to five
-/// places at once: the source record's `goldenRef`, the golden POI's `linkedRecords`, the
-/// golden POI's quality series, and both buckets of the source's reconciliation report. A
-/// path that updates four of the five leaves the UI showing a record in the wrong tab, or the
-/// quality score stuck at its old value, so each is asserted.
+/// A link writes to five places at once - the source record's `goldenRef`, the golden POI's
+/// `linkedRecords` and quality series, and both buckets of the reconciliation report - and a
+/// path that updates four of them leaves the UI showing a record in the wrong tab. Each is
+/// asserted.
 ///
-/// The score a link is recorded at has two provenances, and they do not agree: a link made
-/// from a reconciliation candidate reuses the score the search computed, while a link made
-/// from a free-text search has no candidate and recomputes one from scratch. The recomputed
-/// path is not identical to the search path — see `linkingWithoutACandidateScoresGeoAsZero`.
+/// The score a link is recorded at has two provenances that do not agree: from a candidate
+/// it reuses the search's score, from a free-text search it recomputes one - see
+/// `linkingWithoutACandidateScoresGeoAsZero`.
 
 fn here(): geo {
     return geo { 49.6116, 6.1319 };
@@ -108,14 +106,11 @@ fn linkingWithoutACandidateRecomputesTheScore() {
 
 @test
 fn linkingWithoutACandidateScoresGeoAsZero() {
-    // Deliberate pin of a discrepancy between the two link paths. The recompute in
-    // `linkRecords` coalesces a null geo score to 0.0, whereas the search path leaves it null
-    // and `computeOverallScore` then treats it as a neutral 1.0. So linking a coordinate-less
-    // golden POI by hand records a materially lower score (11/14 = 0.79) than reconciling the
-    // same pair would (1.0), and the record's quality is dragged down accordingly.
-    //
-    // The tolerance is 0.01, not an epsilon: `ReconciliationCandidateScore` fields carry
-    // `@precision(0.01)`, so what comes back out of the graph is quantised to two decimals.
+    // Pins a discrepancy between the two link paths: `linkRecords` coalesces a null geo score
+    // to 0.0, where the search path leaves it null and `computeOverallScore` reads that as a
+    // neutral 1.0. Linking a coordinate-less POI by hand therefore records 11/14 = 0.79 where
+    // reconciling the same pair records 1.0. The 0.01 tolerance is `@precision(0.01)`, not an
+    // epsilon.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");

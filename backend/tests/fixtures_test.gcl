@@ -1,14 +1,11 @@
 /// Shared fixtures for the backend test suite.
 ///
-/// Not a test module itself — it holds the builders every `*_test.gcl` uses. It is named
-/// `*_test.gcl` so `greycat build` excludes it: the graph it writes is test-only, and the
-/// production program must not carry it.
+/// Not a test module itself: it holds the builders every `*_test.gcl` uses, and is named
+/// `*_test.gcl` so `greycat build` excludes it from the production program.
 ///
-/// Every test starts with `reset()`. `greycat test` runs the whole suite in one process
-/// with a shared module context, so without it the golden graph one test seeds would still
-/// be there for the next — and the reconciliation search walks `golden_cities_by_id`
-/// globally, so a leftover city changes another test's candidate list. `reset()` is
-/// cheaper and far more legible than making every assertion tolerant of leftovers.
+/// Every test starts with `reset()`: the suite runs in one process with a shared module
+/// context, and the reconciliation search walks `golden_cities_by_id` globally, so a
+/// leftover city from one test changes another's candidate list.
 /// Monotonic counter behind `nextId()`, so ids are unique across a whole run.
 var fixture_seq: node<int?>;
 
@@ -21,10 +18,8 @@ fn nextId(prefix: String): String {
     return "${prefix}${n}";
 }
 
-/// Wipes every persistent index the backend writes to, so each test sees an empty world.
-///
-/// `greycat test` never flushes to disk, so this only ever clears the in-memory graph of
-/// the test process — it cannot touch a real `gcdata`.
+/// Wipes every persistent index the backend writes to. `greycat test` never flushes to
+/// disk, so this only ever clears the test process's in-memory graph.
 fn reset() {
     golden_constituency_by_code.removeAll();
     golden_cantons_by_id.removeAll();
@@ -83,11 +78,8 @@ fn seedSources() {
     OsmSource::init();
 }
 
-/// The golden administrative chain down to one city, created and indexed.
-///
-/// Constituency and canton are shared per call rather than deduplicated: no assertion in
-/// the suite depends on two cities sharing a canton, and a fresh chain keeps each fixture
-/// self-contained.
+/// The golden administrative chain down to one city, created and indexed. Each call builds
+/// a fresh constituency and canton: nothing in the suite depends on two cities sharing one.
 fn goldenCity(municipalityName: String, cityName: String): node<GoldenCity> {
     var t = time::now();
 
@@ -235,11 +227,9 @@ fn osmSource(): node<DataSource> {
     return sources_by_name.get(OsmSource::NAME)!!;
 }
 
-/// A BDA source record, with its commune/city/street chain created on demand.
-///
-/// The suite mostly uses OSM records; BDA exists here so cross-source tests (quality
-/// weighting above all) have a second, differently-weighted provider without needing the
-/// far heavier CACLR fixture chain.
+/// A BDA source record, with its commune/city/street chain created on demand. It gives
+/// cross-source tests a second, differently-weighted provider without the heavier CACLR
+/// fixture chain.
 fn bdaAddress(
     geoportailId: String,
     caclrId: int,

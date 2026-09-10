@@ -13,8 +13,6 @@ type QualityEvent {
     eventType: QualityEventType;
 }
 
-/// A source's record count at one instant. Persisted, not `@volatile`: it is what the
-/// growth series stores.
 type SourceCountSnapshot {
     total: int;
     active: int;
@@ -32,7 +30,6 @@ abstract type DataSource {
     private reconciliationReport: node<ReconciliationReport>;
     private isReconciling: node<bool>?;
 
-    // Timestamp of last import
     lastUpdate: time?;
 
     countHistory: nodeTime<SourceCountSnapshot>?;
@@ -40,8 +37,6 @@ abstract type DataSource {
     abstract fn name(): String;
     abstract fn getWeight(): float;
     abstract fn getReconciliationReport(): ReconciliationReport?;
-    // abstract fn reconcile(searchParams: SearchParameters?): ReconciliationReport;
-    // abstract fn search(req: SearchRequest): Array<SearchResult>;
     abstract fn getIndex(): nodeIndex<String, node<POIRecordProvider>>;
 
     abstract fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity>;
@@ -188,13 +183,12 @@ type ReconciliationCandidateScore {
     overallScore: float;
 }
 
-// if score is null, we assume a score of 1, to save space
-
 type ReconciliationCandidate {
     candidateRecord: node<POIRecordProvider>;
+    /// Null means 1.0; left unset to save space.
     score: ReconciliationCandidateScore?;
     mismatch: MengplazMissmatch?;
-    // Same as score, but for linked records only, we do this to avoid creating permanent objects, since an unlinked score is temporary
+    /// Linked records only: an unlinked score is temporary and never persisted.
     detailedScore: node<ReconciliationCandidateScore>?;
 }
 
@@ -350,7 +344,7 @@ type SearchParameters {
     postcodeMaxDistance: int;
     weights: ScoringWeights;
     geoParams: GeoParameters;
-    /// When true, performs a global POI search if no street-level candidates are found. Off by default (heavy operation).
+    /// Falls back to a global POI search when no street-level candidate is found. Heavy.
     deepSearch: bool;
 
     static fn default(): SearchParameters {

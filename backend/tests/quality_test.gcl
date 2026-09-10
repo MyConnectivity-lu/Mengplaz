@@ -5,11 +5,10 @@
 ///
 ///     quality = Σ(sourceWeight × avgMatchScore(source)) / Σ(weight of every registered source)
 ///
-/// Two properties make it easy to get wrong and are pinned separately below: the
-/// denominator counts every *registered* source, not every *linked* one — so a record
-/// corroborated by one source out of three is capped well below 1.0 by design — and several
-/// records from the same source are averaged before weighting, so a source cannot buy
-/// influence by contributing more rows.
+/// Two properties are pinned separately below: the denominator counts every *registered*
+/// source, not every *linked* one, so one corroborating source out of three caps a record
+/// well below 1.0 by design; and same-source records are averaged before weighting, so a
+/// source cannot buy influence by contributing more rows.
 
 @test
 fn qualityIsZeroWithoutLinkedRecords() {

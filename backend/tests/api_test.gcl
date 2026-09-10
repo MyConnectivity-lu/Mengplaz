@@ -1,11 +1,9 @@
 /// The public read endpoints in `backend/api/api.gcl`, plus `getSources`.
 ///
-/// These are the contract the frontend and the OpenAPI consumers are written against, so what
-/// is asserted here is shape and filtering rather than scoring: which records come back, in
-/// what order, with which fields populated, and what happens on a bad identifier. Two
-/// behaviours that read as surprises from the outside are pinned deliberately — the
-/// `"UNKNOWN"` sentinel that is filtered out of every index listing, and `getGoldenLocalities`
-/// taking a commune *name* where its sibling endpoint hands out a commune *id*.
+/// The contract the frontend and the OpenAPI consumers are written against, so what is
+/// asserted is shape and filtering rather than scoring. Two behaviours that read as
+/// surprises from the outside are pinned deliberately: the `"UNKNOWN"` sentinel filtered out
+/// of every index listing, and `getGoldenLocalities` taking a commune *name*.
 fn here(): geo {
     return geo { 49.6116, 6.1319 };
 }

@@ -18,7 +18,6 @@ type GoldenSource extends DataSource {
     qualityHistory: nodeTime<float>;
 
     static fn init() {
-        //Declare the source
         var source = sources_by_name.get(GoldenSource::NAME);
         if (source == null) {
             var source = GoldenSource {
@@ -337,11 +336,9 @@ type GoldenPointOfInterest extends POIRecordProvider {
     quality: nodeTime<QualityEvent>;
 
     fn linkToGolden(_nGolden: node<GoldenPointOfInterest>) {
-        //NOOP
     }
 
     fn unlinkGolden() {
-        //NOOP
     }
 
     fn getLinkedGolden(): node<GoldenPointOfInterest>? {
@@ -486,12 +483,9 @@ type GoldenPointOfInterest extends POIRecordProvider {
             golden_pois_by_geo.set(this.primaryLocation, self);
         }
 
-        // The golden text index is deliberately NOT updated here. `indexing()` also runs
-        // for every POI of a backup restore, and one post-build append costs O(docs), so
-        // appending from here would make a restore quadratic. A newly created POI is
-        // appended by `promoteToGolden` instead (GoldenTextSearch::append); an edit still
-        // becomes searchable at the next buildGoldenTextIndex, which the nightly schedule
-        // runs. See the goldenTextSearch.gcl header.
+        // The text index is deliberately NOT updated here: `indexing()` also runs for every
+        // POI of a backup restore, and one post-build append costs O(docs). `promoteToGolden`
+        // appends a newly created POI instead.
     }
 }
 
