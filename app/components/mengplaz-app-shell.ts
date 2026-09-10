@@ -10,8 +10,6 @@ import { appInfo, currentUser, hasPermission, isAnonymous, logout, ready } from 
 
 const COLLAPSED_KEY = 'mengplaz-nav-collapsed';
 
-type View = 'checking' | 'ready';
-
 /**
  * The chrome every page wraps its body in: a responsive left nav, a blurred top
  * bar with the page title and the auth control, and the site footer.
@@ -59,10 +57,6 @@ export class MengplazAppShell extends LitElement {
       :host([collapsed]) {
         grid-template-columns: 1fr;
       }
-    }
-    /* Drop the grid while the loading mark owns the viewport. */
-    :host([loading]) {
-      display: block;
     }
 
     /* ---- Shared nav surface (rail + drawer) ---- */
@@ -388,23 +382,14 @@ export class MengplazAppShell extends LitElement {
       border-bottom-color: var(--gc-accent);
     }
 
-    /* ---- Loading mark ---- */
-    .checking {
-      min-height: 100vh;
-      display: grid;
-      place-content: center;
-      justify-items: center;
-      gap: 0.5rem;
-    }
-    .checking .mark {
-      font-family: var(--gc-display);
-      font-size: var(--wa-font-size-xl);
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-    .muted {
-      color: var(--gc-muted);
-      font-size: var(--wa-font-size-m);
+    /* ---- Cross-document view transition ---- */
+    /* Naming the body lifts it out of the root snapshot, so the page content is
+       the only thing that animates. The chrome around it is identical on both
+       sides of a navigation, which makes the root's own cross-fade invisible -
+       except for the page title and the active nav item, which is exactly the
+       part worth seeing move. The opt-in itself lives in theme.css. */
+    .body {
+      view-transition-name: mp-body;
     }
   `;
 
@@ -418,7 +403,7 @@ export class MengplazAppShell extends LitElement {
   /** Overlay drawer open (medium + small only). Ephemeral. */
   @property({ type: Boolean, reflect: true, attribute: 'nav-open' }) navOpen = false;
 
-  @state() private view: View = 'checking';
+  @state() private sessionReady = false;
   @state() private version = '';
 
   // Same boundaries as the grid media queries above, so the CSS and the render
@@ -444,7 +429,7 @@ export class MengplazAppShell extends LitElement {
     }
     const raw = appInfo()?.program_version ?? '';
     this.version = raw.includes('-') ? raw.slice(0, raw.indexOf('-')) : raw;
-    this.view = 'ready';
+    this.sessionReady = true;
   }
 
   override disconnectedCallback() {
@@ -469,11 +454,6 @@ export class MengplazAppShell extends LitElement {
     }
   };
 
-  protected override willUpdate() {
-    // Full-viewport loading mark: drop the shell grid until the session lands.
-    this.toggleAttribute('loading', this.view !== 'ready');
-  }
-
   protected override updated(changed: Map<string, unknown>) {
     if (!changed.has('navOpen')) {
       return;
@@ -496,6 +476,12 @@ export class MengplazAppShell extends LitElement {
 
   /** Nav entries the current session may see. */
   private get visibleItems(): PageLink[] {
+    // The rail draws before the gate resolves, and `hasPermission` reaches into
+    // bindings that `gc.sdk.init()` has not built yet - so a restricted entry
+    // stays out until there is a session to ask about it.
+    if (!this.sessionReady) {
+      return this.navItems.filter((p) => !p.requiredPermission);
+    }
     return this.navItems.filter((p) => !p.requiredPermission || hasPermission(p.requiredPermission));
   }
 
@@ -615,6 +601,9 @@ export class MengplazAppShell extends LitElement {
   /** Anonymous is a first-class state here, unlike an auth-gated app: a visitor
       who has not signed in gets a Log in link, not a user chip. */
   private renderAuth() {
+    if (!this.sessionReady) {
+      return nothing;
+    }
     if (isAnonymous()) {
       return html`<wa-button size="s" appearance="outlined" href="/login.html">
         ${this.renderIcon(ICONS.signIn, 'start')}<span class="label">Log in</span>
@@ -683,12 +672,6 @@ export class MengplazAppShell extends LitElement {
   }
 
   override render() {
-    if (this.view !== 'ready') {
-      return html`<div class="checking">
-        <span class="mark">${this.brand}<span class="dot">.</span></span>
-        <span class="muted">Loading...</span>
-      </div>`;
-    }
     return html`
       ${this.renderDrawer()} ${this.renderRail()}
       <main>

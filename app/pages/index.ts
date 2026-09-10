@@ -189,6 +189,12 @@ export class MengplazIndexPage extends GcPage {
   }
 
   protected override firstUpdated() {
+
+  }
+
+  override async connectedCallback() {
+    await super.connectedCallback();
+
     const container = this.renderRoot.querySelector('.map') as HTMLElement;
     this.map = new maplibregl.Map({
       container,

@@ -17,7 +17,7 @@ export const PAGES: PageLink[] = [
   { href: '/', label: 'Map', icon: 'map' },
   { href: '/search/', label: 'Search', icon: 'search' },
   { href: '/browse/', label: 'Index', icon: 'list' },
-  { href: '/reconcile/', label: 'Reconcile', icon: 'reconcile', requiredPermission: 'admin' },
   { href: '/quality/', label: 'Quality Dashboard', icon: 'chart' },
   { href: '/stats/', label: 'Statistics', icon: 'graphUp' },
+  { href: '/reconcile/', label: 'Reconcile', icon: 'reconcile', requiredPermission: 'admin' },
 ];
