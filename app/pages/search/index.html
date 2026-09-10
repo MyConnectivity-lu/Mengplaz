@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" class="wa-dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Cross-document view transitions. Inlined per document on purpose: this
+         must be parsed before the browser decides whether to run the transition,
+         and a bundled stylesheet is fetched behind every module preload. -->
+    <style>
+      @view-transition {
+        navigation: auto;
+      }
+      ::view-transition-group(*) {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        ::view-transition-group(*),
+        ::view-transition-old(*),
+        ::view-transition-new(*) {
+          animation: none !important;
+        }
+      }
+    </style>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <title>Search - MengPlaz</title>
+    <script type="module" src="./index.ts"></script>
+  </head>
+  <body>
+    <mengplaz-search-page></mengplaz-search-page>
+  </body>
+</html>

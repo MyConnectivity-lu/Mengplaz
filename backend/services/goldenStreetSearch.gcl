@@ -1,0 +1,107 @@
+/// Full-text index over the golden streets, behind `api::searchStreet`.
+///
+/// A plain `TextIndex`, not the `AddressIndex` `GoldenTextSearch` uses: a street name is not
+/// an address line, so libpostal buys nothing here and would tie the search box to the
+/// ~1.4 Gb model directory. Rebuild-only - golden streets are only ever created in bulk.
+var golden_street_index: node<TextIndex<String>?>;
+
+type GoldenStreetSearch {
+    /// BM25 alone, not the default hybrid: `exact` scores every containing document 1.0 and
+    /// `fuzzy` lets the city name dominate the distance, both of which pushed the
+    /// exactly-matching name off the top spot. Per-term `typoTolerance` still applies.
+    static fn options(): SearchOptions {
+        return SearchOptions { modes: Array<SearchMode> { SearchMode::bm25 } };
+    }
+
+    static fn docText(nStreet: node<GoldenStreet>): String {
+        var text = nStreet->name;
+        for (_, alias in nStreet->nameAliases) {
+            text = "${text} ${alias.value}";
+        }
+        return "${text} ${nStreet->city->name}";
+    }
+
+    /// `address(fr)` splits French elision ("l'Eglise" -> "eglise"), strips accents and
+    /// keeps numeric terms.
+    static fn reset() {
+        golden_street_index.set(TextIndex<String> { config: TextIndexConfig::address(TextSearchLanguage::fr) });
+    }
+
+    static fn ready(): TextIndex<String>? {
+        var idx = golden_street_index.resolve();
+        if (idx == null || (idx.built ?? false) == false) {
+            return null;
+        }
+        return idx;
+    }
+
+    static fn require(): TextIndex<String> {
+        var idx = GoldenStreetSearch::ready();
+        if (idx == null) {
+            throw "The golden street index is empty - run `greycat run buildGoldenStreetIndex` first";
+        }
+        return idx;
+    }
+
+    static fn rebuild(): int {
+        var t0 = time::now().to(DurationUnit::milliseconds);
+        GoldenStreetSearch::reset();
+        var idx = golden_street_index.resolve()!!;
+
+        var n = 0;
+        for (_, nStreet in golden_streets_by_id) {
+            idx.add(GoldenStreetSearch::docText(nStreet), nStreet->id);
+            n++;
+            if (n % 50000 == 0) {
+                info("goldenStreetSearch: added ${n} streets");
+            }
+        }
+
+        var t1 = time::now().to(DurationUnit::milliseconds);
+        idx.build();
+        var t2 = time::now().to(DurationUnit::milliseconds);
+
+        var s = idx.stats();
+        info(
+            "goldenStreetSearch: ${n} streets added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
+        );
+        return n;
+    }
+
+    static fn search(idx: TextIndex<String>, query: String, k: int): Array<TextResult> {
+        return idx.search(query, k, GoldenStreetSearch::options());
+    }
+
+    /// Per-hit rather than per-list so the caller keeps the score.
+    static fn resolveOne(hit: TextResult): node<GoldenStreet>? {
+        var id = hit.value;
+        if (id == null) {
+            return null;
+        }
+        return golden_streets_by_id.get(id as String);
+    }
+    /// Index health, for the admin console.
+    static fn stats(): GoldenStreetIndexStats {
+        var idx = golden_street_index.resolve();
+        if (idx == null) {
+            return GoldenStreetIndexStats { built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 };
+        }
+        var s = idx.stats();
+        return GoldenStreetIndexStats {
+            built: idx.built ?? false,
+            docs: s.totalEntries,
+            terms: s.totalTerms,
+            avgLen: s.avgTokenCount,
+            dirty: idx.dirtyCount ?? 0,
+        };
+    }
+}
+
+@volatile
+type GoldenStreetIndexStats {
+    built: bool;
+    docs: int;
+    terms: int;
+    avgLen: float;
+    dirty: int;
+}

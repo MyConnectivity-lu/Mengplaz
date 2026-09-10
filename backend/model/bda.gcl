@@ -1,0 +1,240 @@
+var bda_municipalities_by_name: nodeIndex<String, node<BdaMunicipality>>;
+var bda_cities_by_name: nodeIndex<String, Array<node<BdaCity>>>;
+var bda_streets_by_name: nodeIndex<String, Array<node<BdaStreet>>>;
+var bda_streets_by_caclr_id: nodeList<node<BdaStreet>>;
+var bda_addresses_by_geo: nodeGeo<node<BdaAddress>>;
+var bda_addresses_by_caclr_id: nodeList<node<BdaAddress>>;
+var bda_addresses_by_geoportail_id: nodeIndex<String, node<BdaAddress>>;
+
+type BdaMunicipality {
+    name: String;
+    cities_by_name: nodeIndex<String, node<BdaCity>>?;
+
+    fn indexing(self: node<BdaMunicipality>) {
+        var munKey = this.name.lowercase();
+        bda_municipalities_by_name.set(munKey, self);
+    }
+}
+
+type BdaCity {
+    name: String;
+    municipality: node<BdaMunicipality>?;
+    streets_by_name: nodeIndex<String, node<BdaStreet>>?;
+
+    fn indexing(self: node<BdaCity>) {
+        var cityKey = this.name.lowercase();
+        var cities = bda_cities_by_name.get(cityKey);
+        if (cities == null) {
+            cities = Array<node<BdaCity>> {};
+        }
+        cities.add(self);
+
+        this.municipality?->cities_by_name?.set(cityKey, self);
+        bda_cities_by_name.set(cityKey, cities);
+    }
+}
+
+type BdaStreet {
+    name: String;
+    id_caclr: int;
+    city: node<BdaCity>?;
+    addresses_by_id: nodeIndex<String, node<BdaAddress>>?;
+    addresses_by_number: nodeIndex<String, node<BdaAddress>>?;
+
+    fn indexing(self: node<BdaStreet>) {
+        var streetKey = this.name.lowercase();
+        var streets = bda_streets_by_name.get(streetKey);
+        if (streets == null) {
+            streets = Array<node<BdaStreet>> {};
+        }
+        streets.add(self);
+
+        bda_streets_by_name.set(streetKey, streets);
+        bda_streets_by_caclr_id.set(this.id_caclr, self);
+        this.city?->streets_by_name?.set(streetKey, self);
+    }
+}
+
+@volatile
+type BdaAddressFullRecord {
+    id_geoportail: String;
+    id_caclr: int;
+
+    number: String;
+    postcode: String;
+    street: String;
+    locality: String;
+    commune: String;
+    primaryLocation: geo?;
+
+    sourceName: String;
+    goldenRef: node<GoldenAddress>?;
+
+    deprecated: bool;
+    lastSeenAt: time?;
+}
+
+type BdaAddress extends ExternalAddressRecord {
+    private number: String;
+    private postcode: String;
+    private position: geo;
+
+    private id_caclr: int;
+    private id_geoportail: String;
+
+    private municipality: node<BdaMunicipality>;
+    private city: node<BdaCity>;
+    private street: node<BdaStreet>;
+
+    fn promoteToGolden(streetIdx: String): node<GoldenAddress> {
+        if (this.goldenRef != null) {
+            throw "Record is linked to Golden";
+        }
+        var nGoldenStreet = golden_streets_by_id.get(streetIdx);
+        if (nGoldenStreet == null) {
+            throw "Could not find street";
+        }
+        var newUID: String;
+        do {
+            newUID = GoldenServices::generateUID();
+        } while (golden_addresses_by_id.get(newUID) != null);
+        //TODO How to handle when we cant parse number
+        var alphaNum = extractAlphaCharsFromStreetNumber(this.number);
+        var nGolden = node<GoldenAddress> {
+            GoldenAddress {
+                uid: newUID,
+                number: alphaNum.numerical,
+                multipleCode: alphaNum.alpha,
+                postcode: this.postcode,
+                primaryLocation: this.position,
+                secondaryLocations: Map<String, geo> {},
+                lastUpdate: time::now(),
+                linkedRecords: Array<LinkedRecordEntry> {},
+                street: nGoldenStreet,
+                quality: nodeTime<QualityEvent> {},
+                createdAt: time::now(),
+            }
+        };
+        nGolden->indexing(nGolden);
+        // Newly created, so there is no earlier document to retract.
+        GoldenTextSearch::append(nGolden);
+
+        return nGolden;
+    }
+
+    fn toFullRecord(): BdaAddressFullRecord {
+        return BdaAddressFullRecord {
+            id_geoportail: this.id_geoportail,
+            id_caclr: this.id_caclr,
+            number: this.number,
+            postcode: this.postcode,
+            primaryLocation: this.position,
+            commune: this.municipality->name,
+            locality: this.city->name,
+            street: this.street->name,
+            sourceName: BdaSource::NAME,
+            goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
+            lastSeenAt: this.lastSeenAt,
+        };
+    }
+
+    fn toAddressRecord(): AddressRecord {
+        var record = AddressRecord {
+            uid: this.id_geoportail,
+            number: "${this.number}",
+            street: this.street->name,
+            postcode: this.postcode,
+            locality: this.city->name,
+            primaryLocation: this.position,
+            sourceName: BdaSource::NAME,
+            goldenRef: this.goldenRef,
+        };
+        return record;
+    }
+
+    fn getSource(): node<DataSource> {
+        return sources_by_name.get(BdaSource::NAME)!!;
+    }
+
+    fn getId(): String {
+        return this.id_geoportail;
+    }
+
+    fn getSourceName(): String {
+        return BdaSource::NAME;
+    }
+
+    fn toSearchItem(): SearchItem {
+        var number = this.number;
+        var multipleCode = "";
+        try {
+            var parse = extractAlphaCharsFromStreetNumber(this.number);
+            number = "${parse.numerical}";
+            multipleCode = parse.alpha;
+        } catch (_) {}
+        return SearchItem {
+            number: number,
+            multipleCode: multipleCode,
+            postcode: this.postcode,
+            street: this.street->name.lowercase(),
+            city: this.city->name.lowercase(),
+            coordinates: this.position
+        };
+    }
+
+    fn getStreet(): String {
+        return this.street->name;
+    }
+
+    fn getCity(): String {
+        return this.city->name;
+    }
+
+    fn getMunicipality(): String? {
+        return this.city->municipality?.resolve().name;
+    }
+
+    fn getPostcode(): String? {
+        return this.postcode;
+    }
+
+    fn indexing(self: node<BdaAddress>) {
+        bda_addresses_by_geoportail_id.set(this.id_geoportail, self);
+        bda_addresses_by_caclr_id.set(this.id_caclr, self);
+        bda_addresses_by_geo.set(this.position, self);
+        this.street->addresses_by_id?.set(this.id_geoportail, self);
+        this.street->addresses_by_number?.set(this.number, self);
+    }
+}
+
+type BdaSource extends DataSource {
+    static NAME: String = "BDA";
+    static WEIGHT: float = 3.0;
+
+    static fn init() {
+        var source = sources_by_name.get(BdaSource::NAME);
+        if (source == null) {
+            var source = BdaSource { reconciliationReport: node<ReconciliationReport> {
+                ReconciliationReport::init()
+            } };
+            sources_by_name.set(source.name(), node<DataSource> { source });
+        }
+    }
+
+    fn name(): String {
+        return BdaSource::NAME;
+    }
+
+    fn getWeight(): float {
+        return BdaSource::WEIGHT;
+    }
+
+    fn getReconciliationReport(): ReconciliationReport? {
+        return *this.reconciliationReport;
+    }
+
+    fn getIndex(): nodeIndex<String, node<AddressRecordProvider>> {
+        return bda_addresses_by_geoportail_id;
+    }
+}

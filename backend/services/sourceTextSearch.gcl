@@ -1,0 +1,202 @@
+/// Full-text index over the raw addresses of every non-golden source: the `AddressIndex`
+/// pipeline `GoldenTextSearch` runs, pointed at the source records and reusing its parser
+/// hints and address-line shape. The document payload is the record's `getId()`.
+///
+/// One index per source rather than one shared: the three sources describe the same
+/// addresses, so a merged index would rank three near-identical documents against each
+/// other, and a caller asking what CACLR holds wants CACLR rows only.
+///
+/// Edits are rebuild-only and creations append, for the reason spelled out in
+/// `goldenTextSearch.gcl`. A source load can create a whole country in one run, so loaders
+/// hand their batch to `appendAll` rather than appending inside their record loop.
+var source_address_indexes: nodeIndex<String, node<AddressIndex<String>?>>;
+
+type SourceTextSearch {
+    /// A record with no street still gets a line — its postcode is the only thing that can
+    /// match it.
+    static fn rawAddress(nRecord: node<AddressRecordProvider>): String {
+        var item = nRecord->toSearchItem();
+        if (item.street == "") {
+            return "${item.number}${item.multipleCode}, ${item.postcode}";
+        }
+        return "${item.number}${item.multipleCode} ${item.street}, ${item.postcode} ${item.city}";
+    }
+
+    static fn reset(sourceName: String): node<AddressIndex<String>?> {
+        var nIdx = source_address_indexes.get(sourceName);
+        if (nIdx == null) {
+            nIdx = node<AddressIndex<String>?> {};
+            source_address_indexes.set(sourceName, nIdx);
+        }
+        nIdx.set(AddressIndex<String> { index: TextIndex<AddressDoc> {
+            config: address_index_config(TextSearchLanguage::fr)
+        }, lang: TextSearchLanguage::fr });
+        return nIdx;
+    }
+
+    static fn ready(sourceName: String): AddressIndex<String>? {
+        var idx = source_address_indexes.get(sourceName)?.resolve();
+        if (idx == null || (idx.index.built ?? false) == false) {
+            return null;
+        }
+        return idx;
+    }
+
+    static fn require(sourceName: String): AddressIndex<String> {
+        var idx = SourceTextSearch::ready(sourceName);
+        if (idx == null) {
+            throw "The ${sourceName} text index is empty - run `greycat run buildSourceTextIndexes` first";
+        }
+        return idx;
+    }
+
+    static fn rebuild(nSource: node<DataSource>): int {
+        var sourceName = nSource->name();
+        var t0 = time::now().to(DurationUnit::milliseconds);
+        var idx = SourceTextSearch::reset(sourceName).resolve()!!;
+        var hints = GoldenTextSearch::hints();
+
+        var n = 0;
+        for (_, nRecord in nSource->getIndex()) {
+            idx.add(SourceTextSearch::rawAddress(nRecord), hints, nRecord->getId());
+            n++;
+            if (n % 50000 == 0) {
+                info("sourceTextSearch[${sourceName}]: added ${n} addresses");
+            }
+        }
+
+        var t1 = time::now().to(DurationUnit::milliseconds);
+        idx.build();
+        var t2 = time::now().to(DurationUnit::milliseconds);
+
+        var s = idx.index.stats();
+        info(
+            "sourceTextSearch[${sourceName}]: ${n} addresses added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
+        );
+        return n;
+    }
+
+    /// Creation-only, and quadratic in bulk — go through `appendAll`, which caps that.
+    static fn append(nRecord: node<AddressRecordProvider>): bool {
+        var sourceName = nRecord->getSourceName();
+        var idx = source_address_indexes.get(sourceName)?.resolve();
+        if (idx == null) {
+            return false;
+        }
+        try {
+            idx.add(SourceTextSearch::rawAddress(nRecord), GoldenTextSearch::hints(), nRecord->getId());
+        } catch (ex) {
+            warn(
+                "sourceTextSearch[${sourceName}]: could not index new record ${nRecord->getId()}, it will be picked up by the next build (${ex})"
+            );
+            return false;
+        }
+        return true;
+    }
+
+    /// Past this many new records, a rebuild (one libpostal parse per record) costs less
+    /// than the batch of appends (O(new * docs)).
+    static APPEND_LIMIT: int = 1000;
+
+    /// A source with no index yet needs nothing: its first build reads `getIndex()`.
+    static fn appendAll(nSource: node<DataSource>, records: Array<node<AddressRecordProvider>>): int {
+        if (records.size() == 0) {
+            return 0;
+        }
+        var sourceName = nSource->name();
+        if (source_address_indexes.get(sourceName)?.resolve() == null) {
+            return 0;
+        }
+        if (records.size() > SourceTextSearch::APPEND_LIMIT) {
+            info(
+                "sourceTextSearch[${sourceName}]: ${records.size()} new records exceeds the ${SourceTextSearch::APPEND_LIMIT} append limit, rebuilding instead"
+            );
+            return SourceTextSearch::rebuild(nSource);
+        }
+        var n = 0;
+        for (_, nRecord in records) {
+            if (SourceTextSearch::append(nRecord)) {
+                n++;
+            }
+        }
+        info("sourceTextSearch[${sourceName}]: appended ${n} new records");
+        return n;
+    }
+
+    /// Golden has its own `GoldenTextSearch::rebuild` over the golden graph.
+    static fn rebuildAll(): int {
+        var total = 0;
+        for (name, nSource in sources_by_name) {
+            if (name == GoldenSource::NAME) {
+                continue;
+            }
+            total = total + SourceTextSearch::rebuild(nSource);
+        }
+        return total;
+    }
+
+    static fn search(idx: AddressIndex<String>, query: String, k: int): Array<AddressSearchHit> {
+        return idx.search(query, k, GoldenTextSearch::hints());
+    }
+
+    /// Drops any hit whose record has since disappeared; relevance order is preserved.
+    static fn resolve(
+        nSource: node<DataSource>,
+        idx: AddressIndex<String>,
+        hits: Array<AddressSearchHit>
+    ): Array<node<AddressRecordProvider>> {
+        var index = nSource->getIndex();
+        var out = Array<node<AddressRecordProvider>> {};
+        for (_, hit in hits) {
+            var id = idx.payload_of(hit);
+            if (id == null) {
+                continue;
+            }
+            var nRecord = index.get(id);
+            if (nRecord != null) {
+                out.add(nRecord);
+            }
+        }
+        return out;
+    }
+    /// Index health, for the admin console.
+    static fn stats(): Array<SourceTextIndexStats> {
+        var out = Array<SourceTextIndexStats> {};
+        for (name, nIdx in source_address_indexes) {
+            var idx = nIdx.resolve();
+            if (idx == null) {
+                out.add(SourceTextIndexStats { source: name, built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 });
+                continue;
+            }
+            var s = idx.index.stats();
+            out.add(SourceTextIndexStats {
+                source: name,
+                built: idx.index.built ?? false,
+                docs: s.totalEntries,
+                terms: s.totalTerms,
+                avgLen: s.avgTokenCount,
+                dirty: idx.index.dirtyCount ?? 0,
+            });
+        }
+        return out;
+    }
+
+    /// Rebuilds one source index by source name, for callers holding a name rather than a node.
+    static fn rebuildByName(source: String): int {
+        var nSource = sources_by_name.get(source);
+        if (nSource == null) {
+            throw "Unknown source '${source}'";
+        }
+        return SourceTextSearch::rebuild(nSource);
+    }
+}
+
+@volatile
+type SourceTextIndexStats {
+    source: String;
+    built: bool;
+    docs: int;
+    terms: int;
+    avgLen: float;
+    dirty: int;
+}

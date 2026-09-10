@@ -1,0 +1,354 @@
+/// The reconciliation search: `GoldenServices::searchItem` and the helpers it drives.
+///
+/// This is the pipeline that decides which golden POI a source record is a candidate for.
+/// It runs in four stages, each a fallback for the one before, and each is exercised
+/// separately below:
+///
+///   1. city match  -> street match within the city -> POI match within the street
+///   2. no city match at all -> global street match -> POI match within the street
+///   3. `deepSearch` (opt-in, heavy) -> global POI scan, scoring city/street per POI
+///   4. still nothing, and the source has coordinates -> geo-circle scan
+///
+/// A "perfect match" is an overall score of exactly 1.0 computed with the *default* weights
+/// and geo parameters, not the caller's — so tuning the search parameters can never turn a
+/// partial match into a perfect one. Stage 1 and 2 return early on a perfect match.
+/// Luxembourg station, used as the shared coordinate so geo scores come out at exactly 1.0.
+/// ~2.2 km north of `fixtures_test::here()`, outside the default 1 km geo-fallback radius.
+/// `OsmAddress.position` is non-nullable, so a record stage 4 cannot rescue is spelled as
+/// out-of-reach coordinates rather than as a null.
+fn outOfGeoReach(): geo {
+    return geo { 49.6316, 6.1319 };
+}
+
+/// One golden POI at `fixtures_test::here()` on "Rue de la Gare", Gasperich, 1234 — the target every
+/// source record in this module is matched against.
+// ------------------------------------------------------------- city search
+@test
+fn citySearchKeepsOnlyMatchesAboveTheThreshold() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenCity("Wiltz", "Wiltz");
+
+    var exact = GoldenServices::searchCity("gasperich", 0.7);
+    Assert::equals(exact.size(), 1);
+    Assert::equals(exact[0].elem, nCity);
+    Assert::equals(exact[0].score, 1.0);
+
+    // A typo still clears the default 0.7 threshold.
+    Assert::equals(GoldenServices::searchCity("gasperih", 0.7).size(), 1);
+    // An unrelated name does not.
+    Assert::equals(GoldenServices::searchCity("gasperich", 1.0).size(), 1);
+    Assert::equals(GoldenServices::searchCity("zzzzzzzz", 0.7).size(), 0);
+}
+
+@test
+fn citySearchConsidersAliases() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    nCity->nameAliases.add(Alias { value: "Gaasperech", id: "" });
+
+    var hits = GoldenServices::searchCity("gaasperech", 0.9);
+    Assert::equals(hits.size(), 1);
+    Assert::equals(hits[0].score, 1.0);
+}
+
+// ----------------------------------------------------------- street search
+
+@test
+fn streetSearchScopedToACityOnlyReturnsThatCitysStreets() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nA = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nB = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreetA = fixtures_test::goldenStreet(nA, "Rue de la Gare");
+    fixtures_test::goldenStreet(nB, "Rue de la Gare");
+
+    var scoped = GoldenServices::searchStreet("rue de la gare", 0.7, nA);
+    Assert::equals(scoped.size(), 1);
+    Assert::equals(scoped[0].elem, nStreetA);
+    Assert::equals(scoped[0].score, 1.0);
+
+    // Unscoped, both cities' streets are reachable.
+    Assert::equals(GoldenServices::searchStreet("rue de la gare", 0.7, null).size(), 2);
+}
+
+@test
+fn globalStreetSearchUsesTheStricterEditDistanceMetric() {
+    // Scoped search uses Jaro-Winkler; global search uses length-normalised Levenshtein,
+    // which is harsher on long divergent names. A name that clears the threshold when scoped
+    // to its city can therefore fall below it in a country-wide scan.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+
+    Assert::equals(GoldenServices::searchStreet("rue de la gare", 0.7, nCity).size(), 1);
+    Assert::equals(GoldenServices::searchStreet("avenue monterey", 0.7, null).size(), 0);
+}
+
+// ------------------------------------------------- stage 1: the happy path
+
+@test
+fn anIdenticalRecordIsAPerfectMatch() {
+    var nGolden = fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.sourceRecord, nOsm as node<AddressRecordProvider>);
+    Assert::equals(result.candidates.size(), 1);
+
+    var c = result.candidates[0];
+    Assert::equals(c.elem, nGolden as node<AddressRecordProvider>);
+    Assert::equals(c.cityScore, 1.0);
+    Assert::equals(c.streetScore, 1.0);
+    Assert::equals(c.numberScore, 1.0);
+    Assert::equals(c.postcodeScore, 1.0);
+    Assert::equals(c.realGeoScore, 1.0);
+    Assert::equals(c.realOverallScore, 1.0);
+}
+
+@test
+fn aGoldenPoiWithoutCoordinatesCanStillMatchPerfectly() {
+    // A null geo score is neutral, so a CACLR-only golden record with no position is not
+    // barred from a perfect match by its missing coordinates.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    Assert::isNull(result.candidates[0].realGeoScore);
+    Assert::equals(result.candidates[0].realOverallScore, 1.0);
+    Assert::equals(result.candidates[0].elem, nGolden as node<AddressRecordProvider>);
+}
+
+@test
+fn adifferentHouseNumberIsNotACandidateAtAll() {
+    // House numbers are the one field that is never fuzzy-matched: a mismatch is a hard
+    // filter inside `searchAddressForItem`, not a low score.
+    fixtures_test::seedGolden("");
+    // Out of geo reach, so stage 4 cannot hand back a candidate the number filter rejected.
+    var nOsm = fixtures_test::osmAddress(1, "14", "Rue de la Gare", "Gasperich", "1234", outOfGeoReach());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 0);
+}
+
+@test
+fn aDifferentMultipleCodeIsACandidateButNotAPerfectMatch() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "A", "1234", fixtures_test::here());
+    var nOsm = fixtures_test::osmAddress(1, "12B", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    Assert::equals(result.candidates[0].numberScore, 0.8);
+    Assert::isTrue(result.candidates[0].realOverallScore < 1.0);
+}
+
+@test
+fn aPostcodeBelowTheThresholdIsFilteredOut() {
+    // The postcode gate runs before the number check and is the cheapest way to discard a
+    // POI on a same-named street in another part of the country.
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "9999", outOfGeoReach());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 0);
+}
+
+@test
+fn aNearbyPostcodeIsACandidateWithAReducedScore() {
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1244", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    Assert::equalsd(result.candidates[0].postcodeScore, 0.95, 0.0001);
+    Assert::isTrue(result.candidates[0].realOverallScore < 1.0);
+}
+
+@test
+fn aMisspeltStreetStillMatchesWithinTheCity() {
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gara", "Gasperich", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    Assert::isTrue(result.candidates[0].streetScore < 1.0);
+    Assert::isTrue(result.candidates[0].streetScore >= 0.7);
+    Assert::isTrue(result.candidates[0].realOverallScore < 1.0);
+}
+
+@test
+fn coordinatesThatAreFarAwayCostTheGeoScoreButNotTheCandidacy() {
+    // ~500 m off: still the same address by name and number, so it stays a candidate with
+    // the geo term decayed to ~0.25.
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6161, 6.1319 });
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    Assert::equalsd(result.candidates[0].realGeoScore!!, 0.25, 0.01);
+    Assert::isTrue(result.candidates[0].realOverallScore < 1.0);
+}
+
+// -------------------------------------------- stage 2: global street search
+
+@test
+fn anUnknownCityFallsBackToAGlobalStreetSearch() {
+    // The source record's city is not in the golden graph at all, so stage 1 finds no city to
+    // scope by and the street is looked up country-wide instead.
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Zzzzzzzz", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    // The city score is computed against the real golden city, so it is poor.
+    Assert::isTrue(result.candidates[0].cityScore < 0.7);
+    Assert::isTrue(result.candidates[0].realOverallScore < 1.0);
+}
+
+// ------------------------------------------------------ stage 3: deepSearch
+
+@test
+fn deepSearchIsOffByDefault() {
+    // Golden POI whose street and city share nothing with the source record, but whose number
+    // and postcode line up. Only a global POI scan can reach it — and that scan is opt-in.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Grand-Rue");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    // The golden POI has no coordinates, so it is absent from `golden_addresses_by_geo` and stage 4
+    // cannot reach it either.
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var params = SearchParameters::default();
+    Assert::isFalse(params.deepSearch);
+    Assert::equals(GoldenServices::searchItem(nOsm, params).candidates.size(), 0);
+}
+
+@test
+fn deepSearchFindsAPoiNoNameBasedStageCouldReach() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Grand-Rue");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var params = SearchParameters::default();
+    params.deepSearch = true;
+
+    var result = GoldenServices::searchItem(nOsm, params);
+    Assert::equals(result.candidates.size(), 1);
+    Assert::equals(result.candidates[0].elem, nGolden as node<AddressRecordProvider>);
+    Assert::isTrue(result.candidates[0].realOverallScore < 1.0);
+}
+
+// ---------------------------------------------------- stage 4: geo fallback
+
+@test
+fn coordinatesAloneCanProduceACandidateWhenEveryNameFails() {
+    // Last resort: nothing about the text matches, but the source record sits on top of a
+    // golden POI. This is how a record with a mangled street name still gets reconciled.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Grand-Rue");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 99, "", "4444", fixtures_test::here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 1);
+    Assert::equals(result.candidates[0].elem, nGolden as node<AddressRecordProvider>);
+    Assert::equals(result.candidates[0].searchGeoScore, 1.0);
+    // The geo stage does not apply the number filter, so a plainly different number survives.
+    Assert::equals(result.candidates[0].numberScore, 0.0);
+}
+
+@test
+fn theGeoFallbackRespectsItsRadius() {
+    // The circle radius is `geoParams.maxDistance`; a POI ~2.2 km away is outside a 1 km one.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Grand-Rue");
+    fixtures_test::goldenPoi(nStreet, 99, "", "4444", geo { 49.6316, 6.1319 });
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    Assert::equals(GoldenServices::searchItem(nOsm, SearchParameters::default()).candidates.size(), 0);
+}
+
+@test
+fn aGoldenPoiWithoutCoordinatesIsInvisibleToTheGeoFallback() {
+    // Stage 4 scans `golden_addresses_by_geo`, and `indexing()` only puts a POI there when it has a
+    // primary location. A position-less golden record is therefore reachable by name only.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Grand-Rue");
+    fixtures_test::goldenPoi(nStreet, 99, "", "4444", null);
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    Assert::equals(golden_addresses_by_geo.size(), 0);
+    Assert::equals(GoldenServices::searchItem(nOsm, SearchParameters::default()).candidates.size(), 0);
+}
+
+// --------------------------------------------------------- the batch entry
+
+@test
+fn searchProcessesEveryItemInTheRequest() {
+    var nGolden = fixtures_test::seedGolden("");
+    var nA = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    var nB = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", outOfGeoReach());
+
+    var req = SearchRequest {
+        items: Array<node<AddressRecordProvider>> { nA, nB },
+        params: SearchParameters::default(),
+    };
+    var results = GoldenServices::search(req);
+
+    Assert::equals(results.size(), 2);
+    Assert::equals(results[0].candidates.size(), 1);
+    Assert::equals(results[0].candidates[0].elem, nGolden as node<AddressRecordProvider>);
+    Assert::equals(results[1].candidates.size(), 0);
+}
+
+@test
+fn searchOnAnEmptyGoldenDatabaseReturnsNoCandidates() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var result = GoldenServices::searchItem(nOsm, SearchParameters::default());
+    Assert::equals(result.candidates.size(), 0);
+}
+
+@test
+fn theCandidateListHonoursMaxCandidatesPerItem() {
+    // Ten same-numbered POIs on one street: without the bound the candidate array would hold
+    // all of them for every source record in a country-wide run.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    for (var i = 0; i < 10; i++) {
+        // Distinct postcodes keep every one a partial match, so none short-circuits the search.
+        fixtures_test::goldenPoi(nStreet, 12, "", "12${40 + i}", null);
+    }
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var params = SearchParameters::default();
+    params.maxCandidatesPerItem = 3;
+    Assert::equals(GoldenServices::searchItem(nOsm, params).candidates.size(), 3);
+}

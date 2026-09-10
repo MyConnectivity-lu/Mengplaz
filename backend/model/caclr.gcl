@@ -1,15 +1,14 @@
-var caclr_consistuency_by_code: nodeIndex<String, node<CaclrConstituency>>;
+var caclr_constituencies_by_code: nodeIndex<String, node<CaclrConstituency>>;
 var caclr_cantons_by_id: nodeIndex<String, node<CaclrCanton>>;
 var caclr_municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>>;
 var caclr_cities_by_id: nodeIndex<String, node<CaclrCity>>;
 var caclr_streets_by_id: nodeIndex<String, node<CaclrStreet>>;
-var caclr_buildings_by_id: nodeIndex<String, node<CaclrBuilding>>;
+var caclr_addresses_by_id: nodeIndex<String, node<CaclrAddress>>;
 
 var caclr_municipalities_by_name: nodeIndex<String, node<CaclrMunicipality>>;
 var caclr_cities_by_name: nodeIndex<String, Array<node<CaclrCity>>>;
 var caclr_streets_by_name: nodeIndex<String, Array<node<CaclrStreet>>>;
 
-var caclr_buildings_by_geo: nodeGeo<node<CaclrBuilding>>;
 
 enum CaclrDataStatus {
     ACTIVE("active");
@@ -140,8 +139,8 @@ type CaclrStreet {
 
     city: node<CaclrCity>;
 
-    buildings_by_id: nodeIndex<String, node<CaclrBuilding>>;
-    buildings_by_number: nodeIndex<String, node<CaclrBuilding>>?;
+    buildings_by_id: nodeIndex<String, node<CaclrAddress>>;
+    buildings_by_number: nodeIndex<String, node<CaclrAddress>>?;
 
     goldenStreet: node<GoldenStreet>?;
 
@@ -154,7 +153,7 @@ type CaclrStreet {
         streets.add(self);
 
         if (this.buildings_by_number == null) {
-            this.buildings_by_number = nodeIndex<String, node<CaclrBuilding>> {};
+            this.buildings_by_number = nodeIndex<String, node<CaclrAddress>> {};
         }
 
         caclr_streets_by_name.set(streetKey, streets);
@@ -165,11 +164,11 @@ type CaclrStreet {
 }
 
 @volatile
-type CaclrPOIFullRecord {
+type CaclrAddressFullRecord {
     id: String;
     number: int;
     multipleCode: String;
-    postalCode: String;
+    postcode: String;
     street: String?;
     streetAliases: Array<Alias>?;
     locality: String?;
@@ -187,18 +186,18 @@ type CaclrPOIFullRecord {
     lastUpdate: time;
 
     sourceName: String;
-    goldenRef: node<GoldenPointOfInterest>?;
+    goldenRef: node<GoldenAddress>?;
 
-    deprecated: bool?;
+    deprecated: bool;
     lastSeenAt: time?;
 }
 
-type CaclrBuilding extends POIRecordProvider {
+type CaclrAddress extends ExternalAddressRecord {
     private id: String;
     private number: int;
     private isNumberUndefined: bool;
 
-    private postalCode: String;
+    private postcode: String;
     private multipleCode: String;
 
     private position: geo?;
@@ -211,25 +210,7 @@ type CaclrBuilding extends POIRecordProvider {
 
     private street: node<CaclrStreet>?;
 
-    private goldenRef: node<GoldenPointOfInterest>?;
-
-    lastSeenAt: time?;
-
-    deprecated: bool?;
-
-    fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
-        this.goldenRef = nGolden;
-    }
-
-    fn unlinkGolden() {
-        this.goldenRef = null;
-    }
-
-    fn getLinkedGolden(): node<GoldenPointOfInterest>? {
-        return this.goldenRef;
-    }
-
-    fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest> {
+    fn promoteToGolden(streetIdx: String): node<GoldenAddress> {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
         }
@@ -241,36 +222,39 @@ type CaclrBuilding extends POIRecordProvider {
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
-        } while (golden_pois_by_id.get(newUID) != null);
+        } while (golden_addresses_by_id.get(newUID) != null);
 
-        var ref = caclr_buildings_by_id.get(this.id)!!;
+        var _ref = caclr_addresses_by_id.get(this.id)!!;
 
-        var nGoldenPOI = node<GoldenPointOfInterest> {
-            GoldenPointOfInterest {
+        var nGolden = node<GoldenAddress> {
+            GoldenAddress {
                 uid: newUID,
                 number: this.number,
                 multipleCode: this.multipleCode,
-                postCode: this.postalCode,
+                postcode: this.postcode,
                 primaryLocation: this.position,
                 secondaryLocations: Map<String, geo> {},
                 lastUpdate: this.lastUpdate,
                 linkedRecords: Array<LinkedRecordEntry> {},
                 street: nGoldenStreet,
                 quality: nodeTime<QualityEvent> {},
+                createdAt: time::now(),
             }
         };
-        nGoldenPOI->indexing(nGoldenPOI);
+        nGolden->indexing(nGolden);
+        // Newly created, so there is no earlier document to retract.
+        GoldenTextSearch::append(nGolden);
 
-        return nGoldenPOI;
+        return nGolden;
     }
 
-    fn toFullRecord(): CaclrPOIFullRecord {
-        var record = CaclrPOIFullRecord {
+    fn toFullRecord(): CaclrAddressFullRecord {
+        var record = CaclrAddressFullRecord {
             id: this.id,
             number: this.number,
             multipleCode: this.multipleCode,
             street: this.street?->name,
-            postalCode: this.postalCode,
+            postcode: this.postcode,
             locality: this.street?->city->name,
             commune: this.street?->city->municipality->name,
             canton: this.street?->city->municipality->canton->name,
@@ -298,12 +282,12 @@ type CaclrBuilding extends POIRecordProvider {
         return record;
     }
 
-    fn toMengplazRecord(): POIRecord {
-        var record = POIRecord {
+    fn toAddressRecord(): AddressRecord {
+        var record = AddressRecord {
             uid: this.id,
             number: "${this.number}${this.multipleCode}",
             street: this.street?->name,
-            postcode: this.postalCode,
+            postcode: this.postcode,
             locality: this.street?->city->name,
             commune: this.street?->city->municipality->name,
             primaryLocation: this.position,
@@ -338,7 +322,7 @@ type CaclrBuilding extends POIRecordProvider {
         return SearchItem {
             number: "${this.number}",
             multipleCode: "${this.multipleCode}",
-            postcode: this.postalCode,
+            postcode: this.postcode,
             street: this.street?.resolve().name.lowercase() ?? "",
             city: this.street?.resolve().city->name.lowercase() ?? "",
             coordinates: this.position,
@@ -360,10 +344,10 @@ type CaclrBuilding extends POIRecordProvider {
     }
 
     fn getPostcode(): String? {
-        return this.postalCode;
+        return this.postcode;
     }
 
-    fn indexing(self: node<CaclrBuilding>) {
+    fn indexing(self: node<CaclrAddress>) {
         var nStreet = this.street;
         if (nStreet != null) {
             var numKey = "${this.number}${this.multipleCode}";
@@ -371,7 +355,7 @@ type CaclrBuilding extends POIRecordProvider {
             nStreet->buildings_by_id.set(this.id, self);
         }
 
-        caclr_buildings_by_id.set(this.id, self);
+        caclr_addresses_by_id.set(this.id, self);
     }
 }
 
@@ -458,7 +442,6 @@ type CaclrSource extends DataSource {
     static WEIGHT: float = 5.0;
 
     static fn init() {
-        //Declare the source
         var source = sources_by_name.get(CaclrSource::NAME);
         if (source == null) {
             var source = CaclrSource { reconciliationReport: node<ReconciliationReport> {
@@ -480,136 +463,7 @@ type CaclrSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
-        return caclr_buildings_by_id;
-    }
-
-    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
-        var byKey = Map<int, ScoredCity> {};
-
-        var muniExact = caclr_municipalities_by_name.get(name);
-        if (muniExact != null) {
-            for (_, nCity in muniExact->cities_by_id) {
-                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
-            }
-        } else {
-            var muniResults = caclr_municipalities_by_name.search(name, max);
-            for (_, mr in muniResults) {
-                if (mr.distance > distanceThreshold) {
-                    continue;
-                }
-                for (_, nCity in mr.value->cities_by_id) {
-                    var k = nCity as int;
-                    if (byKey.get(k) == null) {
-                        byKey.set(k, ScoredCity { city: nCity, distance: mr.distance });
-                    }
-                }
-            }
-        }
-
-        var cityExact = caclr_cities_by_name.get(name);
-        if (cityExact != null) {
-            for (_, nCity in cityExact) {
-                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
-            }
-        } else {
-            var cityResults = caclr_cities_by_name.search(name, max);
-            for (_, cr in cityResults) {
-                if (cr.distance > distanceThreshold) {
-                    continue;
-                }
-                for (_, nCity in cr.value) {
-                    var k = nCity as int;
-                    if (byKey.get(k) == null) {
-                        byKey.set(k, ScoredCity { city: nCity, distance: cr.distance });
-                    }
-                }
-            }
-        }
-
-        var out = Array<ScoredCity> {};
-        for (_, sc in byKey) {
-            out.add(sc);
-        }
-        return out;
-    }
-
-    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-        var streets = Array<ScoredStreet> {};
-        var nCity = sc.city as node<CaclrCity>;
-        if (nCity->streets_by_name == null) {
-            return streets;
-        }
-        var idx = nCity->streets_by_name;
-        var exact = idx.get(road);
-        if (exact != null) {
-            streets.add(ScoredStreet { street: exact, distance: 0.0 });
-            return streets;
-        }
-        var streetResults = idx.search(road, max);
-        for (_, sr in streetResults) {
-            if (sr.distance > distanceThreshold) {
-                continue;
-            }
-            var jaroDist = 1.0 - sr.key.jaro(road);
-            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
-        }
-        return streets;
-    }
-
-    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-        var streets = Array<ScoredStreet> {};
-        var exact = caclr_streets_by_name.get(road);
-        if (exact != null) {
-            for (_, nStreet in exact) {
-                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
-            }
-            return streets;
-        }
-        var globalResults = caclr_streets_by_name.search(road, 100);
-        for (_, gr in globalResults) {
-            if (gr.distance > distanceThreshold) {
-                continue;
-            }
-            var jaroDist = 1.0 - gr.key.jaro(road);
-            for (_, nStreet in gr.value) {
-                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
-            }
-        }
-        return streets;
-    }
-
-    fn findPoisInStreet(
-        ss: ScoredStreet,
-        houseNumber: String?,
-        postcode: String?,
-        max: int,
-        distanceThreshold: int
-    ): Array<ScoredPoi> {
-        var results = Array<ScoredPoi> {};
-        var nStreet = ss.street as node<CaclrStreet>;
-        if (houseNumber == null) {
-            for (_, nPoi in nStreet->buildings_by_id) {
-                if (postcode == null || nPoi->getPostcode() == postcode) {
-                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
-                }
-            }
-            return results;
-        }
-        var exact = nStreet->buildings_by_number?.get(houseNumber);
-        if (exact != null) {
-            if (postcode == null || exact->getPostcode() == postcode) {
-                results.add(ScoredPoi { poi: exact, distance: 0.0 });
-                return results;
-            }
-        }
-        var poiResults = nStreet->buildings_by_number?.search(houseNumber, max);
-        for (_, pr in poiResults?) {
-            if (pr.distance > distanceThreshold) {
-                continue;
-            }
-            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
-        }
-        return results;
+    fn getIndex(): nodeIndex<String, node<AddressRecordProvider>> {
+        return caclr_addresses_by_id;
     }
 }

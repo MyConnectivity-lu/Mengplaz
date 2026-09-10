@@ -3,7 +3,7 @@ type OsmOverpassResponse {
     elements: Array<Map<String, any?>>;
 }
 
-abstract type OSMLoader {
+abstract type OsmLoader {
     static fn load(): bool {
         var endpoint = "http://overpass-api.de/api/interpreter";
         var request = "[out:\"json\"][timeout:300]; 
@@ -37,6 +37,8 @@ abstract type OSMLoader {
             info("Collected ${elements.size()} addresses.");
 
             var issues = Map<String, int> {};
+            // Records created by this run, handed to the text index in one batch at the end.
+            var newAddresses = Array<node<AddressRecordProvider>> {};
 
             for (_, elem in elements) {
                 try {
@@ -69,7 +71,7 @@ abstract type OSMLoader {
                         nStreet->indexing(nStreet);
                         info("Created new street: ${parsed.street} (${parsed.city})");
                     }
-                    var nAddr = osm_by_id.get("${parsed.id}");
+                    var nAddr = osm_addresses_by_id.get("${parsed.id}");
                     if (nAddr == null) {
                         nAddr = node<OsmAddress> {
                             OsmAddress {
@@ -82,10 +84,13 @@ abstract type OSMLoader {
                                 ref_caclr: parsed.ref_caclr,
                                 building: parsed.building,
                                 streetRef: nStreet,
-                                kind: parsed.kind
+                                kind: parsed.kind,
+                                createdAt: time::now(),
+                                deprecated: false,
                             }
                         };
                         nAddr->indexing(nAddr);
+                        newAddresses.add(nAddr);
                         info(
                             "Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}"
                         );
@@ -93,21 +98,31 @@ abstract type OSMLoader {
                     if (nAddr->kind == null && parsed.kind != null) {
                         nAddr->kind = parsed.kind;
                     }
-                    nAddr->lastSeenAt = time::now();
+                    nAddr->markSeen();
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
                     var addr = OsmPartialAddress::parse(elem);
                     var nAddr = node<OsmPartialAddress> { addr };
-                    osm_partial_by_id.set(addr.id, nAddr);
+                    osm_partial_addresses_by_id.set(addr.id, nAddr);
                     if (addr.position != null) {
-                        osm_partial_by_geo.set(addr.position, nAddr);
+                        osm_partial_addresses_by_geo.set(addr.position, nAddr);
                     }
                     warn("Could not parse: ${elem}\n${e}");
                 }
             }
-            info("Parsed ${(osm_by_id).size()} addresses.");
-            info("Parsed ${(osm_partial_by_id).size()} partial addresses.");
-            // info("Issues ${issues}.");
+            var nSource = sources_by_name.get(OsmSource::NAME);
+            if (nSource != null) {
+                SourceTextSearch::appendAll(nSource, newAddresses);
+            }
+
+            info("Parsed ${(osm_addresses_by_id).size()} addresses.");
+            info("Parsed ${(osm_partial_addresses_by_id).size()} partial addresses.");
+            // Overpass answers 200 with an empty `elements` array when it is overloaded.
+            // Reading that as a good load would deprecate the whole index.
+            if (elements.size() == 0) {
+                warn("Overpass returned 200 with no elements, treating as a failed load");
+                return false;
+            }
             return true;
         } else {
             error(response);

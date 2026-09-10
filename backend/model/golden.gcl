@@ -1,15 +1,15 @@
-var golden_constituency_by_code: nodeIndex<String, node<GoldenConstituency>>;
+var golden_constituencies_by_code: nodeIndex<String, node<GoldenConstituency>>;
 var golden_cantons_by_id: nodeIndex<String, node<GoldenCanton>>;
 var golden_municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>>;
 var golden_cities_by_id: nodeIndex<String, node<GoldenCity>>;
 var golden_streets_by_id: nodeIndex<String, node<GoldenStreet>>;
-var golden_pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
+var golden_addresses_by_id: nodeIndex<String, node<GoldenAddress>>;
 
 var golden_municipalities_by_name: nodeIndex<String, node<GoldenMunicipality>>;
 var golden_cities_by_name: nodeIndex<String, Array<node<GoldenCity>>>;
 var golden_streets_by_name: nodeIndex<String, Array<node<GoldenStreet>>>;
 
-var golden_pois_by_geo: nodeGeo<node<GoldenPointOfInterest>>;
+var golden_addresses_by_geo: nodeGeo<node<GoldenAddress>>;
 
 type GoldenSource extends DataSource {
     static NAME: String = "Golden";
@@ -18,7 +18,6 @@ type GoldenSource extends DataSource {
     qualityHistory: nodeTime<float>;
 
     static fn init() {
-        //Declare the source
         var source = sources_by_name.get(GoldenSource::NAME);
         if (source == null) {
             var source = GoldenSource {
@@ -41,135 +40,8 @@ type GoldenSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn search(req: SearchRequest): Array<mengplaz::SearchResult> {
-        return GoldenServices::search(req);
-    }
-
-    fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
-        return golden_pois_by_id;
-    }
-
-    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
-        var byKey = Map<int, ScoredCity> {};
-
-        var muniExact = golden_municipalities_by_name.get(name);
-        if (muniExact != null) {
-            for (_, nCity in muniExact->cities_by_id) {
-                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
-            }
-        } else {
-            var muniResults = golden_municipalities_by_name.search(name, max);
-            for (_, mr in muniResults) {
-                if (mr.distance > distanceThreshold) {
-                    continue;
-                }
-                for (_, nCity in mr.value->cities_by_id) {
-                    var k = nCity as int;
-                    if (byKey.get(k) == null) {
-                        byKey.set(k, ScoredCity { city: nCity, distance: mr.distance });
-                    }
-                }
-            }
-        }
-
-        var cityExact = golden_cities_by_name.get(name);
-        if (cityExact != null) {
-            for (_, nCity in cityExact) {
-                byKey.set(nCity as int, ScoredCity { city: nCity, distance: 0.0 });
-            }
-        } else {
-            var cityResults = golden_cities_by_name.search(name, max);
-            for (_, cr in cityResults) {
-                if (cr.distance > distanceThreshold) {
-                    continue;
-                }
-                for (_, nCity in cr.value) {
-                    var k = nCity as int;
-                    if (byKey.get(k) == null) {
-                        byKey.set(k, ScoredCity { city: nCity, distance: cr.distance });
-                    }
-                }
-            }
-        }
-
-        var out = Array<ScoredCity> {};
-        for (_, sc in byKey) {
-            out.add(sc);
-        }
-        return out;
-    }
-
-    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-        var streets = Array<ScoredStreet> {};
-        var nCity = sc.city as node<GoldenCity>;
-        if (nCity->streets_by_name == null) {
-            return streets;
-        }
-        var idx = nCity->streets_by_name;
-        var exact = idx.get(road);
-        if (exact != null) {
-            streets.add(ScoredStreet { street: exact, distance: 0.0 });
-            return streets;
-        }
-        var streetResults = idx.search(road, max);
-        for (_, sr in streetResults) {
-            if (sr.distance > distanceThreshold) {
-                continue;
-            }
-            var jaroDist = 1.0 - sr.key.jaro(road);
-            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
-        }
-        return streets;
-    }
-
-    fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-        var streets = Array<ScoredStreet> {};
-        var exact = golden_streets_by_name.get(road);
-        if (exact != null) {
-            for (_, nStreet in exact) {
-                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
-            }
-            return streets;
-        }
-        var globalResults = golden_streets_by_name.search(road, 100);
-        for (_, gr in globalResults) {
-            if (gr.distance > distanceThreshold) {
-                continue;
-            }
-            var jaroDist = 1.0 - gr.key.jaro(road);
-            for (_, nStreet in gr.value) {
-                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
-            }
-        }
-        return streets;
-    }
-
-    fn findPoisInStreet(ss: ScoredStreet, houseNumber: String?, postcode: String?, max: int, distanceThreshold: int): Array<ScoredPoi> {
-        var results = Array<ScoredPoi> {};
-        var nStreet = ss.street as node<GoldenStreet>;
-        if (houseNumber == null) {
-            for (_, nPoi in nStreet->pois_by_id) {
-                if (postcode == null || nPoi->postCode == postcode) {
-                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
-                }
-            }
-            return results;
-        }
-        var exact = nStreet->pois_by_number?.get(houseNumber);
-        if (exact != null) {
-            if (postcode == null || exact->postCode == postcode) {
-                results.add(ScoredPoi { poi: exact, distance: 0.0 });
-                return results;
-            }
-        }
-        var poiResults = nStreet->pois_by_number?.search(houseNumber, max);
-        for (_, pr in poiResults?) {
-            if (pr.distance > distanceThreshold) {
-                continue;
-            }
-            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
-        }
-        return results;
+    fn getIndex(): nodeIndex<String, node<AddressRecordProvider>> {
+        return golden_addresses_by_id;
     }
 }
 
@@ -265,8 +137,8 @@ type GoldenStreet extends StreetRecordProvider {
     lastUpdate: time;
 
     city: node<GoldenCity>;
-    pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>>;
-    pois_by_number: nodeIndex<String, node<GoldenPointOfInterest>>?;
+    addresses_by_id: nodeIndex<String, node<GoldenAddress>>;
+    addresses_by_number: nodeIndex<String, node<GoldenAddress>>?;
 
     caclrStreet: node<CaclrStreet>?;
 
@@ -284,13 +156,13 @@ type GoldenStreet extends StreetRecordProvider {
         return record;
     }
 
-    fn getPOIs(): Array<POIRecordRef> {
-        var arr = Array<POIRecordRef> {};
-        for (_, ref in this.pois_by_id) {
-            arr.add(POIRecordRef {
-                    ref: ref,
-                    record: ref->toMengplazRecord(),
-                });
+    fn getAddresses(): Array<AddressRecordRef> {
+        var arr = Array<AddressRecordRef> {};
+        for (_, ref in this.addresses_by_id) {
+            arr.add(AddressRecordRef {
+                ref: ref,
+                record: ref->toAddressRecord(),
+            });
         }
         return arr;
     }
@@ -303,8 +175,8 @@ type GoldenStreet extends StreetRecordProvider {
         }
         streets.add(self);
 
-        if (this.pois_by_number == null) {
-            this.pois_by_number = nodeIndex<String, node<GoldenPointOfInterest>> {};
+        if (this.addresses_by_number == null) {
+            this.addresses_by_number = nodeIndex<String, node<GoldenAddress>> {};
         }
 
         golden_streets_by_name.set(streetKey, streets);
@@ -314,13 +186,13 @@ type GoldenStreet extends StreetRecordProvider {
     }
 }
 
-type GoldenPointOfInterest extends POIRecordProvider {
+type GoldenAddress extends AddressRecordProvider {
     uid: String;
 
     number: int;
     multipleCode: String;
 
-    postCode: String;
+    postcode: String;
 
     primaryLocation: geo?;
 
@@ -328,40 +200,44 @@ type GoldenPointOfInterest extends POIRecordProvider {
 
     lastUpdate: time;
 
+    createdAt: time?;
+
     street: node<GoldenStreet>?;
 
     linkedRecords: Array<LinkedRecordEntry>;
 
     quality: nodeTime<QualityEvent>;
 
-    @permission("admin")
-    fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
-        //NOOP
-    }
+    fn linkToGolden(_nGolden: node<GoldenAddress>) {}
 
-    @permission("admin")
-    fn unlinkGolden() {
-        //NOOP
-    }
+    fn unlinkGolden() {}
 
-    fn getLinkedGolden(): node<GoldenPointOfInterest>? {
+    fn getLinkedGolden(): node<GoldenAddress>? {
         return null;
     }
 
-    fn toFullRecord(): any {
-        return this.toMengplazRecord();
+    fn isDeprecated(): bool {
+        return false;
     }
 
-    fn promoteToGolden(record: node<POIRecordProvider>) {
+    fn isLinked(): bool {
+        return this.linkedRecords.size() > 0;
+    }
+
+    fn toFullRecord(): any {
+        return this.toAddressRecord();
+    }
+
+    fn promoteToGolden(_record: node<AddressRecordProvider>) {
         throw "Record is already Golden, it can't be promoted";
     }
 
-    fn toMengplazRecord(): POIRecord {
-        var record = POIRecord {
+    fn toAddressRecord(): AddressRecord {
+        var record = AddressRecord {
             uid: this.uid,
             number: "${this.number} ${this.multipleCode}",
             street: this.street?->name,
-            postcode: this.postCode,
+            postcode: this.postcode,
             locality: this.street?->city->name,
             commune: this.street?->city->municipality->name,
             primaryLocation: this.primaryLocation,
@@ -388,7 +264,7 @@ type GoldenPointOfInterest extends POIRecordProvider {
         return this.uid;
     }
 
-    fn toSearchItem() {};
+    fn toSearchItem() {}
 
     fn getSourceName(): String {
         return GoldenSource::NAME;
@@ -436,18 +312,6 @@ type GoldenPointOfInterest extends POIRecordProvider {
         }
     }
 
-    fn removeCityAlias(name: String) {
-        var city = this.street?->city;
-        if (city != null) {
-            for (i, alias in city->nameAliases) {
-                if (alias.value == name) {
-                    city->nameAliases.remove(i);
-                    break;
-                }
-            }
-        }
-    }
-
     fn getStreet(): String? {
         return this.street?->name;
     }
@@ -461,49 +325,27 @@ type GoldenPointOfInterest extends POIRecordProvider {
     }
 
     fn getPostcode(): String? {
-        return this.postCode;
+        return this.postcode;
     }
 
-    fn indexing(self: node<GoldenPointOfInterest>) {
+    fn indexing(self: node<GoldenAddress>) {
         var nStreet = this.street;
         if (nStreet != null) {
             var numKey = "${this.number}${this.multipleCode}";
-            nStreet->pois_by_number?.set(numKey, self);
-            nStreet->pois_by_id.set(this.uid, self);
+            nStreet->addresses_by_number?.set(numKey, self);
+            nStreet->addresses_by_id.set(this.uid, self);
         }
 
-        golden_pois_by_id.set(this.uid, self);
+        golden_addresses_by_id.set(this.uid, self);
 
         if (this.primaryLocation != null) {
-            golden_pois_by_geo.set(this.primaryLocation, self);
+            golden_addresses_by_geo.set(this.primaryLocation, self);
         }
+
+        // The text index is deliberately NOT updated here: `indexing()` also runs for every
+        // POI of a backup restore, and one post-build append costs O(docs). `promoteToGolden`
+        // appends a newly created POI instead.
     }
 }
 
-var golden_records_geo_recompute: nodeList<node<GoldenPointOfInterest>>;
-
-@permission("admin")
-@expose
-fn recomputeGoldenGeoScore() {
-    var params = SearchParameters::default();
-    var t = time::now();
-    for (_, nGolden in golden_records_geo_recompute) {
-        for (_, l in nGolden->linkedRecords) {
-            if (l.detailedScore != null) {
-                var score = l.detailedScore.resolve();
-                var item = l.record->toSearchItem();
-                var geoScore = GoldenServices::computeGeoScore(item.coordinates, nGolden->primaryLocation, params.geoParams);
-                var overallScore = GoldenServices::computeOverallScore(score.cityScore, score.streetScore, score.numberScore, score.postcodeScore, geoScore, params.weights);
-                score.geoScore = geoScore;
-                score.overallScore = overallScore;
-            }
-        }
-        var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
-        nGolden->quality.setAt(t, QualityEvent {
-                score: newQuality,
-                eventType: QualityEventType::update
-            });
-    }
-
-    golden_records_geo_recompute.removeAll();
-}
+var golden_addresses_geo_recompute: nodeList<node<GoldenAddress>>;

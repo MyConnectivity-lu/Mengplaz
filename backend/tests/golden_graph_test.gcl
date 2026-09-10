@@ -1,0 +1,236 @@
+/// The golden graph itself: how `indexing()` wires a record into the ten module-level
+/// indices, and how a golden POI projects back out as a record.
+///
+/// `indexing()` is the only place those indices are written, and a missing `set()` there
+/// fails nothing loudly - it just makes a record invisible to one lookup path. Hence one
+/// assertion per index.
+@test
+fn municipalityIndexingRegistersItByIdAndByName() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nMunicipality = nCity->municipality;
+
+    Assert::equals(golden_municipalities_by_id.get(nMunicipality->id), nMunicipality);
+    // The by-name index is lowercased; the graph keeps display casing.
+    Assert::equals(golden_municipalities_by_name.get("luxembourg"), nMunicipality);
+    Assert::isNull(golden_municipalities_by_name.get("Luxembourg"));
+    // And it is reachable downward from its canton.
+    Assert::equals(nMunicipality->canton->municipalities_by_id.get(nMunicipality->id), nMunicipality);
+    // `indexing()` lazily creates the nullable child index.
+    Assert::isNotNull(nMunicipality->cities_by_name);
+}
+
+@test
+fn cityIndexingRegistersItEverywhereIncludingUnderItsMunicipality() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+
+    Assert::equals(golden_cities_by_id.get(nCity->id), nCity);
+    Assert::equals(nCity->municipality->cities_by_id.get(nCity->id), nCity);
+    Assert::equals(nCity->municipality->cities_by_name?.get("gasperich"), nCity);
+    Assert::isNotNull(nCity->streets_by_name);
+
+    var byName = golden_cities_by_name.get("gasperich");
+    Assert::isNotNull(byName);
+    Assert::equals(byName!!.size(), 1);
+    Assert::equals(byName[0], nCity);
+}
+
+@test
+fn citiesSharingANameAccumulateInTheSameNameBucket() {
+    // Luxembourg has several localities with the same name in different communes, so the
+    // by-name index holds an array rather than a single node.
+    fixtures_test::reset();
+    var nA = fixtures_test::goldenCity("Commune A", "Kleinbettingen");
+    var nB = fixtures_test::goldenCity("Commune B", "Kleinbettingen");
+
+    var byName = golden_cities_by_name.get("kleinbettingen");
+    Assert::isNotNull(byName);
+    Assert::equals(byName!!.size(), 2);
+    Assert::isFalse(nA == nB);
+}
+
+@test
+fn streetIndexingRegistersItGloballyAndUnderItsCity() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+
+    Assert::equals(golden_streets_by_id.get(nStreet->id), nStreet);
+    Assert::equals(nCity->streets_by_id.get(nStreet->id), nStreet);
+    Assert::equals(nCity->streets_by_name?.get("rue de la gare"), nStreet);
+    Assert::isNotNull(nStreet->addresses_by_number);
+
+    var byName = golden_streets_by_name.get("rue de la gare");
+    Assert::isNotNull(byName);
+    Assert::equals(byName!![0], nStreet);
+}
+
+@test
+fn poiIndexingRegistersItByUidByNumberAndByGeo() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var location = geo { 49.6116, 6.1319 };
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "A", "1234", location);
+
+    Assert::equals(golden_addresses_by_id.get(nPoi->uid), nPoi);
+    Assert::equals(nStreet->addresses_by_id.get(nPoi->uid), nPoi);
+    // The number key is number and multiple code concatenated with no separator.
+    Assert::equals(nStreet->addresses_by_number?.get("12A"), nPoi);
+    Assert::equals(golden_addresses_by_geo.get(location), nPoi);
+}
+
+@test
+fn aPoiWithoutCoordinatesStaysOutOfTheGeoIndex() {
+    // Records with no coordinates are normal in CACLR; they must still be indexed by uid and
+    // number, and must not land in `golden_addresses_by_geo` at a bogus position.
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nPoi = fixtures_test::goldenPoi(nStreet, 5, "", "1234", null);
+
+    Assert::equals(golden_addresses_by_id.get(nPoi->uid), nPoi);
+    Assert::equals(nStreet->addresses_by_number?.get("5"), nPoi);
+    Assert::equals(golden_addresses_by_geo.size(), 0);
+}
+
+@test
+fn poiRecordCarriesTheWholeAdministrativeChain() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var location = geo { 49.6116, 6.1319 };
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "A", "1234", location);
+
+    var record = nPoi->toAddressRecord();
+    Assert::equals(record.uid, nPoi->uid);
+    // The public record spells the number with a space, unlike the "12A" index key.
+    Assert::equals(record.number, "12 A");
+    Assert::equals(record.street, "Rue de la Gare");
+    Assert::equals(record.postcode, "1234");
+    Assert::equals(record.locality, "Gasperich");
+    Assert::equals(record.commune, "Luxembourg");
+    Assert::equals(record.primaryLocation, location);
+    Assert::equals(record.sourceName, GoldenSource::NAME);
+    // No quality event has been recorded yet.
+    Assert::isNull(record.quality);
+}
+
+@test
+fn poiRecordReportsTheLatestQualityScore() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+
+    var t = time::now();
+    nPoi->quality.setAt(t, QualityEvent { score: 0.2, eventType: QualityEventType::link });
+    nPoi->quality.setAt(t + 1_s, QualityEvent { score: 0.5, eventType: QualityEventType::link });
+
+    Assert::equals(nPoi->toAddressRecord().quality, 0.5);
+}
+
+@test
+fn recordAliasesAreOnlyExposedWhenPresent() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+
+    Assert::isNull(nPoi->toAddressRecord().streetAliases);
+    Assert::isNull(nPoi->toAddressRecord().localityAliases);
+
+    nStreet->nameAliases.add(Alias { value: "Gare-Strooss", id: "" });
+    nCity->nameAliases.add(Alias { value: "Gaasperech", id: "" });
+
+    var record = nPoi->toAddressRecord();
+    Assert::equals(record.streetAliases?.size(), 1);
+    Assert::equals(record.localityAliases?.size(), 1);
+}
+
+@test
+fn addingAnAliasIsIdempotentAndRefusesTheCanonicalName() {
+    // Aliases accumulate every time a source record with a differently-spelled street is
+    // linked, so the guard against duplicates and against re-adding the canonical name is
+    // what stops the array growing without bound.
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+
+    nPoi->addStreetAlias("Gare-Strooss");
+    nPoi->addStreetAlias("Gare-Strooss");
+    nPoi->addStreetAlias("Rue de la Gare");
+    Assert::equals(nStreet->nameAliases.size(), 1);
+    Assert::equals(nStreet->nameAliases[0].value, "Gare-Strooss");
+
+    nPoi->addCityAlias("Gaasperech");
+    nPoi->addCityAlias("Gaasperech");
+    nPoi->addCityAlias("Gasperich");
+    Assert::equals(nCity->nameAliases.size(), 1);
+}
+
+@test
+fn removingAnAliasDropsExactlyOneEntry() {
+    fixtures_test::reset();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+
+    nPoi->addStreetAlias("Gare-Strooss");
+    nPoi->addStreetAlias("Bahnhofstrasse");
+    nPoi->removeStreetAlias("Gare-Strooss");
+    Assert::equals(nStreet->nameAliases.size(), 1);
+    Assert::equals(nStreet->nameAliases[0].value, "Bahnhofstrasse");
+
+    // Removing something that is not there is a no-op, not an error.
+    nPoi->removeStreetAlias("Nowhere");
+    Assert::equals(nStreet->nameAliases.size(), 1);
+}
+
+@test
+fn aGoldenPoiRefusesToBePromoted() {
+    // A golden POI is the *target* of promotion, so its own `promoteToGolden` throws.
+    // Driven through `promoteRecord` because the override's signature contradicts the one
+    // `AddressRecordProvider` declares, so a direct call typechecks on neither type.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nPoi = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+
+    Assert::isNull(nPoi->getLinkedGolden());
+
+    var threw = false;
+    try {
+        privateApi::promoteRecord(nPoi, nStreet->id);
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+    // Nothing was created by the failed attempt.
+    Assert::equals(golden_addresses_by_id.size(), 1);
+}
+
+@test
+fn streetRecordExposesItsPois() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
+    fixtures_test::goldenPoi(nStreet, 14, "", "1234", null);
+
+    var record = nStreet->toRecord();
+    Assert::equals(record.street, "Rue de la Gare");
+    Assert::equals(record.city, "Gasperich");
+    Assert::isNull(record.streetAliases);
+
+    Assert::equals(nStreet->getAddresses().size(), 2);
+}
+
+// ------------------------------------------- GoldenSource lookup helpers

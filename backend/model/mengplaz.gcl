@@ -9,12 +9,18 @@ enum QualityEventType {
 type QualityEvent {
     @precision(0.01)
     score: float;
-    sourceRecord: node<POIRecordProvider>?;
+    sourceRecord: node<AddressRecordProvider>?;
     eventType: QualityEventType;
 }
 
+type SourceCountSnapshot {
+    total: int;
+    active: int;
+    linked: int;
+}
+
 type LinkedRecordEntry {
-    record: node<POIRecordProvider>;
+    record: node<AddressRecordProvider>;
     @precision(0.01)
     score: float;
     detailedScore: node<ReconciliationCandidateScore>?;
@@ -24,31 +30,48 @@ abstract type DataSource {
     private reconciliationReport: node<ReconciliationReport>;
     private isReconciling: node<bool>?;
 
-    // Timestamp of last import
     lastUpdate: time?;
+
+    countHistory: nodeTime<SourceCountSnapshot>?;
 
     abstract fn name(): String;
     abstract fn getWeight(): float;
     abstract fn getReconciliationReport(): ReconciliationReport?;
-    // abstract fn reconcile(searchParams: SearchParameters?): ReconciliationReport;
-    // abstract fn search(req: SearchRequest): Array<SearchResult>;
-    abstract fn getIndex(): nodeIndex<String, node<POIRecordProvider>>;
+    abstract fn getIndex(): nodeIndex<String, node<AddressRecordProvider>>;
 
-    abstract fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity>;
-    abstract fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet>;
-    abstract fn findStreetsByName(road: String, max: int, distanceThreshold: int): Array<ScoredStreet>;
-    abstract fn findPoisInStreet(
-        ss: ScoredStreet,
-        houseNumber: String?,
-        postcode: String?,
-        max: int,
-        distanceThreshold: int
-    ): Array<ScoredPoi>;
+    static fn countRecords(nSource: node<DataSource>): SourceCountSnapshot {
+        var total = 0;
+        var active = 0;
+        var linked = 0;
+        for (_, nRecord in nSource->getIndex()) {
+            total++;
+            if (!nRecord->isDeprecated()) {
+                active++;
+            }
+            if (nRecord->isLinked()) {
+                linked++;
+            }
+        }
+        return SourceCountSnapshot { total: total, active: active, linked: linked };
+    }
+
+    static fn countHistoryOrCreate(nSource: node<DataSource>): nodeTime<SourceCountSnapshot> {
+        var history = nSource->countHistory;
+        if (history == null) {
+            history = nodeTime<SourceCountSnapshot> {};
+            nSource->countHistory = history;
+        }
+        return history;
+    }
+
+    static fn recordCounts(nSource: node<DataSource>, snapshot: SourceCountSnapshot) {
+        DataSource::countHistoryOrCreate(nSource).setAt(time::now(), snapshot);
+    }
 
     static fn reconcile(
         nSource: node<DataSource>,
         searchParams: SearchParameters?,
-        pois: Array<node<POIRecordProvider>>?
+        pois: Array<node<AddressRecordProvider>>?
     ): ReconciliationReport {
         if (searchParams == null) {
             searchParams = SearchParameters::default();
@@ -58,7 +81,7 @@ abstract type DataSource {
         for (var i = 0; i < workers; i++) {
             jobs.add(Job<any?> {
                 function: GoldenServices::search,
-                arguments: [SearchRequest { items: Array<node<POIRecordProvider>> {}, params: searchParams }],
+                arguments: [SearchRequest { items: Array<node<AddressRecordProvider>> {}, params: searchParams }],
             });
         }
 
@@ -92,16 +115,16 @@ abstract type DataSource {
                         }
                     };
                     if (candidate.searchOverallScore != 1) {
-                        var reason = MengplazMissmatch::COMPLEX_MISMATCH;
+                        var reason = MengplazMismatch::COMPLEX_MISMATCH;
                         if (candidate.cityScore == 1) {
                             if (candidate.postcodeScore == 1) {
                                 if (candidate.streetScore == 1) {
-                                    reason = MengplazMissmatch::NUMBER_MISMATCH;
+                                    reason = MengplazMismatch::NUMBER_MISMATCH;
                                 } else if (candidate.numberScore == 1) {
-                                    reason = MengplazMissmatch::STREET_MISMATCH;
+                                    reason = MengplazMismatch::STREET_MISMATCH;
                                 }
                             } else if (candidate.streetScore == 1 && candidate.numberScore == 1) {
-                                reason = MengplazMissmatch::POSTCODE_MISMATCH;
+                                reason = MengplazMismatch::POSTCODE_MISMATCH;
                             }
                         }
                         reconCandidate.mismatch = reason;
@@ -112,7 +135,7 @@ abstract type DataSource {
                 }
                 if (perfectMatch > 1) {
                     for (_, res in results) {
-                        res.mismatch = MengplazMissmatch::MULTIPLE_MATCHES;
+                        res.mismatch = MengplazMismatch::MULTIPLE_MATCHES;
                     }
                 }
                 report.unlinked.set(searchResult.sourceRecord, results);
@@ -129,7 +152,7 @@ abstract type DataSource {
         }
     }
 
-    fn removeIsReconciling() {
+    fn clearIsReconciling() {
         this.isReconciling?.set(false);
     }
 }
@@ -149,26 +172,25 @@ type ReconciliationCandidateScore {
     overallScore: float;
 }
 
-// if score is null, we assume a score of 1, to save space
-
 type ReconciliationCandidate {
-    candidateRecord: node<POIRecordProvider>;
+    candidateRecord: node<AddressRecordProvider>;
+    /// Null means 1.0; left unset to save space.
     score: ReconciliationCandidateScore?;
-    mismatch: MengplazMissmatch?;
-    // Same as score, but for linked records only, we do this to avoid creating permanent objects, since an unlinked score is temporary
+    mismatch: MengplazMismatch?;
+    /// Linked records only: an unlinked score is temporary and never persisted.
     detailedScore: node<ReconciliationCandidateScore>?;
 }
 
 type ReconciliationReport {
     date: time;
-    linked: nodeIndex<node<POIRecordProvider>, ReconciliationCandidate>;
-    unlinked: nodeIndex<node<POIRecordProvider>, Array<ReconciliationCandidate>>;
+    linked: nodeIndex<node<AddressRecordProvider>, ReconciliationCandidate>;
+    unlinked: nodeIndex<node<AddressRecordProvider>, Array<ReconciliationCandidate>>;
 
     static fn init(): ReconciliationReport {
         return ReconciliationReport {
             date: time::now(),
-            linked: nodeIndex<node<POIRecordProvider>, ReconciliationCandidate> {},
-            unlinked: nodeIndex<node<POIRecordProvider>, Array<ReconciliationCandidate>> {}
+            linked: nodeIndex<node<AddressRecordProvider>, ReconciliationCandidate> {},
+            unlinked: nodeIndex<node<AddressRecordProvider>, Array<ReconciliationCandidate>> {}
         };
     }
 }
@@ -176,25 +198,27 @@ type ReconciliationReport {
 @volatile
 type StreetRecordRef {
     ref: node<StreetRecordProvider>;
+    id: String;
     record: StreetRecord;
+    score: float;
 }
 
 @volatile
-type POIRecordRef {
-    ref: node<POIRecordProvider>;
-    record: POIRecord;
+type AddressRecordRef {
+    ref: node<AddressRecordProvider>;
+    record: AddressRecord;
 }
 
 @volatile
-type POIFullRecordRef {
-    ref: node<POIRecordProvider>;
+type AddressFullRecordRef {
+    ref: node<AddressRecordProvider>;
     id: String;
     record: any;
     matchScore: float?;
 }
 
 @volatile
-type POIRecord {
+type AddressRecord {
     uid: String?;
     number: String?;
     postcode: String?;
@@ -206,17 +230,19 @@ type POIRecord {
     primaryLocation: geo?;
     secondaryLocations: Map<String, geo>?;
     sourceName: String;
-    goldenRef: node<GoldenPointOfInterest>?;
+    goldenRef: node<GoldenAddress>?;
     quality: float?;
 }
 
-abstract type POIRecordProvider {
-    abstract fn linkToGolden(nGolden: node<GoldenPointOfInterest>);
+abstract type AddressRecordProvider {
+    abstract fn linkToGolden(nGolden: node<GoldenAddress>);
     abstract fn unlinkGolden();
-    abstract fn getLinkedGolden(): node<GoldenPointOfInterest>?;
-    abstract fn toMengplazRecord(): POIRecord;
+    abstract fn getLinkedGolden(): node<GoldenAddress>?;
+    abstract fn isDeprecated(): bool;
+    abstract fn isLinked(): bool;
+    abstract fn toAddressRecord(): AddressRecord;
     abstract fn toFullRecord(): any;
-    abstract fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest>;
+    abstract fn promoteToGolden(streetIdx: String): node<GoldenAddress>;
     abstract fn getSource(): node<DataSource>;
     abstract fn getSourceName(): String;
     abstract fn getId(): String;
@@ -225,6 +251,43 @@ abstract type POIRecordProvider {
     abstract fn getCity(): String?;
     abstract fn getMunicipality(): String?;
     abstract fn getPostcode(): String?;
+}
+
+/// What the three external sources share: which golden record this one corroborates, and
+/// whether the last load still saw it. Golden records are never loaded, so they implement
+/// `AddressRecordProvider` directly instead.
+abstract type ExternalAddressRecord extends AddressRecordProvider {
+    private goldenRef: node<GoldenAddress>?;
+
+    createdAt: time?;
+    lastSeenAt: time?;
+    deprecated: bool;
+
+    fn linkToGolden(nGolden: node<GoldenAddress>) {
+        this.goldenRef = nGolden;
+    }
+
+    fn unlinkGolden() {
+        this.goldenRef = null;
+    }
+
+    fn getLinkedGolden(): node<GoldenAddress>? {
+        return this.goldenRef;
+    }
+
+    fn isDeprecated(): bool {
+        return this.deprecated;
+    }
+
+    fn isLinked(): bool {
+        return this.goldenRef != null;
+    }
+
+    /// A record the current load still sees: heals one deprecated by a missed run.
+    fn markSeen() {
+        this.lastSeenAt = time::now();
+        this.deprecated = false;
+    }
 }
 
 @volatile
@@ -239,12 +302,12 @@ type StreetRecord {
 
 abstract type StreetRecordProvider {
     abstract fn toRecord(): StreetRecord;
-    abstract fn getPOIs(): Array<POIRecordRef>;
+    abstract fn getAddresses(): Array<AddressRecordRef>;
 }
 
 @volatile
 type SearchRequest {
-    items: Array<node<POIRecordProvider>>;
+    items: Array<node<AddressRecordProvider>>;
     params: SearchParameters;
 }
 
@@ -308,7 +371,7 @@ type SearchParameters {
     postcodeMaxDistance: int;
     weights: ScoringWeights;
     geoParams: GeoParameters;
-    /// When true, performs a global POI search if no street-level candidates are found. Off by default (heavy operation).
+    /// Falls back to a global POI search when no street-level candidate is found. Heavy.
     deepSearch: bool;
 
     static fn default(): SearchParameters {
@@ -328,8 +391,8 @@ type SearchParameters {
 
 @volatile
 type SearchResult {
-    sourceRecord: node<POIRecordProvider>;
-    candidates: Array<CandidateMatch<node<POIRecordProvider>>>;
+    sourceRecord: node<AddressRecordProvider>;
+    candidates: Array<CandidateMatch<node<AddressRecordProvider>>>;
 }
 
 @volatile

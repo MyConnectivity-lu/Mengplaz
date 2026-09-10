@@ -1,0 +1,396 @@
+/// `DataSource::reconcile` and the two report views the reconcile page is built from.
+///
+/// Reconcile fans the source's records across background jobs, runs `GoldenServices::search`
+/// on each, and then classifies every candidate into a `MengplazMismatch` reason. That
+/// classification is what puts a record into a tab in the UI, so it is the part worth
+/// pinning: the reasons are derived from which *combination* of field scores fell short, and
+/// the derivation only recognises three clean single-field cases before falling back to
+/// `COMPLEX_MISMATCH`.
+/// One golden POI — 12, Rue de la Gare, 1234 Gasperich, at `fixtures_test::here()`.
+/// The single candidate reconcile produced for `nRecord`, or null if it produced none.
+fn onlyCandidate(nRecord: node<AddressRecordProvider>): ReconciliationCandidate? {
+    var candidates = fixtures_test::osmSource()->reconciliationReport->unlinked.get(nRecord);
+    if (candidates == null || candidates.size() != 1) {
+        return null;
+    }
+    return candidates[0];
+}
+
+@test
+fn reconcileRecordsAPerfectMatchWithoutAMismatchReason() {
+    var nGolden = fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    var candidate = onlyCandidate(nOsm);
+    Assert::isNotNull(candidate);
+    Assert::isNull(candidate!!.mismatch);
+    Assert::equals(candidate.candidateRecord, nGolden as node<AddressRecordProvider>);
+    Assert::equals(candidate.score!!.overallScore, 1.0);
+}
+
+@test
+fn reconcileSkipsRecordsThatAreAlreadyLinked() {
+    // A reconcile run only looks for work: linked records keep the link they have, and stay
+    // out of the unlinked bucket.
+    var nGolden = fixtures_test::seedGolden("");
+    var nLinked = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    var nPending = fixtures_test::osmAddress(2, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    privateApi::linkRecords(nLinked, nGolden, null);
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    Assert::isNull(fixtures_test::osmSource()->reconciliationReport->unlinked.get(nLinked));
+    Assert::isNotNull(fixtures_test::osmSource()->reconciliationReport->unlinked.get(nPending));
+}
+
+@test
+fn reconcileRecordsNoCandidatesWhenNothingMatches() {
+    fixtures_test::seedGolden("");
+    // Different number, and far enough away that the geo fallback cannot rescue it.
+    var nOsm = fixtures_test::osmAddress(1, "99", "Rue de la Gare", "Gasperich", "1234", geo { 49.6316, 6.1319 });
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    var candidates = fixtures_test::osmSource()->reconciliationReport->unlinked.get(nOsm);
+    Assert::isNotNull(candidates);
+    Assert::equals(candidates!!.size(), 0);
+}
+
+// ------------------------------------------------- mismatch classification
+
+@test
+fn aMultipleCodeDifferenceIsClassifiedAsANumberMismatch() {
+    // City, street and postcode all line up; only the number's letter suffix differs.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "A", "1234", fixtures_test::here());
+    var nOsm = fixtures_test::osmAddress(1, "12B", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    Assert::equals(onlyCandidate(nOsm)!!.mismatch, MengplazMismatch::NUMBER_MISMATCH);
+}
+
+@test
+fn aMisspeltStreetIsClassifiedAsAStreetMismatch() {
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gara", "Gasperich", "1234", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    Assert::equals(onlyCandidate(nOsm)!!.mismatch, MengplazMismatch::STREET_MISMATCH);
+}
+
+@test
+fn aNearbyPostcodeIsClassifiedAsAPostcodeMismatch() {
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1244", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    Assert::equals(onlyCandidate(nOsm)!!.mismatch, MengplazMismatch::POSTCODE_MISMATCH);
+}
+
+@test
+fn twoFieldsOffAtOnceFallBackToAComplexMismatch() {
+    // The classifier only names a reason when exactly one field is the culprit; anything else
+    // is `COMPLEX_MISMATCH` and needs an operator to look at it.
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gara", "Gasperich", "1244", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    Assert::equals(onlyCandidate(nOsm)!!.mismatch, MengplazMismatch::COMPLEX_MISMATCH);
+}
+
+@test
+fn aPoorCityScoreAlwaysYieldsAComplexMismatch() {
+    // City is the outermost branch of the classifier: if it is not exactly 1.0 no finer reason
+    // is attempted, whatever the other fields did.
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperisch", "1234", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    var candidate = onlyCandidate(nOsm);
+    Assert::isNotNull(candidate);
+    Assert::isTrue(candidate!!.score!!.cityScore < 1.0);
+    Assert::equals(candidate.mismatch, MengplazMismatch::COMPLEX_MISMATCH);
+}
+
+@test
+fn severalPerfectMatchesAreAllFlaggedAsMultipleMatches() {
+    // Two golden POIs describing the same address is a data defect, and the source record
+    // cannot be linked automatically to either. Every candidate is flagged, not just the
+    // extras, so the UI can show the record as ambiguous rather than picking one.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", fixtures_test::here());
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", fixtures_test::here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    DataSource::reconcile(fixtures_test::osmSource(), null, null);
+
+    var candidates = fixtures_test::osmSource()->reconciliationReport->unlinked.get(nOsm);
+    Assert::isNotNull(candidates);
+    Assert::equals(candidates!!.size(), 2);
+    for (_, c in candidates) {
+        Assert::equals(c.mismatch, MengplazMismatch::MULTIPLE_MATCHES);
+    }
+}
+
+@test
+fn reconcileCanBeRestrictedToASubsetOfRecords() {
+    // The per-POI entry point, used when an operator re-runs reconciliation on one street
+    // rather than a whole source.
+    fixtures_test::seedGolden("");
+    var nTargeted = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    var nUntouched = fixtures_test::osmAddress(2, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    var subset = Array<node<AddressRecordProvider>> { nTargeted };
+    DataSource::reconcile(fixtures_test::osmSource(), null, subset);
+
+    Assert::isNotNull(fixtures_test::osmSource()->reconciliationReport->unlinked.get(nTargeted));
+    Assert::isNull(fixtures_test::osmSource()->reconciliationReport->unlinked.get(nUntouched));
+}
+
+@test
+fn reconcileHonoursCustomSearchParameters() {
+    // Tightening the street threshold past what a misspelling can reach drops the candidate
+    // entirely, rather than reporting it as a street mismatch.
+    fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gara", "Gasperich", "1234", geo { 49.6316, 6.1319 });
+
+    var params = SearchParameters::default();
+    params.streetSimilarityThreshold = 0.99;
+    DataSource::reconcile(fixtures_test::osmSource(), params, null);
+
+    var candidates = fixtures_test::osmSource()->reconciliationReport->unlinked.get(nOsm);
+    Assert::isNotNull(candidates);
+    Assert::equals(candidates!!.size(), 0);
+}
+
+// ------------------------------------------------------------ report views
+
+@test
+fn theReportViewBucketsRecordsByMatchQuality() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", fixtures_test::here());
+    fixtures_test::goldenPoi(nStreet, 20, "", "1234", fixtures_test::here());
+
+    var nFull = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    var nPartial = fixtures_test::osmAddress(2, "20", "Rue de la Gara", "Gasperich", "1234", fixtures_test::here());
+    var nNone = fixtures_test::osmAddress(3, "99", "Rue de la Gare", "Gasperich", "1234", geo { 49.6316, 6.1319 });
+
+    var nSource = fixtures_test::osmSource();
+    DataSource::reconcile(nSource, null, null);
+    var view = privateApi::getReconciliationReport(nSource, null, null)!!;
+
+    Assert::equals(view.fullMatch.size(), 1);
+    Assert::equals(view.fullMatch[0], "1");
+    Assert::equals(view.partialMatch.size(), 1);
+    Assert::equals(view.partialMatch[0].id, "2");
+    Assert::equals(view.noMatch.size(), 1);
+    Assert::equals(view.noMatch[0], "3");
+    Assert::equals(view.multipleMatch.size(), 0);
+    Assert::equals(view.linked.size(), 0);
+    Assert::equals(view.source, nSource);
+    Assert::isNotNull(nFull);
+    Assert::isNotNull(nPartial);
+    Assert::isNotNull(nNone);
+}
+
+@test
+fn theReportViewListsLinkedRecordsSeparately() {
+    var nGolden = fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    var nSource = fixtures_test::osmSource();
+    DataSource::reconcile(nSource, null, null);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    var view = privateApi::getReconciliationReport(nSource, null, null)!!;
+    Assert::equals(view.linked.size(), 1);
+    Assert::equals(view.linked[0], "1");
+    Assert::equals(view.fullMatch.size(), 0);
+}
+
+@test
+fn theReportViewCanBeFilteredByCity() {
+    // The reconcile page is worked through one locality at a time; the filter is applied to
+    // the *source* record's own city, not to the candidate's.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", fixtures_test::here());
+
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    fixtures_test::osmAddress(2, "12", "Grand-Rue", "Wiltz", "9550", geo { 49.9666, 5.9333 });
+
+    var nSource = fixtures_test::osmSource();
+    DataSource::reconcile(nSource, null, null);
+
+    Assert::equals(privateApi::getReconciliationReport(nSource, null, null)!!.fullMatch.size(), 1);
+    Assert::equals(privateApi::getReconciliationReport(nSource, "Gasperich", null)!!.fullMatch.size(), 1);
+    Assert::equals(privateApi::getReconciliationReport(nSource, "Wiltz", null)!!.fullMatch.size(), 0);
+    Assert::equals(privateApi::getReconciliationReport(nSource, "Wiltz", null)!!.noMatch.size(), 1);
+}
+
+// ------------------------------------------------------------- record tab
+
+@test
+fn theRecordTabReportsWhereARecordSitsInTheUi() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", fixtures_test::here());
+    fixtures_test::goldenPoi(nStreet, 20, "", "1234", fixtures_test::here());
+
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    fixtures_test::osmAddress(2, "20", "Rue de la Gara", "Gasperich", "1234", fixtures_test::here());
+    fixtures_test::osmAddress(3, "99", "Rue de la Gare", "Gasperich", "1234", geo { 49.6316, 6.1319 });
+
+    var nSource = fixtures_test::osmSource();
+    DataSource::reconcile(nSource, null, null);
+
+    Assert::equals(privateApi::getRecordTab(nSource, "1").tab, "Matched");
+    Assert::equals(privateApi::getRecordTab(nSource, "2").tab, "Mismatched");
+    Assert::isNotNull(privateApi::getRecordTab(nSource, "2").score);
+    Assert::equals(privateApi::getRecordTab(nSource, "3").tab, "NoMatch");
+
+    privateApi::linkRecords(osm_addresses_by_id.get("1")!!, nGolden, null);
+    Assert::equals(privateApi::getRecordTab(nSource, "1").tab, "Linked");
+}
+
+@test
+fn theRecordTabRefusesAnUnknownRecord() {
+    fixtures_test::seedGolden("");
+    var threw = false;
+    try {
+        privateApi::getRecordTab(fixtures_test::osmSource(), "no-such-id");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
+
+// ------------------------------------------------------- comparison views
+
+@test
+fn theComparisonViewRendersCandidateScoresAsPercentages() {
+    // The reconcile page shows whole-number percentages; the endpoint truncates rather than
+    // rounds, so a 0.95 street score is displayed as 95.
+    fixtures_test::seedGolden("");
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1244", fixtures_test::here());
+    var nSource = fixtures_test::osmSource();
+    DataSource::reconcile(nSource, null, null);
+
+    var view = privateApi::getComparisonViewData(nSource, "1");
+    Assert::equals(view.sourceRecord.id, "1");
+    Assert::equals(view.candidates.size(), 1);
+    Assert::equals(view.candidates[0].cityScore, 100.0);
+    Assert::equals(view.candidates[0].numberScore, 100.0);
+    Assert::equals(view.candidates[0].postcodeScore, 95.0);
+    Assert::equals(view.candidates[0].geoScore, 100.0);
+    Assert::isTrue(view.candidates[0].overallScore < 100.0);
+}
+
+@test
+fn theLinkedComparisonViewShowsTheStoredScore() {
+    var nGolden = fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    var nSource = fixtures_test::osmSource();
+    DataSource::reconcile(nSource, null, null);
+    privateApi::linkRecords(nOsm, nGolden, null);
+
+    var view = privateApi::getLinkedComparisonViewData(nSource, "1");
+    Assert::equals(view.candidates.size(), 1);
+    Assert::equals(view.candidates[0].overallScore, 100.0);
+    Assert::equals(view.candidates[0].ref, nGolden as node<AddressRecordProvider>);
+}
+
+@test
+fn theComparisonViewsRefuseAnUnknownRecord() {
+    fixtures_test::seedGolden("");
+    var nSource = fixtures_test::osmSource();
+    var threwPending = false;
+    try {
+        privateApi::getComparisonViewData(nSource, "no-such-id");
+    } catch (_) {
+        threwPending = true;
+    }
+    var threwLinked = false;
+    try {
+        privateApi::getLinkedComparisonViewData(nSource, "no-such-id");
+    } catch (_) {
+        threwLinked = true;
+    }
+    Assert::isTrue(threwPending);
+    Assert::isTrue(threwLinked);
+}
+
+// -------------------------------------------------------------- lock flag
+
+@test
+fn aSourceCanBeLockedWhileItReconcilesAndUnlockedAfterwards() {
+    // The lock is what stops two operators launching a reconcile of the same source at once.
+    fixtures_test::seedGolden("");
+    Assert::isNull(fixtures_test::osmSource()->isReconciling?.resolve());
+
+    privateApi::lockSource(OsmSource::NAME);
+    Assert::equals(fixtures_test::osmSource()->isReconciling?.resolve(), true);
+
+    var threw = false;
+    try {
+        privateApi::lockSource(OsmSource::NAME);
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+
+    privateApi::unlockSource(OsmSource::NAME);
+    Assert::equals(fixtures_test::osmSource()->isReconciling?.resolve(), false);
+}
+
+@test
+fn lockingAnUnknownSourceIsRefused() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var threwLock = false;
+    try {
+        privateApi::lockSource("NOPE");
+    } catch (_) {
+        threwLock = true;
+    }
+    var threwUnlock = false;
+    try {
+        privateApi::unlockSource("NOPE");
+    } catch (_) {
+        threwUnlock = true;
+    }
+    Assert::isTrue(threwLock);
+    Assert::isTrue(threwUnlock);
+}
+
+@test
+fn reconcilingAnUnknownSourceIsRefused() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var threw = false;
+    try {
+        privateApi::reconcile("NOPE", null);
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}

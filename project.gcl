@@ -1,38 +1,37 @@
 @include("backend");
 
-@library("std", "7.8.175-stable");
-@library("explorer", "7.8.19-stable");
-@library("postal");
+@library("std", "8.2.179-stable");
+@library("explorer", "8.2.9-stable");
+@library("http", "8.3.5-dev");
+@library("text_search", "8.3.8-dev");
+@library("postal", "8.3.26-dev");
 
-@role("public", "files", "api");
+@role("public", "api");
 
-@format_line_width(180);
 
 fn main() {
     createAdmin();
     info("MengPlaz Ready !");
 
-    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
-    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 22 }, PeriodicOptions { immediate: false });
+    Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 6 }, PeriodicOptions { immediate: false });
 
-    Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 20 }, PeriodicOptions { immediate: false });
+    Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 1 }, PeriodicOptions { immediate: false });
 
-    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 20_s }, PeriodicOptions {
+    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 30_s }, PeriodicOptions {
         immediate: false,
         start: time::now() + 10s
     });
 
-    Scheduler::add(updateCACLR, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
-    Scheduler::add(updateBDA, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
-    Scheduler::add(updateOSM, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions { immediate: false });
+    Scheduler::add(UpdateService::caclr, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
+    Scheduler::add(UpdateService::bda, DailyPeriodicity { hour: 23, minute: 15 }, PeriodicOptions { immediate: false });
+    Scheduler::add(UpdateService::osm, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
+    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions {
+        immediate: false
+    });
 }
 
 fn bootstrap() {
     createAdmin();
-
-    // loadCaclr();
-    // loadBda();
-    // loadOsm();
 
     GoldenSource::init();
 
@@ -41,63 +40,38 @@ fn bootstrap() {
     } catch (err) {
         error("Restore From Backup Failed : ${err.message}");
     }
-}
 
-fn dump() {
-    BackupExporter::exportAll();
+    // A missing or empty files/backup leaves the graph untouched, and a restore that threw
+    // half way may have written nothing at all. Either way a fresh install must not end up
+    // with an empty store, so fall back to the live sources. Same order as the restore's
+    // dependency chain: CACLR, then BDA, then OSM. Each load* catches its own failure, so one
+    // unreachable source does not stop the others.
+    if (BackupImporter::isGraphEmpty()) {
+        warn("Backup restored nothing: loading from the live sources instead.");
+        CaclrSource::init();
+        UpdateService::caclr();
+        BdaSource::init();
+        UpdateService::bda();
+        OsmSource::init();
+        UpdateService::osm();
+    } else {
+        info("Updating Golden street index");
+        GoldenStreetSearch::rebuild();
+        info("Updating Golden address index");
+        GoldenTextSearch::rebuild();
+        info("Updating Sources address index");
+        SourceTextSearch::rebuildAll();
+    }
 }
 
 private fn createAdmin() {
     var admLogin = System::getEnv("MENGPLAZ_ADMIN_LOGIN");
-    if (admLogin != null && User::getByName(admLogin) == null) {
-        var user = User {
-            id: 0,
-            name: admLogin,
-            full_name: "Administrator",
-            email: "admin@mengplaz.lu",
-            activated: true,
-            role: "admin",
-            external: false
-        };
-
-        var id = SecurityEntity::set(user); // for updates: get user and set again (name is the key)
-        if (id == null) {
-            throw "Unexpected error: user could not be created in Greycat";
-        } else {
-            User::setPassword(user.name, System::getEnv("MENGPLAZ_ADMIN_PASS") as String);
+    if (admLogin != null && Identity::get_by_name(admLogin) == null) {
+        // create is idempotent on the name: it returns the existing identity untouched
+        var user = Identity::create(admLogin, "admin");
+        if (!Identity::set_password(user.name, System::getEnv("MENGPLAZ_ADMIN_PASS") as String)) {
+            throw "Unexpected error: password could not be set for user '${user.name}'";
         }
         info("MengPlaz Admin user created.");
     }
 }
-
-@expose
-fn loadOsm() {
-    OsmSource::init();
-    try {
-        OSMLoader::load();
-    } catch (err) {
-        error("OSM Failed : ${err.message}");
-    }
-}
-
-@expose
-fn loadBda() {
-    BDAddressSource::init();
-    try {
-        BDAddressLoader::load();
-    } catch (err) {
-        error("BDA Failed : ${err.message}");
-    }
-}
-
-@expose
-fn loadCaclr() {
-    CaclrSource::init();
-    try {
-        CACLRLoader::load();
-    } catch (err) {
-        error("CACLR Failed : ${err.message}");
-    }
-}
-
-

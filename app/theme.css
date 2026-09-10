@@ -1,0 +1,263 @@
+/* MengPlaz design tokens (`--gc-*`) plus the Web Awesome (`--wa-*`) bridge.
+   Keyed to the official MyConnectivity brand palette (Blocksy `global.css`):
+
+     1  #44D62C  green     2  #00C0A3  teal      3  #10069F  blue
+     4  #000000  black     5  #FF8700  orange    6  #FA5C4F  coral
+     7  #FF0099  magenta   8  #FFFFFF  white
+
+   Green is the brand's primary and blue its link colour. Neither works in both
+   of our modes as *text*: measured against our surfaces, green is 9.65:1 on the
+   dark ground but 1.93:1 on white, and blue is 13.56:1 on white but 1.37:1 on
+   dark. So each mode takes the brand colour that is legible in it - green in
+   dark, blue in light - while the filled primary stays the brand's green button
+   with black text on it (10.9:1). The marketing site's own white-on-green button
+   is 1.93:1 and is deliberately not reproduced.
+
+   The brand site uses the plain system font stack with no webfont; this file
+   does the same, which also removes the Google Fonts request the app used to
+   make on every page load.
+*/
+@import url('@awesome.me/webawesome/dist/styles/webawesome.css');
+
+:root {
+  /* ==========================================================================
+     Typography - the brand's system stack, no webfont
+     ========================================================================== */
+  --gc-ui:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol';
+  --gc-display: var(--gc-ui);
+  --gc-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* ==========================================================================
+     Surfaces & text (dark is the default)
+     ========================================================================== */
+  --gc-bg: #111317;
+  --gc-surface: #181b20;
+  --gc-surface-2: #21252c;
+  --gc-surface-3: #2b303a;
+
+  --gc-border: #2e3440;
+  --gc-hair: #232832;
+
+  --gc-text: #e6e8ec;
+  --gc-muted: #8c96a5;
+  --gc-faint: #5c6573;
+
+  --gc-zebra: rgba(255, 255, 255, 0.025);
+  --gc-hover: rgba(255, 255, 255, 0.05);
+  --gc-selected: rgba(68, 214, 44, 0.1);
+
+  /* ==========================================================================
+     Layered panel surfaces
+     ========================================================================== */
+  --gc-panel: var(--gc-surface);
+  --gc-panel-header: var(--gc-surface-2);
+  --gc-panel-body: transparent;
+
+  /* ==========================================================================
+     Brand accent - green reads at 9.65:1 on this ground
+     ========================================================================== */
+  --gc-accent: #44d62c; /* brand green: links, active nav, focus */
+  --gc-accent-2: #00c0a3; /* brand teal */
+  --gc-accent-fill: #44d62c; /* filled primary, per the brand's button */
+  --gc-on-accent: #06140a; /* near-black on green: 10.9:1 */
+  --gc-accent-soft: rgba(68, 214, 44, 0.14);
+  --gc-accent-glow: rgba(68, 214, 44, 0.26);
+
+  /* Semantic state, straight from the brand palette (all >= 5:1 on this ground) */
+  --gc-good: #44d62c;
+  --gc-bad: #fa5c4f;
+  --gc-warn: #ff8700;
+  --gc-info: #00c0a3;
+
+  /* ==========================================================================
+     Data-source identity - four brand hues, shared by map layers,
+     the comparator and every legend
+     ========================================================================== */
+  --gc-src-golden: #ff0099; /* brand magenta */
+  --gc-src-bda: #6d63ff; /* brand blue, lifted so it reads on both grounds */
+  --gc-src-osm: #ff8700; /* brand orange */
+  --gc-src-caclr: #00c0a3; /* brand teal */
+  --gc-src-other: #8c96a5;
+
+  /* Categorical palette: the six brand hues first, then two derived steps */
+  --gc-c1: #44d62c;
+  --gc-c2: #10069f;
+  --gc-c3: #ff0099;
+  --gc-c4: #ff8700;
+  --gc-c5: #00c0a3;
+  --gc-c6: #fa5c4f;
+  --gc-c7: #8fe07d;
+  --gc-c8: #6f66d1;
+
+  /* ==========================================================================
+     Shape, density & rhythm
+
+     The brand rounds hard (15px buttons, 10-30px cards) on a marketing site with
+     room to breathe. This is a data-dense workspace, so the radii move toward
+     that language without giving up the row density the tables depend on.
+     ========================================================================== */
+  --gc-radius: 8px;
+  --gc-radius-s: 6px;
+  --gc-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  --gc-gap: 0.6rem;
+  --gc-pad-page: 0.7rem 0.9rem 1.1rem;
+  --gc-pad-header: 0.6rem 0.9rem 0.4rem;
+
+  /* ==========================================================================
+     Bridge onto Web Awesome tokens
+     ========================================================================== */
+  --wa-font-family-body: var(--gc-ui);
+  --wa-font-family-heading: var(--gc-ui);
+  --wa-font-family-code: var(--gc-mono);
+
+  /* Type ramp pinned to pixels so sizes are exact, not inherited-relative.
+     15px body matches the brand's own base size. */
+  --wa-font-size-3xs: 10px;
+  --wa-font-size-2xs: 11px;
+  --wa-font-size-xs: 12px;
+  --wa-font-size-s: 13px;
+  --wa-font-size-m: 15px;
+  --wa-font-size-l: 20px;
+  --wa-font-size-xl: 25px;
+  --wa-font-size-2xl: 30px;
+  --wa-font-size-3xl: 35px;
+  --wa-font-size-4xl: 40px;
+  --wa-font-size-5xl: 45px;
+
+  --wa-space-scale: 0.8;
+
+  --wa-border-radius-s: var(--gc-radius-s);
+  --wa-border-radius-m: var(--gc-radius);
+  --wa-border-radius-l: 12px;
+  --wa-border-radius-pill: 999px;
+
+  /* Brand role */
+  --wa-color-brand-fill-loud: var(--gc-accent-fill);
+  --wa-color-brand-fill-normal: var(--gc-accent-fill);
+  --wa-color-brand-fill-quiet: var(--gc-accent-soft);
+  --wa-color-brand-on-loud: var(--gc-on-accent);
+  --wa-color-brand-on-normal: var(--gc-on-accent);
+  --wa-color-brand-on-quiet: var(--gc-accent);
+  --wa-color-brand-border-loud: var(--gc-accent);
+  --wa-color-brand-border-normal: var(--gc-accent);
+  --wa-color-brand-border-quiet: var(--gc-accent-glow);
+
+  /* Neutral role */
+  --wa-color-neutral-fill-loud: var(--gc-surface-2);
+  --wa-color-neutral-fill-normal: var(--gc-surface);
+  --wa-color-neutral-fill-quiet: var(--gc-hover);
+  --wa-color-neutral-on-loud: var(--gc-text);
+  --wa-color-neutral-on-normal: var(--gc-text);
+  --wa-color-neutral-on-quiet: var(--gc-muted);
+  --wa-color-neutral-border-loud: var(--gc-border);
+  --wa-color-neutral-border-normal: var(--gc-border);
+  --wa-color-neutral-border-quiet: var(--gc-hair);
+
+  /* Status roles */
+  --wa-color-danger-fill-loud: var(--gc-bad);
+  --wa-color-danger-on-loud: #ffffff;
+  --wa-color-danger-border-loud: var(--gc-bad);
+  --wa-color-success-fill-loud: var(--gc-good);
+  --wa-color-success-on-loud: var(--gc-on-accent);
+  --wa-color-success-border-loud: var(--gc-good);
+  --wa-color-warning-fill-loud: var(--gc-warn);
+  --wa-color-warning-on-loud: #21160a;
+  --wa-color-warning-border-loud: var(--gc-warn);
+
+  /* Surfaces & focus */
+  --wa-color-surface-default: var(--gc-bg);
+  --wa-color-surface-raised: var(--gc-surface);
+  --wa-color-surface-lowered: var(--gc-surface-2);
+  --wa-color-surface-border: var(--gc-border);
+  --wa-color-text-normal: var(--gc-text);
+  --wa-color-text-quiet: var(--gc-muted);
+  --wa-color-text-link: var(--gc-accent);
+  --wa-color-focus: var(--gc-accent);
+
+  /* Form controls sized to sit naturally around the 15px body text */
+  --wa-form-control-height: 2.1em;
+  --wa-form-control-padding-block: 0.4em;
+  --wa-form-control-padding-inline: 0.75em;
+  --wa-form-control-background-color: var(--gc-surface);
+  --wa-form-control-border-color: var(--gc-border);
+}
+
+/* ==========================================================================
+   Light mode - the brand's own ground: white surfaces, black text, blue links
+
+   Green cannot carry text here (1.93:1 on white), so the accent *text* colour
+   becomes the brand's link blue while the filled primary keeps the brand's
+   green button. The semantic colours are the brand hues walked down in
+   lightness until each clears 4.5:1 on white, so the hue is preserved.
+   ========================================================================== */
+html.wa-light {
+  --gc-bg: #f4f6fa;
+  --gc-surface: #ffffff;
+  --gc-surface-2: #f4f6fa;
+  --gc-surface-3: #e7ebf2;
+
+  --gc-border: #d4dae4;
+  --gc-hair: #e6eaf1;
+
+  --gc-text: #000000; /* the brand's heading/body colour */
+  --gc-muted: #5b6675;
+  --gc-faint: #8b96a5;
+
+  --gc-zebra: rgba(0, 0, 0, 0.018);
+  --gc-hover: rgba(0, 0, 0, 0.035);
+  --gc-selected: rgba(16, 6, 159, 0.08);
+
+  --gc-accent: #10069f; /* brand blue: 13.56:1 on white */
+  --gc-accent-2: #008672;
+  --gc-accent-fill: #44d62c; /* the brand's green button... */
+  --gc-on-accent: #000000; /* ...with black on it: 10.9:1 */
+  --gc-accent-soft: rgba(16, 6, 159, 0.09);
+  --gc-accent-glow: rgba(16, 6, 159, 0.22);
+
+  --gc-good: #2a881a;
+  --gc-bad: #eb1807;
+  --gc-warn: #b66000;
+  --gc-info: #008672;
+
+  --gc-src-golden: #e40089;
+  --gc-src-bda: #6d63ff;
+  --gc-src-osm: #b66000;
+  --gc-src-caclr: #008672;
+  --gc-src-other: #5b6675;
+
+  --gc-c1: #2a881a;
+  --gc-c2: #10069f;
+  --gc-c3: #e40089;
+  --gc-c4: #b66000;
+  --gc-c5: #008672;
+  --gc-c6: #eb1807;
+  --gc-c7: #4d7c0f;
+  --gc-c8: #5b52c9;
+
+  /* The brand's own card shadow */
+  --gc-shadow: 0 10px 20px rgba(41, 51, 61, 0.1);
+
+  --wa-color-danger-on-loud: #ffffff;
+  --wa-color-success-on-loud: #ffffff;
+  --wa-color-warning-on-loud: #ffffff;
+}
+
+/* ==========================================================================
+   Base layout reset
+   ========================================================================== */
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  color: var(--gc-text);
+  background: var(--gc-bg);
+  font-family: var(--gc-ui);
+  font-size: var(--wa-font-size-m);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}

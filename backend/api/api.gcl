@@ -1,79 +1,93 @@
+/// A `node<T>` argument is a raw graph pointer and the runtime does not check its referent,
+/// so a public endpoint takes the street's id and resolves it itself.
 @expose
 @permission("public")
-fn getPoisInStreet(e: node<StreetRecordProvider>): Array<POIRecordRef> {
-    var ts = Traffic_Service::start(getPoisInStreet);
-    var pois = e->getPOIs();
-    ts.end();
-    return pois;
+@tag("openapi")
+fn getPoisInStreet(streetId: String): Array<AddressRecordRef> {
+    var nStreet = golden_streets_by_id.get(streetId);
+    if (nStreet == null) {
+        throw "Street with id ${streetId} not found";
+    }
+    return nStreet->getAddresses();
 }
 
 @expose
 @permission("public")
 fn searchStreet(e: String): Array<StreetRecordRef> {
-    var ts = Traffic_Service::start(searchStreet);
-    var threshold = 0.7;
-    var searchResults = GoldenServices::searchStreet(e, threshold, null);
+    // What the search page is willing to render.
+    var maxResults = 30;
+
     var res = Array<StreetRecordRef> {};
-    for (_, i in searchResults limit 50) {
-        //pprint(i);
-        res.add(StreetRecordRef {
-            ref: i.elem,
-            record: i.elem->toRecord(),
-        });
+    var query = e.trim();
+
+    if (query.size() > 0) {
+        // The index is rebuild-only, so an unbuilt one degrades to "No matching streets".
+        var idx = GoldenStreetSearch::ready();
+        if (idx == null) {
+            warn("searchStreet: golden street index not built - run `greycat run buildGoldenStreetIndex`");
+        } else {
+            for (_, hit in GoldenStreetSearch::search(idx, query, maxResults)) {
+                var nStreet = GoldenStreetSearch::resolveOne(hit);
+                if (nStreet != null) {
+                    res.add(StreetRecordRef {
+                        ref: nStreet,
+                        id: nStreet->id,
+                        record: nStreet->toRecord(),
+                        score: hit.score
+                    });
+                }
+            }
+        }
     }
-    ts.end();
+
     return res;
 }
 
 @volatile
-type POIFeatures {
+type AddressFeatures {
     coords: geo;
     number: String;
 }
 
 @expose
 @permission("public")
-fn getPois(): Array<POIFeatures> {
-    var ts = Traffic_Service::start(getPois);
-    var feats = Array<POIFeatures> {};
-    feats.set_capacity(golden_pois_by_geo.size());
-    for (key, value in golden_pois_by_geo) {
-        feats.add(POIFeatures { coords: key, number: "${value->number}${value->multipleCode}" });
+fn getPois(): Array<AddressFeatures> {
+    var feats = Array<AddressFeatures> {};
+    feats.set_capacity(golden_addresses_by_geo.size());
+    for (key, value in golden_addresses_by_geo) {
+        feats.add(AddressFeatures { coords: key, number: "${value->number}${value->multipleCode}" });
     }
-    ts.end();
     return feats;
 }
 
 @expose
 @permission("public")
-fn getPoisByGeo(coords: geo): POIRecordRef? {
-    var ts = Traffic_Service::start(getPoisByGeo);
-    var poi = golden_pois_by_geo.get(coords);
-    ts.end();
+fn getPoisByGeo(coords: geo): AddressRecordRef? {
+    var poi = golden_addresses_by_geo.get(coords);
     if (poi != null) {
-        return POIRecordRef {
+        return AddressRecordRef {
             ref: poi,
-            record: poi->toMengplazRecord(),
+            record: poi->toAddressRecord(),
         };
     }
 }
 
 @volatile
 type GoldenRecordDetails {
-    golden: POIRecordRef;
-    associated: Array<POIFullRecordRef>;
+    golden: AddressRecordRef;
+    associated: Array<AddressFullRecordRef>;
 }
 
 @expose
+@permission("public")
 fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
-    var ts = Traffic_Service::start(getGoldenRecordDetails);
-    var ref = golden_pois_by_id.get(uid);
+    var ref = golden_addresses_by_id.get(uid);
     if (ref == null) {
         throw "Record not found";
     }
-    var linked: Array<POIFullRecordRef> = Array<POIFullRecordRef> {};
+    var linked: Array<AddressFullRecordRef> = Array<AddressFullRecordRef> {};
     for (_, l in ref->linkedRecords) {
-        linked.add(POIFullRecordRef {
+        linked.add(AddressFullRecordRef {
             ref: l.record,
             id: l.record->getId(),
             record: l.record->toFullRecord(),
@@ -81,12 +95,10 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
         });
     }
 
-    ts.end();
-
     return GoldenRecordDetails {
-        golden: POIRecordRef {
+        golden: AddressRecordRef {
             ref: ref,
-            record: ref->toMengplazRecord(),
+            record: ref->toAddressRecord(),
         },
         associated: linked,
     };
@@ -94,34 +106,31 @@ fn getGoldenRecordDetails(uid: String): GoldenRecordDetails {
 
 /// Returns the Golden POI associated with the given uid
 @expose
+@permission("public")
 @tag("openapi")
-fn getGoldenRecordRefByUid(uid: String): POIRecordRef? {
-    var ts = Traffic_Service::start(getGoldenRecordRefByUid);
-    var nGolden = golden_pois_by_id.get(uid);
-    ts.end();
+fn getGoldenRecordRefByUid(uid: String): AddressRecordRef? {
+    var nGolden = golden_addresses_by_id.get(uid);
     if (nGolden != null) {
-        return POIRecordRef {
+        return AddressRecordRef {
             ref: nGolden,
-            record: nGolden->toMengplazRecord(),
+            record: nGolden->toAddressRecord(),
         };
     }
     return null;
 }
 
-/// Returns the Golden POI associated with the given geoportal_id
+/// Returns the Golden address associated with the given geoportail id
 @expose
 @permission("public")
 @tag("openapi")
-fn getRecordByGeoportailID(id: String): POIRecordRef? {
-    var ts = Traffic_Service::start(getRecordByGeoportailID);
-    var record = bda_address_by_geoportalid.get(id);
-    ts.end();
+fn getRecordByGeoportailID(id: String): AddressRecordRef? {
+    var record = bda_addresses_by_geoportail_id.get(id);
     if (record != null) {
         var nGolden = record->getLinkedGolden();
         if (nGolden != null) {
-            return POIRecordRef {
+            return AddressRecordRef {
                 ref: nGolden,
-                record: nGolden->toMengplazRecord(),
+                record: nGolden->toAddressRecord(),
             };
         }
     }
@@ -138,29 +147,27 @@ type GoldenIndex {
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenLocalities(communeId: String?): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenLocalities);
+fn getGoldenLocalities(communeName: String?): Array<GoldenIndex> {
     var cities = Array<GoldenIndex> {};
     for (id, nCity in golden_cities_by_id) {
         if (id == "UNKNOWN") {
             continue;
         }
-        if (communeId != null && nCity->municipality->name != communeId) {
+        if (communeName != null && nCity->municipality->name != communeName) {
             continue;
         }
         cities.add(GoldenIndex { id: id, name: nCity->name });
     }
     cities.sort_by(GoldenIndex::name, SortOrder::asc);
-    ts.end();
     return cities;
 }
 
-/// Returns all the communes in the Golden collection. Provides the communeId to be used with getGoldenLocalities
+/// Returns all the communes in the Golden collection. `name` is what `getGoldenLocalities`
+/// filters on - its `id` is the CACLR key, and no endpoint takes it.
 @expose
 @permission("public")
 @tag("openapi")
 fn getGoldenCommunes(): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenCommunes);
     var municipalities = Array<GoldenIndex> {};
     for (id, nCommune in golden_municipalities_by_id) {
         if (id == "UNKNOWN") {
@@ -169,7 +176,6 @@ fn getGoldenCommunes(): Array<GoldenIndex> {
         municipalities.add(GoldenIndex { id: id, name: nCommune->name });
     }
     municipalities.sort_by(GoldenIndex::name, SortOrder::asc);
-    ts.end();
     return municipalities;
 }
 
@@ -178,7 +184,6 @@ fn getGoldenCommunes(): Array<GoldenIndex> {
 @permission("public")
 @tag("openapi")
 fn getGoldenStreetsByLocalityId(localityId: String): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenStreetsByLocalityId);
     var nCity = golden_cities_by_id.get(localityId);
     if (nCity == null) {
         throw "City with id ${localityId} not found";
@@ -191,7 +196,6 @@ fn getGoldenStreetsByLocalityId(localityId: String): Array<GoldenIndex> {
         streets.add(GoldenIndex { id: id, name: nStreet->name });
     }
     streets.sort_by(GoldenIndex::name, SortOrder::asc);
-    ts.end();
     return streets;
 }
 
@@ -200,35 +204,70 @@ fn getGoldenStreetsByLocalityId(localityId: String): Array<GoldenIndex> {
 @permission("public")
 @tag("openapi")
 fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
-    var ts = Traffic_Service::start(getGoldenNumbersByStreetId);
     var nStreet = golden_streets_by_id.get(streetId);
     if (nStreet == null) {
         throw "Street with id ${streetId} not found";
     }
     var numbers = Array<GoldenIndex> {};
-    for (id, nPOI in nStreet->pois_by_id) {
+    for (id, nGoldenAddress in nStreet->addresses_by_id) {
         numbers.add(GoldenIndex {
             id: id,
-            name: "${nPOI->number} ${nPOI->multipleCode}",
+            name: "${nGoldenAddress->number} ${nGoldenAddress->multipleCode}",
         });
     }
     numbers.sort_by(GoldenIndex::name, SortOrder::asc);
-    ts.end();
     return numbers;
 }
 
-/// Returns all Points Of Interest (POIs) in the Golden collection
+/// The whole golden set is far too large for one response, so every listing endpoint is
+/// paged against the same bounds.
+@volatile
+type GoldenRecordsPage {
+    total: int;
+    offset: int;
+    limit: int;
+    rows: Array<AddressRecord>;
+
+    static MAX_PAGE: int = 1000;
+}
+
+private fn clampOffset(offset: int): int {
+    if (offset < 0) {
+        return 0;
+    }
+    return offset;
+}
+
+private fn clampLimit(limit: int): int {
+    if (limit > GoldenRecordsPage::MAX_PAGE) {
+        return GoldenRecordsPage::MAX_PAGE;
+    }
+    if (limit < 0) {
+        return 0;
+    }
+    return limit;
+}
+
+/// One page of the Points Of Interest (POIs) in the Golden collection
 @expose
 @permission("public")
 @tag("openapi")
-fn getGoldenRecords(): Array<POIRecord> {
-    var ts = Traffic_Service::start(getGoldenRecords);
-    var records = Array<POIRecord> {};
-    for (id, nPOI in golden_pois_by_id) {
-        records.add(nPOI->toMengplazRecord());
+fn getGoldenRecords(offset: int, limit: int): GoldenRecordsPage {
+    var start = clampOffset(offset);
+    var size = clampLimit(limit);
+
+    var records = Array<AddressRecord> {};
+    var seen = 0;
+    for (_, nGoldenAddress in golden_addresses_by_id) {
+        if (seen >= start) {
+            if (records.size() >= size) {
+                break;
+            }
+            records.add(nGoldenAddress->toAddressRecord());
+        }
+        seen++;
     }
-    ts.end();
-    return records;
+    return GoldenRecordsPage { total: golden_addresses_by_id.size(), offset: start, limit: size, rows: records };
 }
 
 @volatile
@@ -250,25 +289,23 @@ type GeoJSONGeometry {
     coordinates: Array<float>;
 }
 
-/// Returns all Golden Points Of Interest (POIs) in a GeoJson Format
+
 @expose
 @permission("public")
 @tag("openapi")
 fn getGoldenRecordsGeoJson(): GeoJSON {
-    var ts = Traffic_Service::start(getGoldenRecords);
     var features = Array<GeoJSONFeature> {};
-    for (coords, nPOI in golden_pois_by_geo) {
+    for (coords, nGoldenAddress in golden_addresses_by_geo) {
         var externalIds = Map<String, any> {};
-        for (_, linkedRecord in nPOI->linkedRecords) {
-            externalIds.set(linkedRecord.record->getSource()->name(), linkedRecord.record->getId());
+        for (_, linkedRecord in nGoldenAddress->linkedRecords) {
+            externalIds.set(linkedRecord.record->getSourceName(), linkedRecord.record->getId());
         }
 
         features.add(GeoJSONFeature { type: "Feature", geometry: GeoJSONGeometry {
             type: "Point",
             coordinates: Array<float> { coords.lat(), coords.lng() }
-        }, properties: Map<String, any> { "goldenRecordId": nPOI->uid, "externalIds": externalIds } });
+        }, properties: Map<String, any> { "goldenRecordId": nGoldenAddress->uid, "externalIds": externalIds } });
     }
-    ts.end();
     return GeoJSON { type: "FeatureCollection", features: features };
 }
 
@@ -280,11 +317,8 @@ type DataAttribution {
     sources: Array<String>;
 }
 
-/// Attribution notice for the data exposed by this API.
-///
-/// The address data is derived in part from OpenStreetMap and is therefore subject to the
-/// ODbL (Open Database License). This notice satisfies the ODbL attribution requirement for
-/// data conveyed via the API.
+/// Attribution notice for the data exposed by this API. The address data derives in part
+/// from OpenStreetMap, so this notice is what satisfies the ODbL attribution requirement.
 @expose
 @permission("public")
 @tag("openapi")
@@ -300,20 +334,16 @@ fn attribution(): DataAttribution {
 
 @expose
 @permission("public")
-fn openapi() {
-    var ts = Traffic_Service::start(openapi);
+fn openapi(): runtime::OpenApiV3 {
     var oa = OpenApi::v3();
     oa.info.title = "MengPlaz — Address data © OpenStreetMap contributors (ODbL), see /attribution";
     oa.info.version = Runtime::info().program_version ?? "";
-    ts.end();
     return oa;
 }
 
 @expose
 @permission("public")
 fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
-    var ts = Traffic_Service::start(getGlobalQualityHistory);
-
     var nSource = sources_by_name.get(GoldenSource::NAME);
     if (nSource == null) {
         throw "Golden source not found";
@@ -326,8 +356,19 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
 
     var history = Array<GlobalQualityEntry> {};
 
-    for (timestamp, avgQuality in source.qualityHistory[from..to]) {
-        history.add(GlobalQualityEntry { timestamp: timestamp, averageQuality: avgQuality * 100 });
+    // Down-sampled to a bounded number of points; column 1 holds the value.
+    var samples = nodeTime::sample(Array<nodeTime> {
+        source.qualityHistory
+    }, from, to, 100, SamplingMode::adaptative, null, null);
+    for (var row = 0; row < samples.rows(); row++) {
+        var avgQuality = samples.get_cell(row, 1);
+        if (avgQuality == null) {
+            continue;
+        }
+        history.add(GlobalQualityEntry {
+            timestamp: samples.get_cell(row, 0) as time,
+            averageQuality: (avgQuality as float) * 100,
+        });
     }
 
     var latest = source.qualityHistory.last();
@@ -336,23 +377,100 @@ fn getGlobalQualityHistory(from: time?, to: time?): GlobalQualityHistory {
         currentValue = latest;
     }
 
-    // Collect all golden records with their scores
-    var goldenRecords = Array<GoldenRecordScore> {};
-    for (_, nGolden in golden_pois_by_id) {
-        var quality = nGolden->quality.last();
-        goldenRecords.add(GoldenRecordScore {
-            uid: nGolden->uid,
-            number: "${nGolden->number}${nGolden->multipleCode}",
-            street: nGolden->street?->name,
-            city: nGolden->street?->city->name,
-            postcode: nGolden->postCode,
-            linkedCount: nGolden->linkedRecords.size(),
-            quality: (quality?.score ?? 0.0)
-        });
+    return GlobalQualityHistory { current: currentValue, history: history };
+}
+
+/// Ranking on these rather than on whole `GoldenRecordScore`s keeps a sorted page from
+/// resolving every record's street and locality.
+@volatile
+private type RankedGoldenRecord {
+    record: node<GoldenAddress>;
+    value: float;
+}
+
+/// One page of the golden records with their scores. `sortKey` is `"quality"`,
+/// `"linkedCount"`, or null for the index's own order (by uid); `sortDir` is `"asc"` or
+/// `"desc"` (default ascending).
+///
+/// The ranking is computed live over the whole index, so page N continues page N-1's order
+/// even as records change; only the returned rows have their addresses resolved.
+@expose
+@permission("public")
+fn getGoldenRecordScores(offset: int, limit: int, sortKey: String?, sortDir: String?): GoldenRecordPage {
+    var order = SortOrder::asc;
+    if (sortDir != null && sortDir != "asc") {
+        if (sortDir != "desc") {
+            throw "Unknown sort direction: ${sortDir}";
+        }
+        order = SortOrder::desc;
+    }
+    if (sortKey != null && sortKey != "" && sortKey != "quality" && sortKey != "linkedCount") {
+        throw "Unknown sort key: ${sortKey}";
     }
 
-    ts.end();
-    return GlobalQualityHistory { current: currentValue, history: history, goldenRecords: goldenRecords };
+    var start = offset;
+    if (start < 0) {
+        start = 0;
+    }
+    var size = limit;
+    if (size > GoldenRecordPage::MAX_PAGE) {
+        size = GoldenRecordPage::MAX_PAGE;
+    }
+    if (size < 0) {
+        size = 0;
+    }
+
+    var rows = Array<GoldenRecordScore> {};
+
+    if (sortKey == null || sortKey == "") {
+        // Index order: walk to the offset without touching a record, then project the page.
+        var seen = 0;
+        for (_, nGolden in golden_addresses_by_id) {
+            if (seen >= start) {
+                if (rows.size() >= size) {
+                    break;
+                }
+                rows.add(goldenRecordScore(nGolden));
+            }
+            seen = seen + 1;
+        }
+    } else {
+        var ranked = Array<RankedGoldenRecord> {};
+        for (_, nGolden in golden_addresses_by_id) {
+            var value = 0.0;
+            if (sortKey == "quality") {
+                value = nGolden->quality.last()?.score ?? 0.0;
+            } else {
+                value = nGolden->linkedRecords.size() as float;
+            }
+            ranked.add(RankedGoldenRecord { record: nGolden, value: value });
+        }
+        ranked.sort_by(RankedGoldenRecord::value, order);
+
+        var end = start + size;
+        if (end > ranked.size()) {
+            end = ranked.size();
+        }
+        for (var i = start; i < end; i++) {
+            rows.add(goldenRecordScore(ranked[i].record));
+        }
+    }
+
+    return GoldenRecordPage { total: golden_addresses_by_id.size(), offset: start, limit: size, rows: rows };
+}
+
+/// The scores table's view of one golden record.
+private fn goldenRecordScore(nGolden: node<GoldenAddress>): GoldenRecordScore {
+    var quality = nGolden->quality.last();
+    return GoldenRecordScore {
+        uid: nGolden->uid,
+        number: "${nGolden->number}${nGolden->multipleCode}",
+        street: nGolden->street?->name,
+        city: nGolden->street?->city->name,
+        postcode: nGolden->postcode,
+        linkedCount: nGolden->linkedRecords.size(),
+        quality: (quality?.score ?? 0.0),
+    };
 }
 
 @expose
@@ -362,142 +480,57 @@ fn appInfo(): RuntimeInfo {
 }
 
 @expose
-fn searchAddress(addr: String, max: int?, source: String?): Array<POIRecordRef> {
+@permission("public")
+fn searchAddress(addr: String, max: int?, source: String?): Array<AddressRecordRef> {
     if (max == null) {
         max = 6;
     }
-    var distanceThreshold = 10;
 
     var srcName = source ?? GoldenSource::NAME;
     var nSource = sources_by_name.get(srcName);
     if (nSource == null) {
         throw "Unknown source: ${srcName}";
     }
-    var src = *nSource;
 
-    var ts = Traffic_Service::start(searchAddress);
-    var parsed = PostalAddress::parseStructured(addr, PostalOptions { country: "lu" });
-    var results = Array<POIRecordRef> {};
+    var pois = Array<node<AddressRecordProvider>> {};
+    var results = Array<AddressRecordRef> {};
 
-    // Preprocessing, Clean Parsed Address
-
-    var roads = iter(parsed.road);
-    // Without a road name it's impossible to find an address, Very unlikely to occur, the user probably hasn't finished typing the full address, so we return early.
-    if (roads.size() == 0) {
-        ts.end();
-        return results;
-    }
-
-    var localities = Array<String> {};
-    for (_, v in iter(parsed.suburb)) {
-        localities.add(v);
-    }
-    for (_, v in iter(parsed.city_district)) {
-        localities.add(v);
-    }
-    for (_, v in iter(parsed.city)) {
-        localities.add(v);
-    }
-    if (localities.size() == 0) {
-        for (_, v in iter(parsed.country)) {
-            localities.add(v);
-        }
-    }
-
-    var houseNumbers = iter(parsed.house_number);
-
-    var postcodeArr = iter(parsed.postcode);
-    var postcode: String? = null;
-    if (postcodeArr.size() > 0) {
-        postcode = postcodeArr[0];
-        // Transform L-1235 into 1234
-        if (postcode.startsWith("l")) {
-            postcode = postcode.slice(2, postcode.size());
-        }
-    }
-
-    // First Search by City and Municipality
-    var scopeByCity = Map<int, ScoredCity> {};
-    for (_, locality in localities) {
-        for (_, sc in src.findLocalityScopes(locality, max, distanceThreshold)) {
-            var k = sc.city as int;
-            scopeByCity.set(k, sc);
-        }
-    }
-
-    // Search by streets in the relevant localities
-    var streetMap = Map<int, ScoredStreet> {};
-    for (_, road in roads) {
-        for (_, scopedCity in scopeByCity) {
-            for (_, ss in src.findStreetsInCity(scopedCity, road, max, distanceThreshold)) {
-                var totalDist = scopedCity.distance + ss.distance;
-                var k = ss.street as int;
-                streetMap.set(k, ScoredStreet { street: ss.street, distance: totalDist });
-            }
-        }
-    }
-
-    // No relevant matches found, Do a flat search in all streets
-    if (streetMap.size() == 0) {
-        for (_, road in roads) {
-            for (_, ss in src.findStreetsByName(road, max, distanceThreshold)) {
-                var k = ss.street as int;
-                streetMap.set(k, ss);
-            }
-        }
-    }
-
-    var poiMap = Map<int, ScoredPoi> {};
-    for (_, ss in streetMap) {
-        if (houseNumbers.size() == 0) {
-            for (_, sp in src.findPoisInStreet(ss, null, postcode, max, distanceThreshold)) {
-                var totalDist = ss.distance + sp.distance;
-                var k = sp.poi as int;
-                var existing = poiMap.get(k);
-                if (existing == null || totalDist < existing.distance) {
-                    poiMap.set(k, ScoredPoi { poi: sp.poi, distance: totalDist });
-                }
-            }
+    // Both indexes are rebuild-only, so an unbuilt one degrades to "No results" rather
+    // than erroring.
+    if (srcName == GoldenSource::NAME) {
+        var idx = GoldenTextSearch::ready();
+        if (idx == null) {
+            warn("searchAddress: golden text index not built - run `greycat run buildGoldenTextIndex`");
         } else {
-            for (_, hn in houseNumbers) {
-                for (_, sp in src.findPoisInStreet(ss, hn, postcode, max, distanceThreshold)) {
-                    var totalDist = ss.distance + sp.distance;
-                    var k = sp.poi as int;
-                    var existing = poiMap.get(k);
-                    if (existing == null || totalDist < existing.distance) {
-                        poiMap.set(k, ScoredPoi { poi: sp.poi, distance: totalDist });
-                    }
-                }
+            var hits = GoldenTextSearch::search(idx, addr, max);
+            for (_, nGolden in GoldenTextSearch::resolve(idx, hits)) {
+                var nPoi = nGolden as node<AddressRecordProvider>;
+                pois.add(nPoi);
+                results.add(AddressRecordRef { ref: nPoi, record: nGolden->toAddressRecord() });
+            }
+        }
+    } else {
+        var idx = SourceTextSearch::ready(srcName);
+        if (idx == null) {
+            warn("searchAddress: ${srcName} text index not built - run `greycat run buildSourceTextIndexes`");
+        } else {
+            var hits = SourceTextSearch::search(idx, addr, max);
+            for (_, nRecord in SourceTextSearch::resolve(nSource, idx, hits)) {
+                pois.add(nRecord);
+                results.add(AddressRecordRef { ref: nRecord, record: nRecord->toAddressRecord() });
             }
         }
     }
 
-    var scoredPois = Array<ScoredPoi> {};
-    for (_, sp in poiMap) {
-        scoredPois.add(sp);
-    }
-    scoredPois.sort_by(ScoredPoi::distance, SortOrder::asc);
-
-    var pois = Array<node<POIRecordProvider>> {};
-    for (_, sp in scoredPois limit max) {
-        pois.add(sp.poi);
-        results.add(POIRecordRef {
-            ref: sp.poi,
-            record: sp.poi->toMengplazRecord(),
-        });
-    }
-
-    var t = ts.end();
-    address_searches.setAt(time::now(), AddressSearchInput { input: addr, source: srcName, results: pois });
     return results;
 }
 
 @volatile
 type GoldenWithLinkedRecords {
-    golden: POIRecord;
-    osm: Array<LinkedRecordDetails<OSMFullRecord>>;
-    caclr: Array<LinkedRecordDetails<CaclrPOIFullRecord>>;
-    bda: Array<LinkedRecordDetails<BDAddressFullRecord>>;
+    golden: AddressRecord;
+    osm: Array<LinkedRecordDetails<OsmAddressFullRecord>>;
+    caclr: Array<LinkedRecordDetails<CaclrAddressFullRecord>>;
+    bda: Array<LinkedRecordDetails<BdaAddressFullRecord>>;
 }
 
 @volatile
@@ -514,33 +547,39 @@ fn getGoldenWithLinkedRecords(addr: String): GoldenWithLinkedRecords? {
     if (g.size() == 0) {
         return null;
     }
-    var golden = g.get(0).ref as node<GoldenPointOfInterest>;
-    var osm = Array<LinkedRecordDetails<OSMFullRecord>> {};
-    var caclr = Array<LinkedRecordDetails<CaclrPOIFullRecord>> {};
-    var bda = Array<LinkedRecordDetails<BDAddressFullRecord>> {};
+    var golden = g.get(0).ref as node<GoldenAddress>;
+    var osm = Array<LinkedRecordDetails<OsmAddressFullRecord>> {};
+    var caclr = Array<LinkedRecordDetails<CaclrAddressFullRecord>> {};
+    var bda = Array<LinkedRecordDetails<BdaAddressFullRecord>> {};
 
     for (_, l in golden->linkedRecords) {
         var r = l.record.resolve();
-        if (r is BDAddress) {
-            bda.add(LinkedRecordDetails<BDAddressFullRecord> {
+        if (r is BdaAddress) {
+            bda.add(LinkedRecordDetails<BdaAddressFullRecord> {
                 record: r.toFullRecord(),
                 score: l.detailedScore?.resolve()
             });
         } else if (r is OsmAddress) {
-            osm.add(LinkedRecordDetails<OSMFullRecord> { record: r.toFullRecord(), score: l.detailedScore?.resolve() });
-        } else if (r is CaclrBuilding) {
-            caclr.add(LinkedRecordDetails<CaclrPOIFullRecord> {
+            osm.add(LinkedRecordDetails<OsmAddressFullRecord> {
+                record: r.toFullRecord(),
+                score: l.detailedScore?.resolve()
+            });
+        } else if (r is CaclrAddress) {
+            caclr.add(LinkedRecordDetails<CaclrAddressFullRecord> {
                 record: r.toFullRecord(),
                 score: l.detailedScore?.resolve()
             });
         }
     }
 
-    var r = GoldenWithLinkedRecords { golden: golden->toMengplazRecord(), osm: osm, bda: bda, caclr: caclr };
+    var r = GoldenWithLinkedRecords { golden: golden->toAddressRecord(), osm: osm, bda: bda, caclr: caclr };
 
     return r;
 }
 
 @expose
 @permission("public")
-fn publicStats() {}
+fn getSourceStats(from: time?, to: time?): SourceStats {
+    var stats = StatsService::build(from, to);
+    return stats;
+}

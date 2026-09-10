@@ -1,19 +1,15 @@
 {
   "compilerOptions": {
     "rootDir": ".",
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "./project.d.ts"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "useDefineForClassFields": true,
+    "useDefineForClassFields": false,
+    "experimentalDecorators": true,
     "paths": {
-      "~/*": ["./frontend/*"]
+      "~/*": ["./app/*"]
     },
-
-    /* TSX */
-    "jsx": "react-jsx",
-    "jsxImportSource": "@greycat/web",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -21,14 +17,14 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "noUncheckedSideEffectImports": true,
 
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["frontend"],
-  "exclude": ["node_modules", "vite.config.ts"]
+  "include": ["app", "project.d.ts"],
+  "exclude": ["node_modules", "vite.config.ts", "playwright.config.ts"]
 }

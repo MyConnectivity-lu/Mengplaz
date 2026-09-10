@@ -1,0 +1,140 @@
+/// Full-text index over the golden addresses: an `AddressIndex` from the `postal` library,
+/// carrying the POI `uid` as its document payload.
+///
+/// `AddressIndex::add()` returns no doc-id, so an indexed document can never be retracted.
+/// Edits are therefore rebuild-only, which the nightly schedule runs; a creation has no
+/// earlier document to layer over, so `promoteToGolden` appends it live. `rebuild()` runs
+/// one libpostal parse per POI and needs `GREYCAT_POSTAL_DATA_DIR`.
+var golden_address_index: node<AddressIndex<String>?>;
+
+type GoldenTextSearch {
+    /// Pinning the country stops libpostal reading a trailing "Luxembourg" as the country
+    /// when it is the city — the two share a name.
+    static fn hints(): PostalOptions {
+        return PostalOptions { language: "fr", country: "lu" };
+    }
+
+    /// A POI with no street still gets a line — its postcode is the only thing that can
+    /// match it.
+    static fn rawAddress(nPoi: node<GoldenAddress>): String {
+        var nStreet = nPoi->street;
+        if (nStreet == null) {
+            return "${nPoi->number}${nPoi->multipleCode}, ${nPoi->postcode}";
+        }
+        var nCity = nStreet->city;
+        return "${nPoi->number}${nPoi->multipleCode} ${nStreet->name}, ${nPoi->postcode} ${nCity->name}";
+    }
+
+    /// The literal rather than `AddressIndex::create`: GCL rejects generic arguments on a
+    /// static access.
+    static fn reset() {
+        golden_address_index.set(AddressIndex<String> { index: TextIndex<AddressDoc> {
+            config: address_index_config(TextSearchLanguage::fr)
+        }, lang: TextSearchLanguage::fr });
+    }
+
+    static fn ready(): AddressIndex<String>? {
+        var idx = golden_address_index.resolve();
+        if (idx == null || (idx.index.built ?? false) == false) {
+            return null;
+        }
+        return idx;
+    }
+
+    static fn require(): AddressIndex<String> {
+        var idx = GoldenTextSearch::ready();
+        if (idx == null) {
+            throw "The golden text index is empty - run `greycat run buildGoldenTextIndex` first";
+        }
+        return idx;
+    }
+
+    static fn rebuild(): int {
+        var t0 = time::now().to(DurationUnit::milliseconds);
+        GoldenTextSearch::reset();
+        var idx = golden_address_index.resolve()!!;
+        var hints = GoldenTextSearch::hints();
+
+        var n = 0;
+        for (_, nPoi in golden_addresses_by_id) {
+            idx.add(GoldenTextSearch::rawAddress(nPoi), hints, nPoi->uid);
+            n++;
+            if (n % 50000 == 0) {
+                info("goldenTextSearch: added ${n} addresses");
+            }
+        }
+
+        var t1 = time::now().to(DurationUnit::milliseconds);
+        idx.build();
+        var t2 = time::now().to(DurationUnit::milliseconds);
+
+        var s = idx.index.stats();
+        info(
+            "goldenTextSearch: ${n} addresses added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
+        );
+        return n;
+    }
+
+    /// Creation-only — an edit would leave the stale document behind. An append to a built
+    /// index walks every entry, so this is fine per record and quadratic in bulk: never
+    /// call it in a loop over a whole source, use `rebuild()`.
+    static fn append(nPoi: node<GoldenAddress>): bool {
+        var idx = golden_address_index.resolve();
+        if (idx == null) {
+            return false;
+        }
+        try {
+            idx.add(GoldenTextSearch::rawAddress(nPoi), GoldenTextSearch::hints(), nPoi->uid);
+        } catch (ex) {
+            warn(
+                "goldenTextSearch: could not index new POI ${nPoi->uid}, it will be picked up by the next build (${ex})"
+            );
+            return false;
+        }
+        return true;
+    }
+
+    static fn search(idx: AddressIndex<String>, query: String, k: int): Array<AddressSearchHit> {
+        return idx.search(query, k, GoldenTextSearch::hints());
+    }
+
+    /// Drops any hit whose POI has since disappeared; relevance order is preserved.
+    static fn resolve(idx: AddressIndex<String>, hits: Array<AddressSearchHit>): Array<node<GoldenAddress>> {
+        var out = Array<node<GoldenAddress>> {};
+        for (_, hit in hits) {
+            var uid = idx.payload_of(hit);
+            if (uid == null) {
+                continue;
+            }
+            var nPoi = golden_addresses_by_id.get(uid);
+            if (nPoi != null) {
+                out.add(nPoi);
+            }
+        }
+        return out;
+    }
+    /// Index health, for the admin console.
+    static fn stats(): GoldenTextIndexStats {
+        var idx = golden_address_index.resolve();
+        if (idx == null) {
+            return GoldenTextIndexStats { built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 };
+        }
+        var s = idx.index.stats();
+        return GoldenTextIndexStats {
+            built: idx.index.built ?? false,
+            docs: s.totalEntries,
+            terms: s.totalTerms,
+            avgLen: s.avgTokenCount,
+            dirty: idx.index.dirtyCount ?? 0,
+        };
+    }
+}
+
+@volatile
+type GoldenTextIndexStats {
+    built: bool;
+    docs: int;
+    terms: int;
+    avgLen: float;
+    dirty: int;
+}

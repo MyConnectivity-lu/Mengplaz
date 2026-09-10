@@ -1,0 +1,358 @@
+/// Shared fixtures for the backend test suite.
+///
+/// Not a test module itself: it holds the builders every `*_test.gcl` uses, and is named
+/// `*_test.gcl` so `greycat build` excludes it from the production program.
+///
+/// Every test starts with `reset()`: the suite runs in one process with a shared module
+/// context, and the reconciliation search walks `golden_cities_by_id` globally, so a
+/// leftover city from one test changes another's candidate list.
+/// Monotonic counter behind `nextId()`, so ids are unique across a whole run.
+var fixture_seq: node<int?>;
+
+/// The one coordinate the whole suite uses when a record just needs to be somewhere.
+fn here(): geo {
+    return geo { 49.6116, 6.1319 };
+}
+
+/// The single golden POI most tests reconcile against: 12 Rue de la Gare, 1234 Gasperich.
+/// Resets the graph first, so it is the first line of a test rather than a step in one.
+fn seedGolden(multipleCode: String): node<GoldenAddress> {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    return fixtures_test::goldenPoi(nStreet, 12, multipleCode, "1234", fixtures_test::here());
+}
+
+/// A fresh id suffix. Golden ids are opaque 6-char UIDs in production; the tests only need
+/// them to be distinct and greppable.
+fn nextId(prefix: String): String {
+    // `resolve()` rather than `*`: the counter node has no value until the first call.
+    var n = (fixture_seq.resolve() ?? 0) + 1;
+    fixture_seq.set(n);
+    return "${prefix}${n}";
+}
+
+/// Wipes every persistent index the backend writes to. `greycat test` never flushes to
+/// disk, so this only ever clears the test process's in-memory graph.
+fn reset() {
+    golden_constituencies_by_code.removeAll();
+    golden_cantons_by_id.removeAll();
+    golden_municipalities_by_id.removeAll();
+    golden_cities_by_id.removeAll();
+    golden_streets_by_id.removeAll();
+    golden_addresses_by_id.removeAll();
+    golden_municipalities_by_name.removeAll();
+    golden_cities_by_name.removeAll();
+    golden_streets_by_name.removeAll();
+    golden_addresses_by_geo.removeAll();
+    golden_addresses_geo_recompute.removeAll();
+
+    osm_addresses_by_id.removeAll();
+    osm_partial_addresses_by_id.removeAll();
+    osm_addresses_by_geo.removeAll();
+    osm_partial_addresses_by_geo.removeAll();
+    osm_cities_by_name.removeAll();
+    osm_streets_by_name.removeAll();
+
+    bda_municipalities_by_name.removeAll();
+    bda_cities_by_name.removeAll();
+    bda_streets_by_name.removeAll();
+    bda_streets_by_caclr_id.removeAll();
+    bda_addresses_by_geo.removeAll();
+    bda_addresses_by_caclr_id.removeAll();
+    bda_addresses_by_geoportail_id.removeAll();
+
+    caclr_constituencies_by_code.removeAll();
+    caclr_cantons_by_id.removeAll();
+    caclr_municipalities_by_id.removeAll();
+    caclr_cities_by_id.removeAll();
+    caclr_streets_by_id.removeAll();
+    caclr_addresses_by_id.removeAll();
+    caclr_municipalities_by_name.removeAll();
+    caclr_cities_by_name.removeAll();
+    caclr_streets_by_name.removeAll();
+
+    sources_by_name.removeAll();
+
+    source_address_indexes.removeAll();
+    golden_address_index.set(null);
+    golden_street_index.set(null);
+}
+
+/// Registers all four sources, so `computeQuality` sees the production weight total
+/// (CACLR 5 + BDA 3 + OSM 2 + Golden 0 = 10). Tests that want a different total register
+/// sources by hand instead.
+fn seedSources() {
+    GoldenSource::init();
+    CaclrSource::init();
+    BdaSource::init();
+    OsmSource::init();
+}
+
+/// The golden administrative chain down to one city, created and indexed. Each call builds
+/// a fresh constituency and canton: nothing in the suite depends on two cities sharing one.
+fn goldenCity(municipalityName: String, cityName: String): node<GoldenCity> {
+    var t = time::now();
+
+    var nConstituency = node<GoldenConstituency> {
+        GoldenConstituency {
+            code: nextId("const-"),
+            name: "Test Constituency",
+            nameAliases: Array<Alias> {},
+            cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
+        }
+    };
+    golden_constituencies_by_code.set(nConstituency->code, nConstituency);
+
+    var nCanton = node<GoldenCanton> {
+        GoldenCanton {
+            id: nextId("canton-"),
+            name: "Test Canton",
+            nameAliases: Array<Alias> {},
+            lastUpdate: t,
+            constituency: nConstituency,
+            municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
+        }
+    };
+    nConstituency->cantons_by_id.set(nCanton->id, nCanton);
+    golden_cantons_by_id.set(nCanton->id, nCanton);
+
+    var nMunicipality = node<GoldenMunicipality> {
+        GoldenMunicipality {
+            id: nextId("muni-"),
+            name: municipalityName,
+            nameAliases: Array<Alias> {},
+            lastUpdate: t,
+            canton: nCanton,
+            cities_by_id: nodeIndex<String, node<GoldenCity>> {},
+        }
+    };
+    nMunicipality->indexing(nMunicipality);
+
+    var nCity = node<GoldenCity> {
+        GoldenCity {
+            id: nextId("city-"),
+            name: cityName,
+            nameAliases: Array<Alias> {},
+            lastUpdate: t,
+            municipality: nMunicipality,
+            streets_by_id: nodeIndex<String, node<GoldenStreet>> {},
+        }
+    };
+    nCity->indexing(nCity);
+    return nCity;
+}
+
+/// A golden street in `nCity`, created and indexed.
+fn goldenStreet(nCity: node<GoldenCity>, streetName: String): node<GoldenStreet> {
+    var nStreet = node<GoldenStreet> {
+        GoldenStreet {
+            id: nextId("street-"),
+            name: streetName,
+            nameAliases: Array<Alias> {},
+            lastUpdate: time::now(),
+            city: nCity,
+            addresses_by_id: nodeIndex<String, node<GoldenAddress>> {},
+        }
+    };
+    nStreet->indexing(nStreet);
+    return nStreet;
+}
+
+/// A golden POI on `nStreet`, created and indexed. `location` may be null — a POI with no
+/// coordinates is normal in the real data and several scoring paths hinge on it.
+fn goldenPoi(
+    nStreet: node<GoldenStreet>,
+    houseNumber: int,
+    multipleCode: String,
+    postcode: String,
+    location: geo?
+): node<GoldenAddress> {
+    var nPoi = node<GoldenAddress> {
+        GoldenAddress {
+            uid: nextId("poi-"),
+            number: houseNumber,
+            multipleCode: multipleCode,
+            postcode: postcode,
+            primaryLocation: location,
+            secondaryLocations: Map<String, geo> {},
+            lastUpdate: time::now(),
+            street: nStreet,
+            linkedRecords: Array<LinkedRecordEntry> {},
+            quality: nodeTime<QualityEvent> {},
+        }
+    };
+    nPoi->indexing(nPoi);
+    return nPoi;
+}
+
+/// An OSM source record, with its city and street created on demand — the same shape
+/// `OsmLoader` builds. OSM is the lightest `AddressRecordProvider` (flat strings, no
+/// municipality), which makes it the default source record for link/promote tests.
+fn osmAddress(
+    osmId: int,
+    houseNumber: String,
+    streetName: String,
+    cityName: String,
+    postcode: String,
+    position: geo
+): node<OsmAddress> {
+    var cityKey = cityName.lowercase();
+    var nCity = osm_cities_by_name.get(cityKey);
+    if (nCity == null) {
+        nCity = node<OsmCity> { OsmCity { name: cityName, streets_by_name: nodeIndex<String, node<OsmStreet>> {} } };
+        nCity->indexing(nCity);
+    }
+
+    var streetKey = streetName.lowercase();
+    var nStreet = nCity->streets_by_name.get(streetKey);
+    if (nStreet == null) {
+        nStreet = node<OsmStreet> {
+            OsmStreet {
+                name: streetName,
+                city: nCity,
+                addresses_by_id: nodeIndex<String, node<OsmAddress>> {},
+                addresses_by_number: nodeIndex<String, node<OsmAddress>> {},
+            }
+        };
+        nStreet->indexing(nStreet);
+    }
+
+    var nAddr = node<OsmAddress> {
+        OsmAddress {
+            id: osmId,
+            position: position,
+            city: cityName,
+            postcode: postcode,
+            street: streetName,
+            number: houseNumber,
+            streetRef: nStreet,
+            deprecated: false,
+        }
+    };
+    nAddr->indexing(nAddr);
+    return nAddr;
+}
+
+/// The OSM source node, for the many call sites that take a `node<DataSource>`.
+fn osmSource(): node<DataSource> {
+    return sources_by_name.get(OsmSource::NAME)!!;
+}
+
+/// A BDA source record, with its commune/city/street chain created on demand. It gives
+/// cross-source tests a second, differently-weighted provider without the heavier CACLR
+/// fixture chain.
+fn bdaAddress(
+    geoportailId: String,
+    caclrId: int,
+    houseNumber: String,
+    streetName: String,
+    cityName: String,
+    municipalityName: String,
+    postcode: String,
+    position: geo
+): node<BdaAddress> {
+    var munKey = municipalityName.lowercase();
+    var nMunicipality = bda_municipalities_by_name.get(munKey);
+    if (nMunicipality == null) {
+        nMunicipality = node<BdaMunicipality> {
+            BdaMunicipality { name: municipalityName, cities_by_name: nodeIndex<String, node<BdaCity>> {} }
+        };
+        nMunicipality->indexing(nMunicipality);
+    }
+
+    var cityKey = cityName.lowercase();
+    var nCity = nMunicipality->cities_by_name?.get(cityKey);
+    if (nCity == null) {
+        nCity = node<BdaCity> {
+            BdaCity {
+                name: cityName,
+                municipality: nMunicipality,
+                streets_by_name: nodeIndex<String, node<BdaStreet>> {},
+            }
+        };
+        nCity->indexing(nCity);
+    }
+
+    var streetKey = streetName.lowercase();
+    var nStreet = nCity->streets_by_name?.get(streetKey);
+    if (nStreet == null) {
+        nStreet = node<BdaStreet> {
+            BdaStreet {
+                name: streetName,
+                id_caclr: caclrId,
+                city: nCity,
+                addresses_by_id: nodeIndex<String, node<BdaAddress>> {},
+                addresses_by_number: nodeIndex<String, node<BdaAddress>> {},
+            }
+        };
+        nStreet->indexing(nStreet);
+    }
+
+    var nAddr = node<BdaAddress> {
+        BdaAddress {
+            number: houseNumber,
+            postcode: postcode,
+            position: position,
+            id_caclr: caclrId,
+            id_geoportail: geoportailId,
+            municipality: nMunicipality,
+            city: nCity,
+            street: nStreet,
+            deprecated: false,
+        }
+    };
+    nAddr->indexing(nAddr);
+    return nAddr;
+}
+
+/// A `LinkedRecordEntry` carrying an overall score, the shape `linkRecords` and
+/// `promoteRecord` store on a golden POI.
+fn linkedEntry(nRecord: node<AddressRecordProvider>, overall: float): LinkedRecordEntry {
+    return LinkedRecordEntry {
+        record: nRecord,
+        score: overall,
+        detailedScore: node<ReconciliationCandidateScore> {
+            ReconciliationCandidateScore {
+                cityScore: 1.0,
+                streetScore: 1.0,
+                numberScore: 1.0,
+                postcodeScore: 1.0,
+                geoScore: 1.0,
+                overallScore: overall,
+            }
+        },
+    };
+}
+
+/// Puts one candidate into a source's `unlinked` report, the way `DataSource::reconcile`
+/// would. `linkRecords` and `batchLinkByScore` both read the report rather than re-running
+/// the search, so tests of those paths have to seed it.
+fn reportCandidate(
+    nSource: node<DataSource>,
+    nRecord: node<AddressRecordProvider>,
+    nCandidate: node<AddressRecordProvider>,
+    overall: float,
+    mismatch: MengplazMismatch?
+) {
+    // A fresh array every time: an array already stored in the nodeIndex is attached to that
+    // node, and setting it back a second time is rejected. Existing entries are cloned across.
+    var candidates = Array<ReconciliationCandidate> {};
+    for (_, existing in nSource->getReconciliationReport()!!.unlinked.get(nRecord)?) {
+        candidates.add(clone(existing));
+    }
+    candidates.add(ReconciliationCandidate {
+        candidateRecord: nCandidate,
+        mismatch: mismatch,
+        score: ReconciliationCandidateScore {
+            cityScore: 1.0,
+            streetScore: 1.0,
+            numberScore: 1.0,
+            postcodeScore: 1.0,
+            geoScore: 1.0,
+            overallScore: overall,
+        },
+    });
+    nSource->reconciliationReport->unlinked.set(nRecord, candidates);
+}
