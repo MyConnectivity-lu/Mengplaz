@@ -8,7 +8,7 @@ const EXCLUDED_KEYS = ['goldenRef', 'sourceName', 'deprecated', 'lastSeenAt'];
 
 /**
  * The field list of one address record. Reflects over the record's own keys, so
- * a backend field added to `POIRecord` shows up without a frontend change; node
+ * a backend field added to `AddressRecord` shows up without a frontend change; node
  * references are skipped because they are graph pointers, not values.
  */
 @customElement('mp-address-content')
@@ -19,7 +19,10 @@ export class MpAddressContent extends LitElement {
     }
   `;
 
-  @property({ attribute: false }) value?: gc.mengplaz.POIRecord | gc.mengplaz.SearchItem | gc.mengplaz.POIFullRecordRef;
+  @property({ attribute: false }) value?:
+    | gc.mengplaz.AddressRecord
+    | gc.mengplaz.SearchItem
+    | gc.mengplaz.AddressFullRecordRef;
   /** Match score as a 0-1 ratio; appended as a "Score" row when present. */
   @property({ type: Number }) score?: number;
 

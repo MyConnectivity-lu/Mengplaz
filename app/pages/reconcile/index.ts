@@ -544,15 +544,15 @@ export class MengplazReconcilePage extends GcPage {
     }
     this.searchParams = params;
     try {
-      await gc.lockDatasource(source.name);
+      await gc.lockSource(source.name);
       if (detail.pois.length > 1) {
         // A bulk run reshuffles the whole report; let it run and poll for the
         // unlock rather than trying to patch the local copy.
-        await gc.privateApi.reconcilePOIs.spawn(source.name, detail.pois, params);
+        await gc.privateApi.reconcileAddresses.spawn(source.name, detail.pois, params);
         this.startPolling();
         return;
       }
-      await gc.$.default.await(await gc.privateApi.reconcilePOIs.spawn(source.name, detail.pois, params));
+      await gc.$.default.await(await gc.privateApi.reconcileAddresses.spawn(source.name, detail.pois, params));
       toast(`Reconciled ${detail.pois.length} record(s)`, 'success');
 
       const recordId = detail.pois[0];
@@ -665,7 +665,7 @@ export class MengplazReconcilePage extends GcPage {
     }
     this.searchParams = params;
     try {
-      await gc.lockDatasource(source.name);
+      await gc.lockSource(source.name);
       await gc.privateApi.reconcile.spawn(source.name, params);
       this.startPolling();
     } catch {

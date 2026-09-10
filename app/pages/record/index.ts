@@ -111,8 +111,8 @@ export class MengplazRecordPage extends GcPage {
   }
 
   /** Source records grouped by their source name, in first-seen order. */
-  private get groups(): Map<string, gc.mengplaz.POIFullRecordRef[]> {
-    const groups = new Map<string, gc.mengplaz.POIFullRecordRef[]>();
+  private get groups(): Map<string, gc.mengplaz.AddressFullRecordRef[]> {
+    const groups = new Map<string, gc.mengplaz.AddressFullRecordRef[]>();
     for (const r of this.details?.associated ?? []) {
       const key = r.record.sourceName;
       const list = groups.get(key);
@@ -146,7 +146,7 @@ export class MengplazRecordPage extends GcPage {
     </svg>`;
   }
 
-  private renderGroup(source: string, records: gc.mengplaz.POIFullRecordRef[]) {
+  private renderGroup(source: string, records: gc.mengplaz.AddressFullRecordRef[]) {
     if (records.length === 1) {
       return html`<mp-address-card .value=${records[0]} ?show-unlink=${this.isAdmin}></mp-address-card>`;
     }

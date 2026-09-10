@@ -14,7 +14,7 @@ var source_address_indexes: nodeIndex<String, node<AddressIndex<String>?>>;
 type SourceTextSearch {
     /// A record with no street still gets a line — its postcode is the only thing that can
     /// match it.
-    static fn rawAddress(nRecord: node<POIRecordProvider>): String {
+    static fn rawAddress(nRecord: node<AddressRecordProvider>): String {
         var item = nRecord->toSearchItem();
         if (item.street == "") {
             return "${item.number}${item.multipleCode}, ${item.postcode}";
@@ -77,7 +77,7 @@ type SourceTextSearch {
     }
 
     /// Creation-only, and quadratic in bulk — go through `appendAll`, which caps that.
-    static fn append(nRecord: node<POIRecordProvider>): bool {
+    static fn append(nRecord: node<AddressRecordProvider>): bool {
         var sourceName = nRecord->getSourceName();
         var idx = source_address_indexes.get(sourceName)?.resolve();
         if (idx == null) {
@@ -99,7 +99,7 @@ type SourceTextSearch {
     static APPEND_LIMIT: int = 1000;
 
     /// A source with no index yet needs nothing: its first build reads `getIndex()`.
-    static fn appendAll(nSource: node<DataSource>, records: Array<node<POIRecordProvider>>): int {
+    static fn appendAll(nSource: node<DataSource>, records: Array<node<AddressRecordProvider>>): int {
         if (records.size() == 0) {
             return 0;
         }
@@ -144,9 +144,9 @@ type SourceTextSearch {
         nSource: node<DataSource>,
         idx: AddressIndex<String>,
         hits: Array<AddressSearchHit>
-    ): Array<node<POIRecordProvider>> {
+    ): Array<node<AddressRecordProvider>> {
         var index = nSource->getIndex();
-        var out = Array<node<POIRecordProvider>> {};
+        var out = Array<node<AddressRecordProvider>> {};
         for (_, hit in hits) {
             var id = idx.payload_of(hit);
             if (id == null) {
@@ -159,6 +159,36 @@ type SourceTextSearch {
         }
         return out;
     }
+    /// Index health, for the admin console.
+    static fn stats(): Array<SourceTextIndexStats> {
+        var out = Array<SourceTextIndexStats> {};
+        for (name, nIdx in source_address_indexes) {
+            var idx = nIdx.resolve();
+            if (idx == null) {
+                out.add(SourceTextIndexStats { source: name, built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 });
+                continue;
+            }
+            var s = idx.index.stats();
+            out.add(SourceTextIndexStats {
+                source: name,
+                built: idx.index.built ?? false,
+                docs: s.totalEntries,
+                terms: s.totalTerms,
+                avgLen: s.avgTokenCount,
+                dirty: idx.index.dirtyCount ?? 0,
+            });
+        }
+        return out;
+    }
+
+    /// Rebuilds one source index by source name, for callers holding a name rather than a node.
+    static fn rebuildByName(source: String): int {
+        var nSource = sources_by_name.get(source);
+        if (nSource == null) {
+            throw "Unknown source '${source}'";
+        }
+        return SourceTextSearch::rebuild(nSource);
+    }
 }
 
 @volatile
@@ -169,43 +199,4 @@ type SourceTextIndexStats {
     terms: int;
     avgLen: float;
     dirty: int;
-}
-
-@permission("admin")
-@expose
-fn buildSourceTextIndexes(): int {
-    return SourceTextSearch::rebuildAll();
-}
-
-@permission("admin")
-@expose
-fn buildSourceTextIndex(source: String): int {
-    var nSource = sources_by_name.get(source);
-    if (nSource == null) {
-        throw "Unknown source '${source}'";
-    }
-    return SourceTextSearch::rebuild(nSource);
-}
-
-@permission("admin")
-@expose
-fn sourceTextIndexStats(): Array<SourceTextIndexStats> {
-    var out = Array<SourceTextIndexStats> {};
-    for (name, nIdx in source_address_indexes) {
-        var idx = nIdx.resolve();
-        if (idx == null) {
-            out.add(SourceTextIndexStats { source: name, built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 });
-            continue;
-        }
-        var s = idx.index.stats();
-        out.add(SourceTextIndexStats {
-            source: name,
-            built: idx.index.built ?? false,
-            docs: s.totalEntries,
-            terms: s.totalTerms,
-            avgLen: s.avgTokenCount,
-            dirty: idx.index.dirtyCount ?? 0,
-        });
-    }
-    return out;
 }

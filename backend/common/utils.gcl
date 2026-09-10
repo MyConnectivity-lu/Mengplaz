@@ -6,71 +6,32 @@ type SplitAlphaNumericalString {
 
 /// Best Effort to transform 7-8, into 7 , -8 , as done by CACLR
 fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString {
-    var alphaCars = Array<char> {
-        'A',
-        'B',
-        'C',
-        'D',
-        'E',
-        'F',
-        'G',
-        'H',
-        'I',
-        'J',
-        'K',
-        'L',
-        'M',
-        'N',
-        'O',
-        'P',
-        'Q',
-        'R',
-        'S',
-        'T',
-        'U',
-        'V',
-        'W',
-        'X',
-        'Y',
-        'Z'
-    };
-
-    try {
-        var idx = int::max;
-        for (_, c in alphaCars) {
-            var i = number.indexOf(c);
-            if (i != -1 && i < idx) {
-                idx = i;
-            }
+    var idx = -1;
+    for (var i = 0; i < number.size(); i++) {
+        var c = number.get(i);
+        if (c >= 'A' && c <= 'Z') {
+            idx = i;
+            break;
         }
-        if (idx != -1 && idx != int::max) {
-            var numPart = number.slice(0, idx);
-            var hyphenIdx = numPart.indexOf('-');
-            if (hyphenIdx == -1) {
-                var alpha = number.slice(idx, number.size());
-                var num = parseNumber(numPart) as int;
-                return SplitAlphaNumericalString {
-                    alpha: alpha,
-                    numerical: num
-                };
-            }
-        }
+    }
 
-        var hyphenIdx = number.indexOf('-');
-        if (hyphenIdx != -1) {
-            var num = parseNumber(number.slice(0, hyphenIdx)) as int;
-            var alpha = number.slice(hyphenIdx, number.size());
+    if (idx != -1) {
+        var numPart = number.slice(0, idx);
+        if (numPart.indexOf('-') == -1) {
             return SplitAlphaNumericalString {
-                alpha: alpha,
-                numerical: num
+                alpha: number.slice(idx, number.size()),
+                numerical: parseNumber(numPart) as int
             };
         }
-
-        return SplitAlphaNumericalString {
-            alpha: "",
-            numerical: parseNumber(number) as int
-        };
-    } catch (err) {
-        throw err;
     }
+
+    var hyphenIdx = number.indexOf('-');
+    if (hyphenIdx != -1) {
+        return SplitAlphaNumericalString {
+            alpha: number.slice(hyphenIdx, number.size()),
+            numerical: parseNumber(number.slice(0, hyphenIdx)) as int
+        };
+    }
+
+    return SplitAlphaNumericalString { alpha: "", numerical: parseNumber(number) as int };
 }

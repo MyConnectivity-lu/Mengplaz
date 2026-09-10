@@ -9,6 +9,21 @@
 /// Monotonic counter behind `nextId()`, so ids are unique across a whole run.
 var fixture_seq: node<int?>;
 
+/// The one coordinate the whole suite uses when a record just needs to be somewhere.
+fn here(): geo {
+    return geo { 49.6116, 6.1319 };
+}
+
+/// The single golden POI most tests reconcile against: 12 Rue de la Gare, 1234 Gasperich.
+/// Resets the graph first, so it is the first line of a test rather than a step in one.
+fn seedGolden(multipleCode: String): node<GoldenAddress> {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    return fixtures_test::goldenPoi(nStreet, 12, multipleCode, "1234", fixtures_test::here());
+}
+
 /// A fresh id suffix. Golden ids are opaque 6-char UIDs in production; the tests only need
 /// them to be distinct and greppable.
 fn nextId(prefix: String): String {
@@ -21,47 +36,44 @@ fn nextId(prefix: String): String {
 /// Wipes every persistent index the backend writes to. `greycat test` never flushes to
 /// disk, so this only ever clears the test process's in-memory graph.
 fn reset() {
-    golden_constituency_by_code.removeAll();
+    golden_constituencies_by_code.removeAll();
     golden_cantons_by_id.removeAll();
     golden_municipalities_by_id.removeAll();
     golden_cities_by_id.removeAll();
     golden_streets_by_id.removeAll();
-    golden_pois_by_id.removeAll();
+    golden_addresses_by_id.removeAll();
     golden_municipalities_by_name.removeAll();
     golden_cities_by_name.removeAll();
     golden_streets_by_name.removeAll();
-    golden_pois_by_geo.removeAll();
-    golden_records_geo_recompute.removeAll();
+    golden_addresses_by_geo.removeAll();
+    golden_addresses_geo_recompute.removeAll();
 
-    osm_by_id.removeAll();
-    osm_partial_by_id.removeAll();
-    osm_by_geo.removeAll();
-    osm_partial_by_geo.removeAll();
+    osm_addresses_by_id.removeAll();
+    osm_partial_addresses_by_id.removeAll();
+    osm_addresses_by_geo.removeAll();
+    osm_partial_addresses_by_geo.removeAll();
     osm_cities_by_name.removeAll();
     osm_streets_by_name.removeAll();
 
     bda_municipalities_by_name.removeAll();
     bda_cities_by_name.removeAll();
     bda_streets_by_name.removeAll();
-    bda_street_by_cacrid.removeAll();
-    bda_address_by_geo.removeAll();
-    bda_address_by_cacrid.removeAll();
-    bda_address_by_geoportalid.removeAll();
+    bda_streets_by_caclr_id.removeAll();
+    bda_addresses_by_geo.removeAll();
+    bda_addresses_by_caclr_id.removeAll();
+    bda_addresses_by_geoportail_id.removeAll();
 
-    caclr_consistuency_by_code.removeAll();
+    caclr_constituencies_by_code.removeAll();
     caclr_cantons_by_id.removeAll();
     caclr_municipalities_by_id.removeAll();
     caclr_cities_by_id.removeAll();
     caclr_streets_by_id.removeAll();
-    caclr_buildings_by_id.removeAll();
+    caclr_addresses_by_id.removeAll();
     caclr_municipalities_by_name.removeAll();
     caclr_cities_by_name.removeAll();
     caclr_streets_by_name.removeAll();
-    caclr_buildings_by_geo.removeAll();
 
     sources_by_name.removeAll();
-    endpoints_by_name.removeAll();
-    address_searches.removeAll();
 
     source_address_indexes.removeAll();
     golden_address_index.set(null);
@@ -74,7 +86,7 @@ fn reset() {
 fn seedSources() {
     GoldenSource::init();
     CaclrSource::init();
-    BDAddressSource::init();
+    BdaSource::init();
     OsmSource::init();
 }
 
@@ -91,7 +103,7 @@ fn goldenCity(municipalityName: String, cityName: String): node<GoldenCity> {
             cantons_by_id: nodeIndex<String, node<GoldenCanton>> {},
         }
     };
-    golden_constituency_by_code.set(nConstituency->code, nConstituency);
+    golden_constituencies_by_code.set(nConstituency->code, nConstituency);
 
     var nCanton = node<GoldenCanton> {
         GoldenCanton {
@@ -141,7 +153,7 @@ fn goldenStreet(nCity: node<GoldenCity>, streetName: String): node<GoldenStreet>
             nameAliases: Array<Alias> {},
             lastUpdate: time::now(),
             city: nCity,
-            pois_by_id: nodeIndex<String, node<GoldenPointOfInterest>> {},
+            addresses_by_id: nodeIndex<String, node<GoldenAddress>> {},
         }
     };
     nStreet->indexing(nStreet);
@@ -156,13 +168,13 @@ fn goldenPoi(
     multipleCode: String,
     postcode: String,
     location: geo?
-): node<GoldenPointOfInterest> {
-    var nPoi = node<GoldenPointOfInterest> {
-        GoldenPointOfInterest {
+): node<GoldenAddress> {
+    var nPoi = node<GoldenAddress> {
+        GoldenAddress {
             uid: nextId("poi-"),
             number: houseNumber,
             multipleCode: multipleCode,
-            postCode: postcode,
+            postcode: postcode,
             primaryLocation: location,
             secondaryLocations: Map<String, geo> {},
             lastUpdate: time::now(),
@@ -176,7 +188,7 @@ fn goldenPoi(
 }
 
 /// An OSM source record, with its city and street created on demand — the same shape
-/// `OSMLoader` builds. OSM is the lightest `POIRecordProvider` (flat strings, no
+/// `OsmLoader` builds. OSM is the lightest `AddressRecordProvider` (flat strings, no
 /// municipality), which makes it the default source record for link/promote tests.
 fn osmAddress(
     osmId: int,
@@ -216,6 +228,7 @@ fn osmAddress(
             street: streetName,
             number: houseNumber,
             streetRef: nStreet,
+            deprecated: false,
         }
     };
     nAddr->indexing(nAddr);
@@ -239,12 +252,12 @@ fn bdaAddress(
     municipalityName: String,
     postcode: String,
     position: geo
-): node<BDAddress> {
+): node<BdaAddress> {
     var munKey = municipalityName.lowercase();
     var nMunicipality = bda_municipalities_by_name.get(munKey);
     if (nMunicipality == null) {
-        nMunicipality = node<BDAMunicipality> {
-            BDAMunicipality { name: municipalityName, cities_by_name: nodeIndex<String, node<BDACity>> {} }
+        nMunicipality = node<BdaMunicipality> {
+            BdaMunicipality { name: municipalityName, cities_by_name: nodeIndex<String, node<BdaCity>> {} }
         };
         nMunicipality->indexing(nMunicipality);
     }
@@ -252,11 +265,11 @@ fn bdaAddress(
     var cityKey = cityName.lowercase();
     var nCity = nMunicipality->cities_by_name?.get(cityKey);
     if (nCity == null) {
-        nCity = node<BDACity> {
-            BDACity {
+        nCity = node<BdaCity> {
+            BdaCity {
                 name: cityName,
                 municipality: nMunicipality,
-                streets_by_name: nodeIndex<String, node<BDAStreet>> {},
+                streets_by_name: nodeIndex<String, node<BdaStreet>> {},
             }
         };
         nCity->indexing(nCity);
@@ -265,28 +278,29 @@ fn bdaAddress(
     var streetKey = streetName.lowercase();
     var nStreet = nCity->streets_by_name?.get(streetKey);
     if (nStreet == null) {
-        nStreet = node<BDAStreet> {
-            BDAStreet {
+        nStreet = node<BdaStreet> {
+            BdaStreet {
                 name: streetName,
                 id_caclr: caclrId,
                 city: nCity,
-                addresses_by_id: nodeIndex<String, node<BDAddress>> {},
-                addresses_by_number: nodeIndex<String, node<BDAddress>> {},
+                addresses_by_id: nodeIndex<String, node<BdaAddress>> {},
+                addresses_by_number: nodeIndex<String, node<BdaAddress>> {},
             }
         };
         nStreet->indexing(nStreet);
     }
 
-    var nAddr = node<BDAddress> {
-        BDAddress {
+    var nAddr = node<BdaAddress> {
+        BdaAddress {
             number: houseNumber,
             postcode: postcode,
             position: position,
             id_caclr: caclrId,
             id_geoportail: geoportailId,
-            municipatlity: nMunicipality,
+            municipality: nMunicipality,
             city: nCity,
             street: nStreet,
+            deprecated: false,
         }
     };
     nAddr->indexing(nAddr);
@@ -295,7 +309,7 @@ fn bdaAddress(
 
 /// A `LinkedRecordEntry` carrying an overall score, the shape `linkRecords` and
 /// `promoteRecord` store on a golden POI.
-fn linkedEntry(nRecord: node<POIRecordProvider>, overall: float): LinkedRecordEntry {
+fn linkedEntry(nRecord: node<AddressRecordProvider>, overall: float): LinkedRecordEntry {
     return LinkedRecordEntry {
         record: nRecord,
         score: overall,
@@ -317,10 +331,10 @@ fn linkedEntry(nRecord: node<POIRecordProvider>, overall: float): LinkedRecordEn
 /// the search, so tests of those paths have to seed it.
 fn reportCandidate(
     nSource: node<DataSource>,
-    nRecord: node<POIRecordProvider>,
-    nCandidate: node<POIRecordProvider>,
+    nRecord: node<AddressRecordProvider>,
+    nCandidate: node<AddressRecordProvider>,
     overall: float,
-    mismatch: MengplazMissmatch?
+    mismatch: MengplazMismatch?
 ) {
     // A fresh array every time: an array already stored in the nodeIndex is attached to that
     // node, and setting it back a second time is rejected. Existing entries are cloned across.

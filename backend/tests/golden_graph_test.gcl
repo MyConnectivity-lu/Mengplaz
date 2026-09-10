@@ -59,7 +59,7 @@ fn streetIndexingRegistersItGloballyAndUnderItsCity() {
     Assert::equals(golden_streets_by_id.get(nStreet->id), nStreet);
     Assert::equals(nCity->streets_by_id.get(nStreet->id), nStreet);
     Assert::equals(nCity->streets_by_name?.get("rue de la gare"), nStreet);
-    Assert::isNotNull(nStreet->pois_by_number);
+    Assert::isNotNull(nStreet->addresses_by_number);
 
     var byName = golden_streets_by_name.get("rue de la gare");
     Assert::isNotNull(byName);
@@ -74,25 +74,25 @@ fn poiIndexingRegistersItByUidByNumberAndByGeo() {
     var location = geo { 49.6116, 6.1319 };
     var nPoi = fixtures_test::goldenPoi(nStreet, 12, "A", "1234", location);
 
-    Assert::equals(golden_pois_by_id.get(nPoi->uid), nPoi);
-    Assert::equals(nStreet->pois_by_id.get(nPoi->uid), nPoi);
+    Assert::equals(golden_addresses_by_id.get(nPoi->uid), nPoi);
+    Assert::equals(nStreet->addresses_by_id.get(nPoi->uid), nPoi);
     // The number key is number and multiple code concatenated with no separator.
-    Assert::equals(nStreet->pois_by_number?.get("12A"), nPoi);
-    Assert::equals(golden_pois_by_geo.get(location), nPoi);
+    Assert::equals(nStreet->addresses_by_number?.get("12A"), nPoi);
+    Assert::equals(golden_addresses_by_geo.get(location), nPoi);
 }
 
 @test
 fn aPoiWithoutCoordinatesStaysOutOfTheGeoIndex() {
     // Records with no coordinates are normal in CACLR; they must still be indexed by uid and
-    // number, and must not land in `golden_pois_by_geo` at a bogus position.
+    // number, and must not land in `golden_addresses_by_geo` at a bogus position.
     fixtures_test::reset();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
     var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
     var nPoi = fixtures_test::goldenPoi(nStreet, 5, "", "1234", null);
 
-    Assert::equals(golden_pois_by_id.get(nPoi->uid), nPoi);
-    Assert::equals(nStreet->pois_by_number?.get("5"), nPoi);
-    Assert::equals(golden_pois_by_geo.size(), 0);
+    Assert::equals(golden_addresses_by_id.get(nPoi->uid), nPoi);
+    Assert::equals(nStreet->addresses_by_number?.get("5"), nPoi);
+    Assert::equals(golden_addresses_by_geo.size(), 0);
 }
 
 @test
@@ -104,7 +104,7 @@ fn poiRecordCarriesTheWholeAdministrativeChain() {
     var location = geo { 49.6116, 6.1319 };
     var nPoi = fixtures_test::goldenPoi(nStreet, 12, "A", "1234", location);
 
-    var record = nPoi->toMengplazRecord();
+    var record = nPoi->toAddressRecord();
     Assert::equals(record.uid, nPoi->uid);
     // The public record spells the number with a space, unlike the "12A" index key.
     Assert::equals(record.number, "12 A");
@@ -130,7 +130,7 @@ fn poiRecordReportsTheLatestQualityScore() {
     nPoi->quality.setAt(t, QualityEvent { score: 0.2, eventType: QualityEventType::link });
     nPoi->quality.setAt(t + 1_s, QualityEvent { score: 0.5, eventType: QualityEventType::link });
 
-    Assert::equals(nPoi->toMengplazRecord().quality, 0.5);
+    Assert::equals(nPoi->toAddressRecord().quality, 0.5);
 }
 
 @test
@@ -141,13 +141,13 @@ fn recordAliasesAreOnlyExposedWhenPresent() {
     var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
     var nPoi = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
 
-    Assert::isNull(nPoi->toMengplazRecord().streetAliases);
-    Assert::isNull(nPoi->toMengplazRecord().localityAliases);
+    Assert::isNull(nPoi->toAddressRecord().streetAliases);
+    Assert::isNull(nPoi->toAddressRecord().localityAliases);
 
     nStreet->nameAliases.add(Alias { value: "Gare-Strooss", id: "" });
     nCity->nameAliases.add(Alias { value: "Gaasperech", id: "" });
 
-    var record = nPoi->toMengplazRecord();
+    var record = nPoi->toAddressRecord();
     Assert::equals(record.streetAliases?.size(), 1);
     Assert::equals(record.localityAliases?.size(), 1);
 }
@@ -196,7 +196,7 @@ fn removingAnAliasDropsExactlyOneEntry() {
 fn aGoldenPoiRefusesToBePromoted() {
     // A golden POI is the *target* of promotion, so its own `promoteToGolden` throws.
     // Driven through `promoteRecord` because the override's signature contradicts the one
-    // `POIRecordProvider` declares, so a direct call typechecks on neither type.
+    // `AddressRecordProvider` declares, so a direct call typechecks on neither type.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
@@ -213,7 +213,7 @@ fn aGoldenPoiRefusesToBePromoted() {
     }
     Assert::isTrue(threw);
     // Nothing was created by the failed attempt.
-    Assert::equals(golden_pois_by_id.size(), 1);
+    Assert::equals(golden_addresses_by_id.size(), 1);
 }
 
 @test
@@ -230,63 +230,7 @@ fn streetRecordExposesItsPois() {
     Assert::equals(record.city, "Gasperich");
     Assert::isNull(record.streetAliases);
 
-    Assert::equals(nStreet->getPOIs().size(), 2);
+    Assert::equals(nStreet->getAddresses().size(), 2);
 }
 
 // ------------------------------------------- GoldenSource lookup helpers
-
-@test
-fn localityScopesResolveExactlyByMunicipalityOrCityName() {
-    // `findLocalityScopes` is the first hop of the parts-based lookup chain. An exact hit on
-    // either the municipality or the city name scores distance 0.
-    fixtures_test::reset();
-    fixtures_test::seedSources();
-    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
-    var source = *sources_by_name.get(GoldenSource::NAME) as GoldenSource;
-
-    var byCity = source.findLocalityScopes("gasperich", 5, 2);
-    Assert::equals(byCity.size(), 1);
-    Assert::equals(byCity[0].city as node<GoldenCity>, nCity);
-    Assert::equals(byCity[0].distance, 0.0);
-
-    var byMunicipality = source.findLocalityScopes("luxembourg", 5, 2);
-    Assert::equals(byMunicipality.size(), 1);
-    Assert::equals(byMunicipality[0].city as node<GoldenCity>, nCity);
-}
-
-@test
-fn streetLookupInACityPrefersTheExactName() {
-    fixtures_test::reset();
-    fixtures_test::seedSources();
-    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
-    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
-    var source = *sources_by_name.get(GoldenSource::NAME) as GoldenSource;
-
-    var scoped = ScoredCity { city: nCity, distance: 0.0 };
-    var hits = source.findStreetsInCity(scoped, "rue de la gare", 5, 2);
-    Assert::equals(hits.size(), 1);
-    Assert::equals(hits[0].street as node<GoldenStreet>, nStreet);
-    Assert::equals(hits[0].distance, 0.0);
-}
-
-@test
-fn poiLookupInAStreetFiltersByHouseNumberAndPostcode() {
-    fixtures_test::reset();
-    fixtures_test::seedSources();
-    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
-    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
-    var nTarget = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
-    fixtures_test::goldenPoi(nStreet, 14, "", "1234", null);
-    var source = *sources_by_name.get(GoldenSource::NAME) as GoldenSource;
-
-    var scoped = ScoredStreet { street: nStreet, distance: 0.0 };
-
-    var exact = source.findPoisInStreet(scoped, "12", "1234", 5, 2);
-    Assert::equals(exact.size(), 1);
-    Assert::equals(exact[0].poi, nTarget as node<POIRecordProvider>);
-    Assert::equals(exact[0].distance, 0.0);
-
-    // No house number means "everything on this street with that postcode".
-    Assert::equals(source.findPoisInStreet(scoped, null, "1234", 5, 2).size(), 2);
-    Assert::equals(source.findPoisInStreet(scoped, null, "9999", 5, 2).size(), 0);
-}

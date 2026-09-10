@@ -109,7 +109,7 @@ export class MpAddressCard extends LitElement {
     }
   `;
 
-  @property({ attribute: false }) value?: gc.mengplaz.POIRecordRef | gc.mengplaz.POIFullRecordRef;
+  @property({ attribute: false }) value?: gc.mengplaz.AddressRecordRef | gc.mengplaz.AddressFullRecordRef;
   /** Offer a link to the full record page (golden records only). */
   @property({ type: Boolean, attribute: 'show-go-to' }) showGoTo = false;
   /** Offer an unlink action. */

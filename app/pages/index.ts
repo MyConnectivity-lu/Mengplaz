@@ -60,7 +60,7 @@ interface PoiColumns {
   numbers: string[];
 }
 
-function packPois(points: gc.api.POIFeatures[]): PoiColumns {
+function packPois(points: gc.api.AddressFeatures[]): PoiColumns {
   const size = points.length;
   const coords = new BigUint64Array(size);
   const lng = new Float64Array(size);
@@ -188,9 +188,7 @@ export class MengplazIndexPage extends GcPage {
     // DOM); onInit only has to guarantee the session is up before POIs load.
   }
 
-  protected override firstUpdated() {
-
-  }
+  protected override firstUpdated() {}
 
   override async connectedCallback() {
     await super.connectedCallback();
@@ -312,7 +310,7 @@ export class MengplazIndexPage extends GcPage {
     this.showCardPopup(coordinates, record ?? undefined);
   }
 
-  private showCardPopup(at: [number, number], record?: gc.mengplaz.POIRecordRef) {
+  private showCardPopup(at: [number, number], record?: gc.mengplaz.AddressRecordRef) {
     if (!this.map) {
       return;
     }
@@ -361,7 +359,7 @@ export class MengplazIndexPage extends GcPage {
     this.map.setLayoutProperty('ortho-overlay', 'visibility', visibility);
   }
 
-  private flyToRecord(record: gc.mengplaz.POIRecordRef) {
+  private flyToRecord(record: gc.mengplaz.AddressRecordRef) {
     const loc = record.record.primaryLocation;
     if (loc == null || !this.map) {
       return;

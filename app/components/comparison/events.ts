@@ -3,13 +3,13 @@
 // adding the source record id that identifies which row the action applies to.
 
 export interface RequestLinkEvent {
-  sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
-  goldenCandidate: gc.core.node<gc.mengplaz.POIRecordProvider>;
+  sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+  goldenCandidate: gc.core.node<gc.mengplaz.AddressRecordProvider>;
   sourceId: string;
 }
 
 export interface RequestPromoteEvent {
-  sourceRecord: gc.POIFullRecordRef;
+  sourceRecord: gc.AddressFullRecordRef;
   sourceId: string;
 }
 
@@ -20,24 +20,24 @@ export interface RequestReconcileEvent {
 
 /** Emitted by a candidate row / the detailed view when the user links a pair. */
 export interface LinkEvent {
-  sourceRecord: gc.core.node<gc.mengplaz.POIRecordProvider>;
-  goldenCandidate: gc.core.node<gc.mengplaz.POIRecordProvider>;
+  sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+  goldenCandidate: gc.core.node<gc.mengplaz.AddressRecordProvider>;
 }
 
 /** Emitted by a candidate row's eye button to open the detailed comparison. */
 export interface ViewCandidateEvent {
   candidate: gc.privateApi.MatchedCandidateDetail;
-  sourceRecord: gc.POIFullRecordRef;
+  sourceRecord: gc.AddressFullRecordRef;
 }
 
 export interface PromoteEvent {
-  sourceRecord: gc.POIFullRecordRef;
+  sourceRecord: gc.AddressFullRecordRef;
 }
 
 export interface SearchCandidateEvent {
-  sourceRecord: gc.POIFullRecordRef;
+  sourceRecord: gc.AddressFullRecordRef;
 }
 
 export interface ReconcileEvent {
-  sourceRecord: gc.POIFullRecordRef;
+  sourceRecord: gc.AddressFullRecordRef;
 }

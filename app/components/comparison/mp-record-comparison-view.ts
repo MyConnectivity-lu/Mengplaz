@@ -133,7 +133,7 @@ export class MpRecordComparisonView extends LitElement {
     }
   `;
 
-  @property({ attribute: false }) sourceRecord: gc.POIFullRecordRef | null = null;
+  @property({ attribute: false }) sourceRecord: gc.AddressFullRecordRef | null = null;
   @property({ attribute: false }) candidate: gc.privateApi.MatchedCandidateDetail | null = null;
   @property({ type: Boolean, attribute: 'show-link-button' }) showLinkButton = true;
 

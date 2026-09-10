@@ -85,7 +85,7 @@ export class MpReconcilePane extends LitElement {
 
   @query('mp-search-dialog') private searchDialog?: MpSearchDialog;
 
-  private currentSourceRecord: gc.POIFullRecordRef | null = null;
+  private currentSourceRecord: gc.AddressFullRecordRef | null = null;
 
   protected override updated(changed: Map<string, unknown>) {
     // Load when this pane becomes active, and whenever the queue or the position

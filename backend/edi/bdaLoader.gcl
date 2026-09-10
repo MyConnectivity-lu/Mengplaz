@@ -1,5 +1,5 @@
 @volatile
-type BDAddressLine {
+type BdaAddressLine {
     /* CSV Headers
     rue;numero;localite;code_postal;id_caclr_rue;id_caclr_bat;lat_wgs84;lon_wgs84;coord_est_luref;coord_nord_luref;id_geoportail;commune;lau2
     */
@@ -18,12 +18,12 @@ type BDAddressLine {
     lau2: null;
 }
 
-abstract type BDAddressLoader {
+abstract type BdaLoader {
     static fn load(): int {
         var total = 0;
         // Records created by this run, handed to the text index in one batch at the end.
-        var newAddresses = Array<node<POIRecordProvider>> {};
-        var httpClient = Http<Array<BDAddressLine>> {};
+        var newAddresses = Array<node<AddressRecordProvider>> {};
+        var httpClient = Http<Array<BdaAddressLine>> {};
         var httpRequest = HttpRequest {
             url: "https://data.public.lu/fr/datasets/r/5cadc5b8-6a7d-4283-87bc-f9e58dd771f7",
             method: HttpMethod::GET,
@@ -38,7 +38,7 @@ abstract type BDAddressLoader {
         httpClient.getFile(httpRequest.url, path, null);
 
         var csvFormat = CsvFormat { header_lines: 1, separator: ';' };
-        var reader = CsvReader<BDAddressLine> { path: path, format: csvFormat };
+        var reader = CsvReader<BdaAddressLine> { path: path, format: csvFormat };
 
         while (reader.can_read()) {
             var record = reader.read();
@@ -46,11 +46,11 @@ abstract type BDAddressLoader {
             var munKey = record.commune.lowercase();
             var nMunicipality = bda_municipalities_by_name.get(munKey);
             if (nMunicipality == null) {
-                var municipality = BDAMunicipality {
+                var municipality = BdaMunicipality {
                     name: record.commune,
-                    cities_by_name: nodeIndex<String, node<BDACity>> {},
+                    cities_by_name: nodeIndex<String, node<BdaCity>> {},
                 };
-                nMunicipality = node<BDAMunicipality> { municipality };
+                nMunicipality = node<BdaMunicipality> { municipality };
                 nMunicipality->indexing(nMunicipality);
                 info("Created new municipality: ${record.commune}");
             }
@@ -58,33 +58,33 @@ abstract type BDAddressLoader {
             var cityKey = record.localite.lowercase();
             var nCity = nMunicipality->cities_by_name?.get(cityKey);
             if (nCity == null) {
-                var city = BDACity {
+                var city = BdaCity {
                     name: record.localite,
                     municipality: nMunicipality,
-                    streets_by_name: nodeIndex<String, node<BDAStreet>> {},
+                    streets_by_name: nodeIndex<String, node<BdaStreet>> {},
                 };
-                nCity = node<BDACity> { city };
+                nCity = node<BdaCity> { city };
                 nCity->indexing(nCity);
                 info("Created new city: ${record.localite} (${record.commune})");
             }
 
-            var nStreet = bda_street_by_cacrid.get(record.id_caclr_rue);
+            var nStreet = bda_streets_by_caclr_id.get(record.id_caclr_rue);
             if (nStreet == null) {
-                var street = BDAStreet {
+                var street = BdaStreet {
                     name: record.rue,
                     id_caclr: record.id_caclr_rue,
                     city: nCity,
-                    addresses_by_id: nodeIndex<String, node<BDAddress>> {},
-                    addresses_by_number: nodeIndex<String, node<BDAddress>> {},
+                    addresses_by_id: nodeIndex<String, node<BdaAddress>> {},
+                    addresses_by_number: nodeIndex<String, node<BdaAddress>> {},
                 };
-                nStreet = node<BDAStreet> { street };
+                nStreet = node<BdaStreet> { street };
                 nStreet->indexing(nStreet);
                 info("Created new street: ${record.rue} (${record.localite})");
             }
 
-            var nAddress = bda_address_by_geoportalid.get(record.id_geoportail);
+            var nAddress = bda_addresses_by_geoportail_id.get(record.id_geoportail);
             if (nAddress == null) {
-                var address = BDAddress {
+                var address = BdaAddress {
                     number: record.numero,
                     postcode: record.code_postal,
                     position: geo { record.lat_wgs84, record.lon_wgs84 },
@@ -92,10 +92,11 @@ abstract type BDAddressLoader {
                     id_geoportail: record.id_geoportail,
                     street: nStreet,
                     city: nCity,
-                    municipatlity: nMunicipality,
+                    municipality: nMunicipality,
                     createdAt: time::now(),
+                    deprecated: false,
                 };
-                nAddress = node<BDAddress> { address };
+                nAddress = node<BdaAddress> { address };
                 nAddress->indexing(nAddress);
                 newAddresses.add(nAddress);
                 info("Created new address: ${record.numero} ${record.rue}, ${record.code_postal} ${record.localite}");
@@ -106,7 +107,7 @@ abstract type BDAddressLoader {
         }
         File::delete(path);
 
-        var nSource = sources_by_name.get(BDAddressSource::NAME);
+        var nSource = sources_by_name.get(BdaSource::NAME);
         if (nSource != null) {
             SourceTextSearch::appendAll(nSource, newAddresses);
         }

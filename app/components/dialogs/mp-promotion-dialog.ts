@@ -40,7 +40,7 @@ export class MpPromotionDialog extends LitElement {
   `;
 
   @state() private open = false;
-  @state() private value?: gc.mengplaz.POIFullRecordRef;
+  @state() private value?: gc.mengplaz.AddressFullRecordRef;
   @state() private cities: Entry[] = [];
   @state() private streets: Entry[] = [];
   @state() private cityId = '';
@@ -48,7 +48,7 @@ export class MpPromotionDialog extends LitElement {
 
   private resolve?: (value: string | undefined) => void;
 
-  async show(value: gc.mengplaz.POIFullRecordRef): Promise<string | undefined> {
+  async show(value: gc.mengplaz.AddressFullRecordRef): Promise<string | undefined> {
     this.value = value;
     this.open = true;
     await this.preselect();
@@ -86,7 +86,7 @@ export class MpPromotionDialog extends LitElement {
       return undefined;
     }
     const record = this.value.record;
-    return gc.mengplaz.POIRecord.createFrom({
+    return gc.mengplaz.AddressRecord.createFrom({
       number: `${record.number ?? '--'}${record.multipleCode ?? ''}`,
       postcode: record.postcode ?? '--',
       locality: this.cities.find((c) => c.id === this.cityId)?.name ?? record.city,

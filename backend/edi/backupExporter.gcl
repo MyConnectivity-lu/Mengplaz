@@ -6,7 +6,7 @@
 // bucket entries across reloads, so those exports deduplicate on node identity.
 //
 // Deliberately not exported: `caclr_token` (a credential), reconciliation reports and
-// `golden_records_geo_recompute` (recomputable), users and groups (they live in the security
+// `golden_addresses_geo_recompute` (recomputable), users and groups (they live in the security
 // store). For a byte-exact restore use `runtime::Runtime::backup_full` instead.
 
 // Golden DTOs
@@ -278,14 +278,6 @@ type BkSourceDTO {
 }
 
 @volatile
-type BkTrafficDTO {
-    endpoint: String;
-    t: time;
-    user: int;
-    executionTimeUs: int?;
-}
-
-@volatile
 type BkManifestEntryDTO {
     file: String;
     records: int;
@@ -323,7 +315,6 @@ abstract type BackupExporter {
 
     static sourcePath: String = "files/backup/sources.csv";
     static sourceCountHistoryPath: String = "files/backup/source_count_history.csv";
-    static trafficPath: String = "files/backup/traffic.csv";
     static manifestPath: String = "files/backup/manifest.csv";
 
     /// Dumps the whole graph. Long running: streams every source index to disk.
@@ -335,38 +326,101 @@ abstract type BackupExporter {
 
         manifest.add(BkManifestEntryDTO { file: BackupExporter::sourcePath, records: BackupExporter::exportSources() });
 
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrConstituencyPath, records: BackupExporter::exportCaclrConstituencies() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrCantonPath, records: BackupExporter::exportCaclrCantons() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrMunicipalityPath, records: BackupExporter::exportCaclrMunicipalities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrCityPath, records: BackupExporter::exportCaclrCities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrStreetPath, records: BackupExporter::exportCaclrStreets() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::caclrBuildingPath, records: BackupExporter::exportCaclrBuildings() });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::caclrConstituencyPath,
+            records: BackupExporter::exportCaclrConstituencies()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::caclrCantonPath,
+            records: BackupExporter::exportCaclrCantons()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::caclrMunicipalityPath,
+            records: BackupExporter::exportCaclrMunicipalities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::caclrCityPath,
+            records: BackupExporter::exportCaclrCities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::caclrStreetPath,
+            records: BackupExporter::exportCaclrStreets()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::caclrBuildingPath,
+            records: BackupExporter::exportCaclrBuildings()
+        });
 
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaMunicipalityPath, records: BackupExporter::exportBdaMunicipalities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaCityPath, records: BackupExporter::exportBdaCities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaStreetPath, records: BackupExporter::exportBdaStreets() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::bdaAddressPath, records: BackupExporter::exportBdaAddresses() });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::bdaMunicipalityPath,
+            records: BackupExporter::exportBdaMunicipalities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::bdaCityPath,
+            records: BackupExporter::exportBdaCities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::bdaStreetPath,
+            records: BackupExporter::exportBdaStreets()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::bdaAddressPath,
+            records: BackupExporter::exportBdaAddresses()
+        });
 
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmCityPath, records: BackupExporter::exportOsmCities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmStreetPath, records: BackupExporter::exportOsmStreets() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmAddressPath, records: BackupExporter::exportOsmAddresses() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::osmPartialAddressPath, records: BackupExporter::exportOsmPartialAddresses() });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::osmCityPath,
+            records: BackupExporter::exportOsmCities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::osmStreetPath,
+            records: BackupExporter::exportOsmStreets()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::osmAddressPath,
+            records: BackupExporter::exportOsmAddresses()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::osmPartialAddressPath,
+            records: BackupExporter::exportOsmPartialAddresses()
+        });
 
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::trafficPath, records: BackupExporter::exportTraffic() });
-
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenConstituencyPath, records: BackupExporter::exportGoldenConstituencies() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenCantonPath, records: BackupExporter::exportGoldenCantons() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenMunicipalityPath, records: BackupExporter::exportGoldenMunicipalities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenCityPath, records: BackupExporter::exportGoldenCities() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenStreetPath, records: BackupExporter::exportGoldenStreets() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenPoiPath, records: BackupExporter::exportGoldenPois() });
-        manifest.add(BkManifestEntryDTO { file: BackupExporter::goldenQualityHistoryPath, records: BackupExporter::exportGoldenQualityHistory() });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenConstituencyPath,
+            records: BackupExporter::exportGoldenConstituencies()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenCantonPath,
+            records: BackupExporter::exportGoldenCantons()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenMunicipalityPath,
+            records: BackupExporter::exportGoldenMunicipalities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenCityPath,
+            records: BackupExporter::exportGoldenCities()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenStreetPath,
+            records: BackupExporter::exportGoldenStreets()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenPoiPath,
+            records: BackupExporter::exportGoldenPois()
+        });
+        manifest.add(BkManifestEntryDTO {
+            file: BackupExporter::goldenQualityHistoryPath,
+            records: BackupExporter::exportGoldenQualityHistory()
+        });
         manifest.add(BkManifestEntryDTO {
             file: BackupExporter::sourceCountHistoryPath,
             records: BackupExporter::exportSourceCountHistory(null)
         });
 
-        var fw = CsvWriter<BkManifestEntryDTO> { path: BackupExporter::manifestPath, format: CsvFormat { header_lines: 1 } };
+        var fw = CsvWriter<BkManifestEntryDTO> { path: BackupExporter::manifestPath, format: CsvFormat {
+            header_lines: 1
+        } };
         var total = 0;
         for (_, entry in manifest) {
             fw.write(entry);
@@ -400,7 +454,7 @@ abstract type BackupExporter {
     static fn exportGoldenConstituencies(): int {
         var fw = JsonWriter<BkGoldenConstituencyDTO> { path: BackupExporter::goldenConstituencyPath };
         var count = 0;
-        for (_, nConstituency in golden_constituency_by_code) {
+        for (_, nConstituency in golden_constituencies_by_code) {
             fw.writeln(BkGoldenConstituencyDTO {
                 code: nConstituency->code,
                 name: nConstituency->name,
@@ -483,9 +537,9 @@ abstract type BackupExporter {
     static fn exportGoldenPois(): int {
         var fw = JsonWriter<BkGoldenPoiDTO> { path: BackupExporter::goldenPoiPath };
         var count = 0;
-        for (_, nPOI in golden_pois_by_id) {
+        for (_, nGolden in golden_addresses_by_id) {
             var linkedRecords = Array<BkGoldenLinkedRecordDTO> {};
-            for (_, entry in nPOI->linkedRecords) {
+            for (_, entry in nGolden->linkedRecords) {
                 linkedRecords.add(BkGoldenLinkedRecordDTO {
                     sourceName: entry.record->getSourceName(),
                     id: entry.record->getId(),
@@ -494,7 +548,7 @@ abstract type BackupExporter {
                 });
             }
             var quality = Array<BkGoldenQualityDTO> {};
-            for (t, entry in nPOI->quality) {
+            for (t, entry in nGolden->quality) {
                 quality.add(BkGoldenQualityDTO {
                     t: t,
                     score: entry.score,
@@ -505,15 +559,15 @@ abstract type BackupExporter {
             }
 
             fw.writeln(BkGoldenPoiDTO {
-                uid: nPOI->uid,
-                number: nPOI->number,
-                multipleCode: nPOI->multipleCode,
-                postCode: nPOI->postCode,
-                primaryLocation: nPOI->primaryLocation,
-                secondaryLocations: nPOI->secondaryLocations,
-                streetId: nPOI->street?->id,
-                lastUpdate: nPOI->lastUpdate,
-                createdAt: nPOI->createdAt,
+                uid: nGolden->uid,
+                number: nGolden->number,
+                multipleCode: nGolden->multipleCode,
+                postCode: nGolden->postcode,
+                primaryLocation: nGolden->primaryLocation,
+                secondaryLocations: nGolden->secondaryLocations,
+                streetId: nGolden->street?->id,
+                lastUpdate: nGolden->lastUpdate,
+                createdAt: nGolden->createdAt,
                 linkedRecords: linkedRecords,
                 quality: quality
             });
@@ -524,7 +578,10 @@ abstract type BackupExporter {
     }
 
     static fn exportGoldenQualityHistory(): int {
-        var fw = CsvWriter<BkGoldenQualityHistoryDTO> { path: BackupExporter::goldenQualityHistoryPath, format: CsvFormat { header_lines: 1 } };
+        var fw = CsvWriter<BkGoldenQualityHistoryDTO> {
+            path: BackupExporter::goldenQualityHistoryPath,
+            format: CsvFormat { header_lines: 1 }
+        };
         // Written explicitly so the file exists even when the history is empty - the
         // automatic header is only emitted on the first `write()`.
         fw.write_line("t,score");
@@ -576,7 +633,7 @@ abstract type BackupExporter {
     static fn exportCaclrConstituencies(): int {
         var fw = JsonWriter<BkCaclrConstituencyDTO> { path: BackupExporter::caclrConstituencyPath };
         var count = 0;
-        for (_, nConstituency in caclr_consistuency_by_code) {
+        for (_, nConstituency in caclr_constituencies_by_code) {
             fw.writeln(BkCaclrConstituencyDTO { code: nConstituency->code, name: nConstituency->name });
             count++;
         }
@@ -675,13 +732,13 @@ abstract type BackupExporter {
     static fn exportCaclrBuildings(): int {
         var fw = JsonWriter<BkCaclrBuildingDTO> { path: BackupExporter::caclrBuildingPath };
         var count = 0;
-        for (_, nBuilding in caclr_buildings_by_id) {
+        for (_, nBuilding in caclr_addresses_by_id) {
             fw.writeln(BkCaclrBuildingDTO {
                 id: nBuilding->id,
                 number: nBuilding->number,
                 isNumberUndefined: nBuilding->isNumberUndefined,
                 multipleCode: nBuilding->multipleCode,
-                postalCode: nBuilding->postalCode,
+                postalCode: nBuilding->postcode,
                 position: nBuilding->position,
                 administrativeStatus: nBuilding->administrativeStatus,
                 validityStartDate: nBuilding->validityStartDate,
@@ -727,10 +784,7 @@ abstract type BackupExporter {
                     continue;
                 }
                 seen.set(nCity as int, true);
-                fw.writeln(BkBdaCityDTO {
-                    name: nCity->name,
-                    municipalityName: nCity->municipality?->name
-                });
+                fw.writeln(BkBdaCityDTO { name: nCity->name, municipalityName: nCity->municipality?->name });
                 count++;
             }
         }
@@ -741,14 +795,14 @@ abstract type BackupExporter {
     static fn exportBdaStreets(): int {
         var fw = JsonWriter<BkBdaStreetDTO> { path: BackupExporter::bdaStreetPath };
         var count = 0;
-        for (_, nStreet in bda_street_by_cacrid) {
-                fw.writeln(BkBdaStreetDTO {
-                    name: nStreet->name,
-                    idCaclr: nStreet->id_caclr,
-                    cityName: nStreet->city?->name,
-                    municipalityName: nStreet->city?->municipality?->name,
-                });
-                count++;
+        for (_, nStreet in bda_streets_by_caclr_id) {
+            fw.writeln(BkBdaStreetDTO {
+                name: nStreet->name,
+                idCaclr: nStreet->id_caclr,
+                cityName: nStreet->city?->name,
+                municipalityName: nStreet->city?->municipality?->name,
+            });
+            count++;
         }
         fw.flush();
         return count;
@@ -757,7 +811,7 @@ abstract type BackupExporter {
     static fn exportBdaAddresses(): int {
         var fw = JsonWriter<BkBdaAddressDTO> { path: BackupExporter::bdaAddressPath };
         var count = 0;
-        for (_, nAddress in bda_address_by_geoportalid) {
+        for (_, nAddress in bda_addresses_by_geoportail_id) {
             fw.writeln(BkBdaAddressDTO {
                 idGeoportail: nAddress->id_geoportail,
                 idCaclr: nAddress->id_caclr,
@@ -767,7 +821,7 @@ abstract type BackupExporter {
                 streetName: nAddress->street->name,
                 streetIdCaclr: nAddress->street->id_caclr,
                 cityName: nAddress->city->name,
-                municipalityName: nAddress->municipatlity->name,
+                municipalityName: nAddress->municipality->name,
                 goldenUid: nAddress->goldenRef?->uid,
                 lastSeenAt: nAddress->lastSeenAt,
                 createdAt: nAddress->createdAt,
@@ -818,7 +872,7 @@ abstract type BackupExporter {
     static fn exportOsmAddresses(): int {
         var fw = JsonWriter<BkOsmAddressDTO> { path: BackupExporter::osmAddressPath };
         var count = 0;
-        for (_, nAddress in osm_by_id) {
+        for (_, nAddress in osm_addresses_by_id) {
             fw.writeln(BkOsmAddressDTO {
                 id: nAddress->id,
                 position: nAddress->position,
@@ -845,7 +899,7 @@ abstract type BackupExporter {
     static fn exportOsmPartialAddresses(): int {
         var fw = JsonWriter<BkOsmPartialAddressDTO> { path: BackupExporter::osmPartialAddressPath };
         var count = 0;
-        for (_, nPartial in osm_partial_by_id) {
+        for (_, nPartial in osm_partial_addresses_by_id) {
             fw.writeln(BkOsmPartialAddressDTO {
                 id: nPartial->id,
                 position: nPartial->position,
@@ -861,31 +915,4 @@ abstract type BackupExporter {
         fw.flush();
         return count;
     }
-
-    // Traffic
-
-    static fn exportTraffic(): int {
-        var fw = CsvWriter<BkTrafficDTO> { path: BackupExporter::trafficPath, format: CsvFormat { header_lines: 1 } };
-        var count = 0;
-        for (_, nEndpoint in endpoints_by_name) {
-            for (t, entry in nEndpoint->traffic) {
-                fw.write(BkTrafficDTO {
-                    endpoint: nEndpoint->name,
-                    t: t,
-                    user: entry.user,
-                    executionTimeUs: entry.executionTime?.to(DurationUnit::microseconds)
-                });
-                count++;
-            }
-        }
-        fw.flush();
-        return count;
-    }
-}
-
-/// Dumps the whole graph to `files/backup/` (plus the golden dump in `files/dump/`).
-@expose
-@permission("admin")
-fn backupGraph() {
-    BackupExporter::exportAll();
 }

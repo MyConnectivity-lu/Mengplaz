@@ -9,7 +9,6 @@
 /// source, not every *linked* one, so one corroborating source out of three caps a record
 /// well below 1.0 by design; and same-source records are averaged before weighting, so a
 /// source cannot buy influence by contributing more rows.
-
 @test
 fn qualityIsZeroWithoutLinkedRecords() {
     fixtures_test::reset();
@@ -50,9 +49,10 @@ fn qualityWeightsEachSourceByItsTrust() {
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
-    var nBda = fixtures_test::bdaAddress(
-        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo { 49.6116, 6.1319 }
-    );
+    var nBda = fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
+        49.6116,
+        6.1319
+    });
 
     var entries = Array<LinkedRecordEntry> {
         fixtures_test::linkedEntry(nOsm, 1.0),
@@ -65,9 +65,10 @@ fn qualityWeightsEachSourceByItsTrust() {
 fn qualityScalesWithTheMatchScore() {
     fixtures_test::reset();
     fixtures_test::seedSources();
-    var nBda = fixtures_test::bdaAddress(
-        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo { 49.6116, 6.1319 }
-    );
+    var nBda = fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
+        49.6116,
+        6.1319
+    });
 
     // BDA weight 3 of 10, matched at 0.5 → 0.15.
     var entries = Array<LinkedRecordEntry> { fixtures_test::linkedEntry(nBda, 0.5) };

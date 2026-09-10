@@ -10,7 +10,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 const SEARCH_MAX_RESULTS = 10;
 
 export interface AddressSelectEvent {
-  record: gc.mengplaz.POIRecordRef;
+  record: gc.mengplaz.AddressRecordRef;
 }
 
 /**
@@ -122,7 +122,7 @@ export class MpAddressSearch extends LitElement {
   /** Grey out results that carry no coordinates - they cannot be shown on a map. */
   @property({ type: Boolean, attribute: 'disable-no-coords' }) disableNoCoords = false;
 
-  @state() private results: gc.mengplaz.POIRecordRef[] = [];
+  @state() private results: gc.mengplaz.AddressRecordRef[] = [];
   @state() private searched = false;
   @state() private loading = false;
 
@@ -167,7 +167,7 @@ export class MpAddressSearch extends LitElement {
     this.searchAbort?.abort();
     const controller = new AbortController();
     this.searchAbort = controller;
-    let results: gc.mengplaz.POIRecordRef[] = [];
+    let results: gc.mengplaz.AddressRecordRef[] = [];
     try {
       results =
         (await gc.api.searchAddress(query, SEARCH_MAX_RESULTS, this.source, undefined, controller.signal)) ?? [];
@@ -204,7 +204,7 @@ export class MpAddressSearch extends LitElement {
     this.searched = false;
   }
 
-  private select(r: gc.mengplaz.POIRecordRef) {
+  private select(r: gc.mengplaz.AddressRecordRef) {
     this.dispatchEvent(
       new CustomEvent<AddressSelectEvent>('address-select', {
         detail: { record: r },
@@ -248,8 +248,8 @@ export class MpAddressSearch extends LitElement {
     }
     return html`<div class="results" role="listbox">
       ${this.results.map((r) => {
-        const disabled = this.disableNoCoords && r.record.primaryLocation == null;
-        return html`<button
+      const disabled = this.disableNoCoords && r.record.primaryLocation == null;
+      return html`<button
           type="button"
           role="option"
           aria-selected="false"
@@ -264,7 +264,7 @@ export class MpAddressSearch extends LitElement {
             <span class="sub">L-${r.record.postcode} ${r.record.locality} ${r.record.commune}</span>
           </span>
         </button>`;
-      })}
+    })}
     </div>`;
   }
 
@@ -277,7 +277,7 @@ export class MpAddressSearch extends LitElement {
         @input=${() => this.onInput()}
         @wa-clear=${() => this.clearResults()}
       >
-        ${this.loading ? html`<wa-spinner slot="start"></wa-spinner>` : ''}
+        ${this.loading ? html`<wa-spinner slot="start"></wa-spinner>` : html`<wa-icon name="magnifying-glass" slot="start"></wa-icon>`}
       </wa-input>
       ${this.renderResults()}
     `;

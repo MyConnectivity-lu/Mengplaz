@@ -6,7 +6,7 @@ import '~/components/mp-address-search';
 import type { AddressSelectEvent } from '~/components/mp-address-search';
 
 export interface SearchSelectEvent {
-  goldenRecord: gc.mengplaz.POIRecordRef;
+  goldenRecord: gc.mengplaz.AddressRecordRef;
 }
 
 /**

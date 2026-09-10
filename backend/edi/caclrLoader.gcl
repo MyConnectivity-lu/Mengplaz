@@ -114,7 +114,7 @@ type CaclrResponseBuildingItem {
     number: int;
     isNumberUndefined: bool;
 
-    postalCode: String;
+    postcode: String;
     multipleCode: String;
 
     administrativeStatus: CaclrAdminStatus;
@@ -126,7 +126,7 @@ type CaclrResponseBuildingItem {
     streetId: String;
 }
 
-abstract type CACLRLoader {
+abstract type CaclrLoader {
     static base_url: String = "https://caclr.api.etat.lu/caclr-rest-ws/consultation";
     static fn load() {
         var nDummyConstituency = node<CaclrConstituency> {
@@ -136,7 +136,7 @@ abstract type CACLRLoader {
                 cantons_by_id: nodeIndex<String, node<CaclrCanton>> {},
             }
         };
-        caclr_consistuency_by_code.set(nDummyConstituency->code, nDummyConstituency);
+        caclr_constituencies_by_code.set(nDummyConstituency->code, nDummyConstituency);
 
         var nDummyCanton = node<CaclrCanton> {
             CaclrCanton {
@@ -193,21 +193,20 @@ abstract type CACLRLoader {
         nDummyMunicipality->cities_by_id.set(nDummyCity->id, nDummyCity);
         caclr_cities_by_id.set(nDummyCity->id, nDummyCity);
 
-        
         nDummyMunicipality->cities_by_id.set(nDummyCity->id, nDummyCity);
         caclr_cities_by_id.set(nDummyCity->id, nDummyCity);
 
-        CACLRLoader::loadCantons();
-        CACLRLoader::loadMunicipalities();
-        CACLRLoader::loadCities();
-        CACLRLoader::loadStreets();
-        CACLRLoader::loadBuildings();
+        CaclrLoader::loadCantons();
+        CaclrLoader::loadMunicipalities();
+        CaclrLoader::loadCities();
+        CaclrLoader::loadStreets();
+        CaclrLoader::loadBuildings();
     }
 
     static fn loadCantons() {
         var token = CaclrToken::get();
 
-        var endpoint = "${CACLRLoader::base_url}/v1/cantons";
+        var endpoint = "${CaclrLoader::base_url}/v1/cantons";
 
         var headers = Map<String, String> {
             "Authorization": "${token.token_type} ${token.access_token}",
@@ -220,16 +219,16 @@ abstract type CACLRLoader {
         for (_, elem in cantons.items) {
             var record = caclr_cantons_by_id.get(elem.id);
             if (record == null) {
-                var nConstituancy = caclr_consistuency_by_code.get(elem.constituency.code);
-                if (nConstituancy == null) {
-                    nConstituancy = node<CaclrConstituency> {
+                var nConstituency = caclr_constituencies_by_code.get(elem.constituency.code);
+                if (nConstituency == null) {
+                    nConstituency = node<CaclrConstituency> {
                         CaclrConstituency {
                             code: elem.constituency.code,
                             name: elem.constituency.name,
                             cantons_by_id: nodeIndex<String, node<CaclrCanton>> {},
                         }
                     };
-                    caclr_consistuency_by_code.set(elem.constituency.code, nConstituancy);
+                    caclr_constituencies_by_code.set(elem.constituency.code, nConstituency);
                 }
 
                 var nCanton = node<CaclrCanton> {
@@ -238,11 +237,11 @@ abstract type CACLRLoader {
                         code: elem.code,
                         name: elem.name,
                         lastUpdate: elem.lastUpdate,
-                        constituency: nConstituancy,
+                        constituency: nConstituency,
                         municipalities_by_id: nodeIndex<String, node<CaclrMunicipality>> {},
                     }
                 };
-                nConstituancy->cantons_by_id.set(nCanton->id, nCanton);
+                nConstituency->cantons_by_id.set(nCanton->id, nCanton);
                 caclr_cantons_by_id.set(nCanton->id, nCanton);
                 info("New CaclrCanton added: id=${nCanton->id} name=${nCanton->name}");
             } else if (record->lastUpdate < elem.lastUpdate) {
@@ -254,7 +253,7 @@ abstract type CACLRLoader {
     }
 
     static fn loadMunicipalities() {
-        var endpoint = "${CACLRLoader::base_url}/v1/municipalities";
+        var endpoint = "${CaclrLoader::base_url}/v1/municipalities";
         var httpClient = Http<CaclrResponseMunicipalities> {};
 
         var requestStart = 1;
@@ -319,7 +318,7 @@ abstract type CACLRLoader {
     }
 
     static fn loadCities() {
-        var endpoint = "${CACLRLoader::base_url}/v1/cities";
+        var endpoint = "${CaclrLoader::base_url}/v1/cities";
         var httpClient = Http<CaclrResponseCities> {};
 
         var requestStart = 1;
@@ -387,7 +386,7 @@ abstract type CACLRLoader {
     }
 
     static fn loadStreets() {
-        var endpoint = "${CACLRLoader::base_url}/v1/streets";
+        var endpoint = "${CaclrLoader::base_url}/v1/streets";
         var httpClient = Http<CaclrResponseStreets> {};
 
         var requestStart = 1;
@@ -438,7 +437,7 @@ abstract type CACLRLoader {
                             validityEndDate: elem.validityEndDate,
                             lastUpdate: elem.lastUpdate,
                             city: nCity,
-                            buildings_by_id: nodeIndex<String, node<CaclrBuilding>> {},
+                            buildings_by_id: nodeIndex<String, node<CaclrAddress>> {},
                         }
                     };
                     nStreet->indexing(nStreet);
@@ -456,7 +455,7 @@ abstract type CACLRLoader {
         var jobs = Array<Job> {};
         for (var i = 0; i < 5; i++) {
             jobs.add(Job {
-                function: CACLRLoader::loadBuildingsOfCity,
+                function: CaclrLoader::loadBuildingsOfCity,
                 arguments: [Array<String> {}],
             });
         }
@@ -473,13 +472,13 @@ abstract type CACLRLoader {
         var count = 0;
         var errored = false;
         // Records created by this run, handed to the text index in one batch at the end.
-        var newBuildings = Array<node<POIRecordProvider>> {};
+        var newBuildings = Array<node<AddressRecordProvider>> {};
         for (_, job in jobs) {
             var results = job.result();
             if (results is Error) {
                 errored = true;
             } else {
-                for (_, nBuilding: node<CaclrBuilding> in results?) {
+                for (_, nBuilding: node<CaclrAddress> in results?) {
                     nBuilding->indexing(nBuilding);
                     newBuildings.add(nBuilding);
                 }
@@ -495,11 +494,11 @@ abstract type CACLRLoader {
         return errored;
     }
 
-    static fn loadBuildingsOfCity(cityIds: Array<String>): Array<node<CaclrBuilding>> {
-        var endpoint = "${CACLRLoader::base_url}/v1/buildings";
+    static fn loadBuildingsOfCity(cityIds: Array<String>): Array<node<CaclrAddress>> {
+        var endpoint = "${CaclrLoader::base_url}/v1/buildings";
         var httpClient = Http<CaclrResponseBuildings> {};
 
-        var result = Array<node<CaclrBuilding>> {};
+        var result = Array<node<CaclrAddress>> {};
         for (_, cityId in cityIds) {
             var requestStart = 1;
             var totalItems: int = 0;
@@ -534,7 +533,7 @@ abstract type CACLRLoader {
                         trace("Received ${requestStart - 1} / ${totalItems} buildings for cityId:${cityId}.");
 
                         for (_, elem in buildings.items) {
-                            var record = caclr_buildings_by_id.get(elem.id);
+                            var record = caclr_addresses_by_id.get(elem.id);
                             if (record == null) {
                                 var nStreet = caclr_streets_by_id.get(elem.streetId);
                                 if (nStreet == null) {
@@ -544,12 +543,12 @@ abstract type CACLRLoader {
                                     nStreet = caclr_streets_by_id.get("UNKNOWN")!!;
                                 }
 
-                                var nBuilding = node<CaclrBuilding> {
-                                    CaclrBuilding {
+                                var nBuilding = node<CaclrAddress> {
+                                    CaclrAddress {
                                         id: elem.id,
                                         number: elem.number,
                                         isNumberUndefined: elem.isNumberUndefined,
-                                        postalCode: elem.postalCode,
+                                        postcode: elem.postcode,
                                         multipleCode: elem.multipleCode,
                                         administrativeStatus: elem.administrativeStatus,
                                         validityStartDate: elem.validityStartDate,
@@ -557,12 +556,13 @@ abstract type CACLRLoader {
                                         lastUpdate: elem.lastUpdate,
                                         street: nStreet,
                                         createdAt: time::now(),
+                                        deprecated: false,
                                     }
                                 };
                                 result.add(nBuilding);
                                 record = nBuilding;
                                 info(
-                                    "New CaclrBuilding added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}"
+                                    "New CaclrAddress added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}"
                                 );
                             } else if (record->lastUpdate < elem.lastUpdate) {
                                 warn(

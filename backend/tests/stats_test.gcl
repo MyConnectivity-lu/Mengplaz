@@ -27,7 +27,7 @@ fn linkedIsReadFromEachSourcesOwnSide() {
 }
 
 @test
-fn deprecatedDefaultsToFalseAndGoldenIsNeverDeprecated() {
+fn aNewRecordIsNotDeprecatedAndGoldenNeverIs() {
     fixtures_test::reset();
     fixtures_test::seedSources();
 
@@ -36,7 +36,6 @@ fn deprecatedDefaultsToFalseAndGoldenIsNeverDeprecated() {
     var nGolden = fixtures_test::goldenPoi(nStreet, 12, "", "1234", null);
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
 
-    // `deprecated` is null until an import marks it; null must read as "not deprecated".
     Assert::isFalse(nOsm->isDeprecated());
     Assert::isFalse(nGolden->isDeprecated());
 

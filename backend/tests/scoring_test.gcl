@@ -84,14 +84,14 @@ fn numberScoreIsOneOnAnExactMatch() {
 fn numberScoreIsPointEightWhenOnlyTheMultipleCodeDiffers() {
     // 12A vs 12B is the same building split two ways in two registries, so it stays a
     // candidate — but never a perfect match, which is what keeps it out of the
-    // `overallScore == 1.0` fast path in `searchPOIForItem`.
+    // `overallScore == 1.0` fast path in `searchAddressForItem`.
     Assert::equals(GoldenServices::computeNumberScore("12", "A", 12, "B"), 0.8);
     Assert::equals(GoldenServices::computeNumberScore("20", "", 20, "D"), 0.8);
 }
 
 @test
 fn numberScoreIsZeroWhenTheDigitsDiffer() {
-    // Zero here is a hard filter, not a weak score: `searchPOIForItem` skips the candidate
+    // Zero here is a hard filter, not a weak score: `searchAddressForItem` skips the candidate
     // outright. House numbers are never fuzzy-matched.
     Assert::equals(GoldenServices::computeNumberScore("12", "", 13, ""), 0.0);
     Assert::equals(GoldenServices::computeNumberScore("12", "A", 13, "A"), 0.0);
@@ -224,7 +224,7 @@ fn addCandidateGrowsUntilTheBoundIsReached() {
     var nCity = fixtures_test::goldenCity("Luxembourg", "Luxembourg");
     var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
 
-    var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+    var candidates = Array<CandidateMatch<node<AddressRecordProvider>>> {};
     for (_, s in Array<float> { 0.4, 0.9, 0.6 }) {
         var nPoi = fixtures_test::goldenPoi(nStreet, 1, "", "1234", null);
         GoldenServices::addCandidate(candidates, candidate(nPoi, s), 10);
@@ -247,7 +247,7 @@ fn addCandidateNeverExceedsMaxCandidatesPerItem() {
     var nCity = fixtures_test::goldenCity("Luxembourg", "Luxembourg");
     var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
 
-    var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+    var candidates = Array<CandidateMatch<node<AddressRecordProvider>>> {};
     for (var i = 0; i < 20; i++) {
         var nPoi = fixtures_test::goldenPoi(nStreet, i, "", "1234", null);
         GoldenServices::addCandidate(candidates, candidate(nPoi, i / 20.0), 5);
@@ -265,17 +265,17 @@ fn addCandidateKeepsASingleBestWhenTheBoundIsOne() {
     var nKept = fixtures_test::goldenPoi(nStreet, 1, "", "1234", null);
     var nDropped = fixtures_test::goldenPoi(nStreet, 2, "", "1234", null);
 
-    var candidates = Array<CandidateMatch<node<POIRecordProvider>>> {};
+    var candidates = Array<CandidateMatch<node<AddressRecordProvider>>> {};
     GoldenServices::addCandidate(candidates, candidate(nKept, 0.9), 1);
     GoldenServices::addCandidate(candidates, candidate(nDropped, 0.1), 1);
 
     Assert::equals(candidates.size(), 1);
-    Assert::equals(candidates[0].elem, nKept as node<POIRecordProvider>);
+    Assert::equals(candidates[0].elem, nKept as node<AddressRecordProvider>);
 
     // A stronger candidate does displace the incumbent.
     GoldenServices::addCandidate(candidates, candidate(nDropped, 0.99), 1);
     Assert::equals(candidates.size(), 1);
-    Assert::equals(candidates[0].elem, nDropped as node<POIRecordProvider>);
+    Assert::equals(candidates[0].elem, nDropped as node<AddressRecordProvider>);
 }
 
 // ------------------------------------------------------------------- uid
@@ -292,8 +292,8 @@ fn generatedUidsAreSixCharsFromTheDeclaredAlphabet() {
 }
 
 /// A candidate carrying nothing but the score `addCandidate` sorts on.
-fn candidate(nPoi: node<GoldenPointOfInterest>, score: float): CandidateMatch<node<POIRecordProvider>> {
-    return CandidateMatch<node<POIRecordProvider>> {
+fn candidate(nPoi: node<GoldenAddress>, score: float): CandidateMatch<node<AddressRecordProvider>> {
+    return CandidateMatch<node<AddressRecordProvider>> {
         cityScore: 1.0,
         streetScore: 1.0,
         numberScore: 1.0,

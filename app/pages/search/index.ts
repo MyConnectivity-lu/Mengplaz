@@ -71,8 +71,8 @@ export class MengplazSearchPage extends GcPage {
 
   @state() private streets: gc.mengplaz.StreetRecordRef[] = [];
   @state() private selectedStreet = -1;
-  @state() private pois: gc.mengplaz.POIRecordRef[] = [];
-  @state() private selectedPoi?: gc.mengplaz.POIRecordRef;
+  @state() private pois: gc.mengplaz.AddressRecordRef[] = [];
+  @state() private selectedPoi?: gc.mengplaz.AddressRecordRef;
   @state() private searching = false;
   @state() private query = '';
 
@@ -130,7 +130,7 @@ export class MengplazSearchPage extends GcPage {
     this.selectedStreet = index;
     this.selectedPoi = undefined;
     try {
-      const pois = await gc.api.getPoisInStreet(street.ref);
+      const pois = await gc.api.getPoisInStreet(street.id);
       // House numbers are strings on the record but order numerically.
       this.pois = [...pois].sort((a, b) => Number(a.record.number) - Number(b.record.number));
     } catch (err) {
@@ -163,25 +163,24 @@ export class MengplazSearchPage extends GcPage {
             ></mp-data-table>
           </mp-panel>
 
-          ${
-            this.pois.length > 0
-              ? html`<mp-panel heading="Street Numbers">
+          ${this.pois.length > 0
+        ? html`<mp-panel heading="Street Numbers">
                   <div class="numbers">
-                    ${this.pois.map(
-                      (p) => html`<wa-badge
+                    ${this.pois.sort((a, b) => a.record.number?.localeCompare(b.record.number ?? '0', undefined, { numeric: true }) ?? 0).map(
+          (p) => html`<wa-badge
                         variant=${this.selectedPoi?.ref === p.ref ? 'brand' : 'neutral'}
                         pill
                         data-ref=${String(p.ref)}
                         @click=${() => {
-                          this.selectedPoi = p;
-                        }}
+              this.selectedPoi = p;
+            }}
                         >${p.record.number}</wa-badge
                       >`,
-                    )}
+        )}
                   </div>
                 </mp-panel>`
-              : ''
-          }
+        : ''
+      }
           ${this.selectedPoi ? html`<mp-address-card .value=${this.selectedPoi} show-go-to></mp-address-card>` : ''}
         </div>
       </mengplaz-app-shell>

@@ -34,24 +34,11 @@ fn withPostal(testName: String): bool {
     return false;
 }
 
-fn here(): geo {
-    return geo { 49.6116, 6.1319 };
-}
-
 /// One golden POI, 12A Rue de la Gare, 1234 Gasperich.
-fn seedGolden(): node<GoldenPointOfInterest> {
-    fixtures_test::reset();
-    fixtures_test::seedSources();
-    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
-    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
-    return fixtures_test::goldenPoi(nStreet, 12, "A", "1234", here());
-}
-
 // ------------------------------------------------------- the address line
-
 @test
 fn theGoldenAddressLineIsTheShapeAClientWouldType() {
-    var nGolden = seedGolden();
+    var nGolden = fixtures_test::seedGolden("A");
     Assert::equals(GoldenTextSearch::rawAddress(nGolden), "12A Rue de la Gare, 1234 Gasperich");
 }
 
@@ -75,7 +62,7 @@ fn theSourceAddressLineComesFromTheSearchItemAndIsLowercased() {
     // display casing off the graph. libpostal normalises it away, but pin the asymmetry.
     fixtures_test::reset();
     fixtures_test::seedSources();
-    var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     Assert::equals(SourceTextSearch::rawAddress(nOsm), "12A rue de la gare, 1234 gasperich");
 }
@@ -114,7 +101,7 @@ fn statsOnAnUnbuiltGoldenIndexReportAnEmptyIndex() {
     fixtures_test::reset();
     fixtures_test::seedSources();
 
-    var stats = goldenTextIndexStats();
+    var stats = GoldenTextSearch::stats();
     Assert::isFalse(stats.built);
     Assert::equals(stats.docs, 0);
     Assert::equals(stats.terms, 0);
@@ -143,7 +130,7 @@ fn buildingTheIndexOfAnUnknownSourceIsRefused() {
 
     var threw = false;
     try {
-        buildSourceTextIndex("NOPE");
+        SourceTextSearch::rebuildByName("NOPE");
     } catch (_) {
         threw = true;
     }
@@ -161,7 +148,7 @@ fn resettingASourceIndexMakesItPresentButUnbuilt() {
     Assert::isNotNull(source_address_indexes.get(OsmSource::NAME));
     Assert::isNull(SourceTextSearch::ready(OsmSource::NAME));
 
-    var stats = sourceTextIndexStats();
+    var stats = SourceTextSearch::stats();
     Assert::equals(stats.size(), 1);
     Assert::equals(stats[0].source, OsmSource::NAME);
     Assert::isFalse(stats[0].built);
@@ -175,17 +162,19 @@ fn appendingToAnAbsentIndexIsANoOpNotAnError() {
     // build reads the record straight out of `getIndex()` anyway.
     fixtures_test::reset();
     fixtures_test::seedSources();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     Assert::isFalse(SourceTextSearch::append(nOsm));
-    Assert::equals(SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<POIRecordProvider>> { nOsm }), 0);
+    Assert::equals(SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<AddressRecordProvider>> {
+        nOsm
+    }), 0);
 }
 
 @test
 fn appendingToAnAbsentGoldenIndexIsANoOpNotAnError() {
     // Same on the golden side: `promoteToGolden` calls `append()` unconditionally, and must
     // still create the record when there is no index to add it to.
-    var nGolden = seedGolden();
+    var nGolden = fixtures_test::seedGolden("A");
     Assert::isFalse(GoldenTextSearch::append(nGolden));
 }
 
@@ -195,7 +184,7 @@ fn appendingAnEmptyBatchDoesNothing() {
     fixtures_test::seedSources();
     SourceTextSearch::reset(OsmSource::NAME);
 
-    Assert::equals(SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<POIRecordProvider>> {}), 0);
+    Assert::equals(SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<AddressRecordProvider>> {}), 0);
 }
 
 @test
@@ -211,11 +200,11 @@ fn buildingTheGoldenIndexMakesEveryPoiSearchable() {
     if (!withPostal("buildingTheGoldenIndexMakesEveryPoiSearchable")) {
         return;
     }
-    var nGolden = seedGolden();
+    var nGolden = fixtures_test::seedGolden("A");
 
-    Assert::equals(buildGoldenTextIndex(), 1);
+    Assert::equals(GoldenTextSearch::rebuild(), 1);
 
-    var stats = goldenTextIndexStats();
+    var stats = GoldenTextSearch::stats();
     Assert::isTrue(stats.built);
     Assert::equals(stats.docs, 1);
     Assert::isTrue(stats.terms > 0);
@@ -236,14 +225,14 @@ fn resolveDropsHitsWhoseRecordHasSinceDisappeared() {
     if (!withPostal("resolveDropsHitsWhoseRecordHasSinceDisappeared")) {
         return;
     }
-    var nGolden = seedGolden();
-    buildGoldenTextIndex();
+    var nGolden = fixtures_test::seedGolden("A");
+    GoldenTextSearch::rebuild();
 
     var idx = GoldenTextSearch::require();
     var hits = GoldenTextSearch::search(idx, "12A Rue de la Gare, 1234 Gasperich", 5);
     Assert::isTrue(hits.size() > 0);
 
-    golden_pois_by_id.remove(nGolden->uid);
+    golden_addresses_by_id.remove(nGolden->uid);
     Assert::equals(GoldenTextSearch::resolve(idx, hits).size(), 0);
 }
 
@@ -255,9 +244,9 @@ fn aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild() {
         return;
     }
     // Built over an existing POI: an index built over an empty graph never reaches `built`.
-    var nGolden = seedGolden();
+    var nGolden = fixtures_test::seedGolden("A");
     var nStreet = nGolden->street!!;
-    Assert::equals(buildGoldenTextIndex(), 1);
+    Assert::equals(GoldenTextSearch::rebuild(), 1);
 
     var nOsm = fixtures_test::osmAddress(1, "30", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
     privateApi::promoteRecord(nOsm, nStreet->id);
@@ -265,7 +254,7 @@ fn aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild() {
     // Reachability is the contract, not rank: how an appended document scores against the
     // pre-existing ones is the library's business.
     var results = api::searchAddress("30 Rue de la Gare, 1234 Gasperich", 5, null);
-    var nPromoted = nOsm->getLinkedGolden()!! as node<POIRecordProvider>;
+    var nPromoted = nOsm->getLinkedGolden()!! as node<AddressRecordProvider>;
     var found = false;
     for (_, r in results) {
         if (r.ref == nPromoted) {
@@ -285,9 +274,9 @@ fn anIndexBuiltOverAnEmptyGraphNeverBecomesReady() {
     fixtures_test::reset();
     fixtures_test::seedSources();
 
-    Assert::equals(buildGoldenTextIndex(), 0);
+    Assert::equals(GoldenTextSearch::rebuild(), 0);
     Assert::isNull(GoldenTextSearch::ready());
-    Assert::isFalse(goldenTextIndexStats().built);
+    Assert::isFalse(GoldenTextSearch::stats().built);
     Assert::equals(api::searchAddress("12 Rue de la Gare, 1234 Gasperich", 5, null).size(), 0);
 }
 
@@ -298,21 +287,21 @@ fn anEditedRecordIsOnlyPickedUpByARebuild() {
     if (!withPostal("anEditedRecordIsOnlyPickedUpByARebuild")) {
         return;
     }
-    var nGolden = seedGolden();
-    buildGoldenTextIndex();
+    var nGolden = fixtures_test::seedGolden("A");
+    GoldenTextSearch::rebuild();
 
     nGolden->street!!->name = "Avenue Monterey";
 
     var beforeRebuild = api::searchAddress("12A Avenue Monterey, 1234 Gasperich", 5, null);
     var afterRebuildCount = 0;
-    buildGoldenTextIndex();
+    GoldenTextSearch::rebuild();
     var afterRebuild = api::searchAddress("12A Avenue Monterey, 1234 Gasperich", 5, null);
     afterRebuildCount = afterRebuild.size();
 
     // Whatever the stale index scored the new street name at, the rebuilt one finds the POI
     // under it and resolves back to the same node.
     Assert::isTrue(afterRebuildCount > 0);
-    Assert::equals(afterRebuild[0].ref, nGolden as node<POIRecordProvider>);
+    Assert::equals(afterRebuild[0].ref, nGolden as node<AddressRecordProvider>);
     Assert::isNotNull(beforeRebuild);
 }
 
@@ -323,15 +312,15 @@ fn buildingASourceIndexMakesItsOwnRecordsSearchable() {
     }
     fixtures_test::reset();
     fixtures_test::seedSources();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
-    Assert::equals(buildSourceTextIndex(OsmSource::NAME), 1);
+    Assert::equals(SourceTextSearch::rebuildByName(OsmSource::NAME), 1);
 
     var idx = SourceTextSearch::require(OsmSource::NAME);
     var hits = SourceTextSearch::search(idx, "12 Rue de la Gare, 1234 Gasperich", 5);
     var resolved = SourceTextSearch::resolve(fixtures_test::osmSource(), idx, hits);
     Assert::isTrue(resolved.size() > 0);
-    Assert::equals(resolved[0], nOsm as node<POIRecordProvider>);
+    Assert::equals(resolved[0], nOsm as node<AddressRecordProvider>);
 }
 
 @test
@@ -343,13 +332,22 @@ fn eachSourceGetsItsOwnIndexAndGoldenIsExcludedFromTheBulkBuild() {
     }
     fixtures_test::reset();
     fixtures_test::seedSources();
-    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
-    fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here());
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    fixtures_test::bdaAddress(
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        fixtures_test::here()
+    );
 
-    Assert::equals(buildSourceTextIndexes(), 2);
+    Assert::equals(SourceTextSearch::rebuildAll(), 2);
 
     Assert::isNotNull(SourceTextSearch::ready(OsmSource::NAME));
-    Assert::isNotNull(SourceTextSearch::ready(BDAddressSource::NAME));
+    Assert::isNotNull(SourceTextSearch::ready(BdaSource::NAME));
     Assert::isNull(source_address_indexes.get(GoldenSource::NAME));
     Assert::isNull(GoldenTextSearch::ready());
 }
@@ -361,11 +359,11 @@ fn appendingASmallBatchAddsToTheLiveSourceIndex() {
     }
     fixtures_test::reset();
     fixtures_test::seedSources();
-    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
-    buildSourceTextIndex(OsmSource::NAME);
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    SourceTextSearch::rebuildByName(OsmSource::NAME);
 
     var nNew = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
-    var added = SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<POIRecordProvider>> { nNew });
+    var added = SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<AddressRecordProvider>> { nNew });
 
     Assert::equals(added, 1);
     var results = api::searchAddress("14 Rue de la Gare, 1234 Gasperich", 5, OsmSource::NAME);
@@ -394,7 +392,7 @@ fn searchingAnUnbuiltIndexReturnsNothingRatherThanThrowing() {
     // nightly build has not run yet.
     fixtures_test::reset();
     fixtures_test::seedSources();
-    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     Assert::equals(api::searchAddress("12 Rue de la Gare, 1234 Gasperich", 5, null).size(), 0);
     Assert::equals(api::searchAddress("12 Rue de la Gare, 1234 Gasperich", 5, OsmSource::NAME).size(), 0);
@@ -405,14 +403,14 @@ fn searchAddressDefaultsToTheGoldenSource() {
     if (!withPostal("searchAddressDefaultsToTheGoldenSource")) {
         return;
     }
-    var nGolden = seedGolden();
-    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
-    buildGoldenTextIndex();
-    buildSourceTextIndex(OsmSource::NAME);
+    var nGolden = fixtures_test::seedGolden("A");
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    GoldenTextSearch::rebuild();
+    SourceTextSearch::rebuildByName(OsmSource::NAME);
 
     var golden = api::searchAddress("12A Rue de la Gare, 1234 Gasperich", 5, null);
     Assert::isTrue(golden.size() > 0);
-    Assert::equals(golden[0].ref, nGolden as node<POIRecordProvider>);
+    Assert::equals(golden[0].ref, nGolden as node<AddressRecordProvider>);
     Assert::equals(golden[0].record.sourceName, GoldenSource::NAME);
 
     var osm = api::searchAddress("12 Rue de la Gare, 1234 Gasperich", 5, OsmSource::NAME);
@@ -432,7 +430,7 @@ fn searchAddressHonoursTheResultCap() {
     for (var i = 0; i < 8; i++) {
         fixtures_test::goldenPoi(nStreet, 10 + i, "", "1234", null);
     }
-    buildGoldenTextIndex();
+    GoldenTextSearch::rebuild();
 
     Assert::isTrue(api::searchAddress("Rue de la Gare, 1234 Gasperich", 2, null).size() <= 2);
 }
@@ -444,8 +442,8 @@ fn goldenWithLinkedRecordsGroupsTheCorroboratingRowsBySource() {
     if (!withPostal("goldenWithLinkedRecordsGroupsTheCorroboratingRowsBySource")) {
         return;
     }
-    var nGolden = seedGolden();
-    var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", here());
+    var nGolden = fixtures_test::seedGolden("A");
+    var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     var nBda = fixtures_test::bdaAddress(
         "GP-1",
         900,
@@ -454,11 +452,11 @@ fn goldenWithLinkedRecordsGroupsTheCorroboratingRowsBySource() {
         "Gasperich",
         "Luxembourg",
         "1234",
-        here()
+        fixtures_test::here()
     );
     privateApi::linkRecords(nOsm, nGolden, null);
     privateApi::linkRecords(nBda, nGolden, null);
-    buildGoldenTextIndex();
+    GoldenTextSearch::rebuild();
 
     var view = api::getGoldenWithLinkedRecords("12A Rue de la Gare, 1234 Gasperich");
     Assert::isNotNull(view);
@@ -507,9 +505,9 @@ fn theStreetIndexNeedsNoLibpostal() {
     // Why this index is a plain `TextIndex` and not an `AddressIndex`: the street box must
     // work on a checkout with no model directory. Every test below would be a skip otherwise.
     seedStreets();
-    Assert::equals(buildGoldenStreetIndex(), 3);
+    Assert::equals(GoldenStreetSearch::rebuild(), 3);
 
-    var stats = goldenStreetIndexStats();
+    var stats = GoldenStreetSearch::stats();
     Assert::isTrue(stats.built);
     Assert::equals(stats.docs, 3);
     Assert::isTrue(stats.terms > 0);
@@ -533,7 +531,7 @@ fn aStreetIsFoundByItsAlias() {
     var nCity = fixtures_test::goldenCity("Wiltz", "Wiltz");
     var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
     nStreet->nameAliases.add(Alias { id: "de", value: "Bahnhofstrooss" });
-    buildGoldenStreetIndex();
+    GoldenStreetSearch::rebuild();
 
     var idx = GoldenStreetSearch::require();
     Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "bahnhofstrooss", 5), "Rue de la Gare"));
@@ -544,7 +542,7 @@ fn frenchElisionSplitsIntoItsOwnTokenRatherThanFusing() {
     // What `address()` buys over a generic preset: the apostrophe is a separator, so
     // "Rue de l'Eglise" indexes "eglise", not "leglise".
     seedStreets();
-    buildGoldenStreetIndex();
+    GoldenStreetSearch::rebuild();
 
     var idx = GoldenStreetSearch::require();
     Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "eglise", 5), "Rue de l'Eglise"));
@@ -556,7 +554,7 @@ fn theStreetIndexIsAccentInsensitive() {
     fixtures_test::reset();
     fixtures_test::seedSources();
     fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Gasperich"), "Rue de l'Église");
-    buildGoldenStreetIndex();
+    GoldenStreetSearch::rebuild();
 
     var idx = GoldenStreetSearch::require();
     Assert::isTrue(hasStreetNamed(GoldenStreetSearch::search(idx, "eglise", 5), "Rue de l'Église"));
@@ -567,7 +565,7 @@ fn theCityNameRanksTheRightLocalityFirstWithoutFilteringTheOthersOut() {
     // The city needs no weighted field: it recurs across every street there, so IDF discounts
     // it below the street tokens. It moves the rank, it does not gate.
     seedStreets();
-    buildGoldenStreetIndex();
+    GoldenStreetSearch::rebuild();
 
     var idx = GoldenStreetSearch::require();
     var hits = GoldenStreetSearch::search(idx, "rue de la gare wiltz", 10);
@@ -583,8 +581,8 @@ fn anUnbuiltStreetIndexIsNotReady() {
     fixtures_test::seedSources();
 
     Assert::isNull(GoldenStreetSearch::ready());
-    Assert::isFalse(goldenStreetIndexStats().built);
-    Assert::equals(buildGoldenStreetIndex(), 0);
+    Assert::isFalse(GoldenStreetSearch::stats().built);
+    Assert::equals(GoldenStreetSearch::rebuild(), 0);
     Assert::isNull(GoldenStreetSearch::ready());
 
     var threw = false;
@@ -600,13 +598,13 @@ fn anUnbuiltStreetIndexIsNotReady() {
 fn aRenamedStreetIsOnlyPickedUpByARebuild() {
     // Streets are only ever created in bulk, so there is no append hook: rebuild-only.
     seedStreets();
-    buildGoldenStreetIndex();
+    GoldenStreetSearch::rebuild();
 
     var nStreet = fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Bonnevoie"), "Avenue Monterey");
     var idx = GoldenStreetSearch::require();
     Assert::isFalse(hasStreetNamed(GoldenStreetSearch::search(idx, "avenue monterey", 5), "Avenue Monterey"));
 
-    Assert::equals(buildGoldenStreetIndex(), 4);
+    Assert::equals(GoldenStreetSearch::rebuild(), 4);
     Assert::isTrue(
         hasStreetNamed(
             GoldenStreetSearch::search(GoldenStreetSearch::require(), "avenue monterey", 5),
@@ -621,7 +619,7 @@ fn aHitWhoseStreetHasDisappearedResolvesToNothing() {
     // The index holds ids, not node references, so a dropped street leaves a hit that must be
     // skipped rather than returned as a hole.
     seedStreets();
-    buildGoldenStreetIndex();
+    GoldenStreetSearch::rebuild();
 
     var idx = GoldenStreetSearch::require();
     var hits = GoldenStreetSearch::search(idx, "rue de la gare", 5);

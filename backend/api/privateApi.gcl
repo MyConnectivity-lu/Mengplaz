@@ -1,8 +1,6 @@
 @expose
 @permission("admin")
-fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
-    var ts = Traffic_Service::start(promoteRecord);
-
+fn promoteRecord(sourceRecord: node<AddressRecordProvider>, streetIdx: String) {
     if (sourceRecord->getLinkedGolden() != null) {
         throw "This record is already linked to a golden Record";
     }
@@ -40,8 +38,6 @@ fn promoteRecord(sourceRecord: node<POIRecordProvider>, streetIdx: String) {
         candidateRecord: nGolden,
         detailedScore: reconScore
     });
-
-    ts.end();
 }
 
 @volatile
@@ -54,12 +50,10 @@ type LinkParameters {
 @expose
 @permission("admin")
 fn linkRecords(
-    sourceRecord: node<POIRecordProvider>,
-    candidateRecord: node<POIRecordProvider>,
+    sourceRecord: node<AddressRecordProvider>,
+    candidateRecord: node<AddressRecordProvider>,
     params: LinkParameters?
 ) {
-    var ts = Traffic_Service::start(linkRecords);
-
     var source = sourceRecord->getSource();
     var candidates = source->reconciliationReport->unlinked.get(sourceRecord);
     var score: float = 1.0;
@@ -83,7 +77,7 @@ fn linkRecords(
     if (foundCandidate == false) {
         var searchParams = SearchParameters::default();
         var item = sourceRecord->toSearchItem();
-        var nCandidate = candidateRecord as node<GoldenPointOfInterest>;
+        var nCandidate = candidateRecord as node<GoldenAddress>;
         var cityScore = 0.0;
         var streetScore = 0.0;
         if (nCandidate->street != null) {
@@ -98,7 +92,7 @@ fn linkRecords(
             ?? 0.0;
         var postcodeScore = GoldenServices::computePostcodeScore(
             item.postcode,
-            nCandidate->postCode,
+            nCandidate->postcode,
             searchParams.postcodeMaxDistance
         );
         var numberScore = GoldenServices::computeNumberScore(
@@ -134,10 +128,10 @@ fn linkRecords(
 
     source->reconciliationReport->unlinked.remove(sourceRecord);
 
-    sourceRecord->linkToGolden(candidateRecord as node<GoldenPointOfInterest>);
+    sourceRecord->linkToGolden(candidateRecord as node<GoldenAddress>);
 
     var golden = *candidateRecord;
-    if (golden is GoldenPointOfInterest) {
+    if (golden is GoldenAddress) {
         var found = false;
         for (_, entry in golden.linkedRecords) {
             if (entry.record == sourceRecord) {
@@ -176,7 +170,7 @@ fn linkRecords(
     }
 
     if (params?.updateSimilarStreetMismatch == true) {
-        var tmpMap = Map<node<POIRecordProvider>, ReconciliationCandidate> {};
+        var tmpMap = Map<node<AddressRecordProvider>, ReconciliationCandidate> {};
         var sStreet = sourceRecord->getStreet();
         var gStreet = golden.getStreet();
         for (s, candidates in source->reconciliationReport->unlinked) {
@@ -194,15 +188,11 @@ fn linkRecords(
             source->reconciliationReport->unlinked.set(key, Array<ReconciliationCandidate> { value });
         }
     }
-
-    ts.end();
 }
 
 @expose
 @permission("admin")
-fn unlinkRecord(sourceRecord: node<POIRecordProvider>) {
-    var ts = Traffic_Service::start(unlinkRecord);
-
+fn unlinkRecord(sourceRecord: node<AddressRecordProvider>) {
     var nGolden = sourceRecord->getLinkedGolden();
     if (nGolden != null) {
         // TODO Should the aliases be removed? That needs tracking which linked record added
@@ -226,14 +216,11 @@ fn unlinkRecord(sourceRecord: node<POIRecordProvider>) {
     var source = sourceRecord->getSource();
     //TODO? removes it from the linked but we dont add it to the unlinked, It will require a new recompute to get it back, maybe we should ?
     source->reconciliationReport->linked.remove(sourceRecord);
-    ts.end();
 }
 
 @expose
 @permission("admin")
 fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
-    var ts = Traffic_Service::start(linkAllFullMatched);
-
     var report = source->reconciliationReport;
     var index = source->getIndex();
     for (_, recordId in recordIds) {
@@ -250,7 +237,6 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
             });
         }
     }
-    ts.end();
 }
 
 /// Batch links reconciled records to their best Golden candidate based on score rules.
@@ -271,8 +257,6 @@ fn batchLinkByScore(
     numberScore: float?,
     postcodeScore: float?
 ): int {
-    var ts = Traffic_Service::start(batchLinkByScore);
-
     if (globalScore < 80.0) {
         throw "globalScore cannot be lower than 80";
     }
@@ -281,7 +265,7 @@ fn batchLinkByScore(
     var report = source->reconciliationReport;
 
     // Collect first to avoid mutating the unlinked map while iterating it.
-    var toLink = Map<node<POIRecordProvider>, node<POIRecordProvider>> {};
+    var toLink = Map<node<AddressRecordProvider>, node<AddressRecordProvider>> {};
     for (record, candidates in report->unlinked) {
         var bestCandidate: ReconciliationCandidate?;
         var bestScore = 0.0;
@@ -323,15 +307,12 @@ fn batchLinkByScore(
         count = count + 1;
     }
 
-    ts.end();
     return count;
 }
 
 @expose
 @permission("admin")
 fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
-    var ts = Traffic_Service::start(mergePositionsToGolden);
-
     var index = source->getIndex();
     for (_, recordId in recordIds) {
         var nOther = index.get(recordId);
@@ -339,25 +320,24 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
             continue;
         }
         var nGolden = nOther->getLinkedGolden();
-        var otherRecord = nOther->toMengplazRecord();
+        var otherRecord = nOther->toAddressRecord();
         if (nGolden != null && otherRecord.primaryLocation != null) {
             if (nGolden->primaryLocation == null) {
-                golden_pois_by_geo.set(otherRecord.primaryLocation, nGolden);
+                golden_addresses_by_geo.set(otherRecord.primaryLocation, nGolden);
                 nGolden->primaryLocation = otherRecord.primaryLocation;
                 if (nGolden->linkedRecords.size() >= 2) {
-                    golden_records_geo_recompute.add(nGolden);
+                    golden_addresses_geo_recompute.add(nGolden);
                 }
             } else if (nGolden->secondaryLocations.get(otherRecord.sourceName) == null) {
                 nGolden->secondaryLocations.set(otherRecord.sourceName, otherRecord.primaryLocation);
             }
         }
     }
-    ts.end();
 }
 
 @expose
 @permission("admin")
-fn lockDatasource(source: String) {
+fn lockSource(source: String) {
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
         throw "Source with name ${source} not Found";
@@ -371,8 +351,6 @@ fn lockDatasource(source: String) {
 @expose
 @permission("admin")
 fn reconcile(source: String, params: SearchParameters?): ReconciliationReport? {
-    var ts = Traffic_Service::start(reconcile);
-
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
         throw "Source with name ${source} not Found";
@@ -380,28 +358,25 @@ fn reconcile(source: String, params: SearchParameters?): ReconciliationReport? {
 
     try {
         var report = DataSource::reconcile(nSource, params, null);
-        ts.end();
-        nSource->removeIsReconciling();
+        nSource->clearIsReconciling();
         return report;
     } catch (err) {
-        nSource->removeIsReconciling();
+        nSource->clearIsReconciling();
         error(err);
     }
 }
 
 @expose
 @permission("admin")
-fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport? {
+fn reconcileAddresses(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport? {
     var nSource = sources_by_name.get(source);
     if (nSource == null) {
         throw "Source with name ${source} not Found";
     }
 
     try {
-        var ts = Traffic_Service::start(reconcilePOIs);
-
         var index = nSource->getIndex();
-        var pois = Array<node<POIRecordProvider>> {};
+        var pois = Array<node<AddressRecordProvider>> {};
         for (_, poiId in poiIds) {
             var poi = index.get(poiId);
             if (poi != null) {
@@ -409,11 +384,10 @@ fn reconcilePOIs(source: String, poiIds: Array<String>, params: SearchParameters
             }
         }
         var report = DataSource::reconcile(nSource, params, pois);
-        ts.end();
-        nSource->removeIsReconciling();
+        nSource->clearIsReconciling();
         return report;
     } catch (err) {
-        nSource->removeIsReconciling();
+        nSource->clearIsReconciling();
         error(err);
     }
 }
@@ -438,7 +412,6 @@ type ReconciliationReportView {
 @expose
 @permission("admin")
 fn getReconciliationReport(source: node<DataSource>, city: String?, municipality: String?): ReconciliationReportView? {
-    var _ts = Traffic_Service::start(getReconciliationReport).end();
     var report = source->getReconciliationReport();
     if (report == null) {
         throw "Report not Found";
@@ -459,7 +432,7 @@ fn getReconciliationReport(source: node<DataSource>, city: String?, municipality
             fullMatch.add(record->getId());
         } else if (candidates.size() == 0) {
             noMatch.add(record->getId());
-        } else if (candidates[0].mismatch == MengplazMissmatch::MULTIPLE_MATCHES) {
+        } else if (candidates[0].mismatch == MengplazMismatch::MULTIPLE_MATCHES) {
             multipleMatch.add(record->getId());
         } else {
             partialMatch.add(ReconciliationReportMatchView {
@@ -500,7 +473,6 @@ type RecordTabResult {
 @expose
 @permission("admin")
 fn getRecordTab(source: node<DataSource>, recordId: String): RecordTabResult {
-    var ts = Traffic_Service::start(getRecordTab);
     var index = source->getIndex();
     var nRecord = index.get(recordId);
     if (nRecord == null) {
@@ -510,27 +482,22 @@ fn getRecordTab(source: node<DataSource>, recordId: String): RecordTabResult {
     var report = source->reconciliationReport;
 
     if (report->linked.get(nRecord) != null) {
-        ts.end();
         return RecordTabResult { tab: "Linked" };
     }
 
     var candidates = report->unlinked.get(nRecord);
     if (candidates == null || candidates.size() == 0) {
-        ts.end();
         return RecordTabResult { tab: "NoMatch" };
     }
 
     if (candidates.size() == 1 && candidates[0].mismatch == null) {
-        ts.end();
         return RecordTabResult { tab: "Matched" };
     }
 
-    if (candidates[0].mismatch == MengplazMissmatch::MULTIPLE_MATCHES) {
-        ts.end();
+    if (candidates[0].mismatch == MengplazMismatch::MULTIPLE_MATCHES) {
         return RecordTabResult { tab: "MultipleMatch" };
     }
 
-    ts.end();
     return RecordTabResult { tab: "Mismatched", score: candidates[0].score?.overallScore };
 }
 
@@ -544,18 +511,16 @@ type SourceRef {
 @expose
 @permission("admin")
 fn getSources(): Array<SourceRef> {
-    var ts = Traffic_Service::start(getSources);
     var res = Array<SourceRef> {};
     for (name, nSource in sources_by_name) {
         res.add(SourceRef { ref: nSource, name: name, locked: nSource->isReconciling?.resolve() });
     }
-    ts.end();
     return res;
 }
 
 @volatile
 type MatchedCandidateDetail {
-    ref: node<POIRecordProvider>;
+    ref: node<AddressRecordProvider>;
     numberScore: float;
     streetScore: float;
     cityScore: float;
@@ -567,14 +532,13 @@ type MatchedCandidateDetail {
 
 @volatile
 type ComparisonViewData {
-    sourceRecord: POIFullRecordRef;
+    sourceRecord: AddressFullRecordRef;
     candidates: Array<MatchedCandidateDetail>;
 }
 
 @expose
 @permission("admin")
 fn getComparisonViewData(source: node<DataSource>, recordId: String): ComparisonViewData {
-    var ts = Traffic_Service::start(getComparisonViewData);
     var nSourceRecord = source->getIndex().get(recordId);
     if (nSourceRecord == null) {
         throw "Record not found: ${recordId}";
@@ -583,7 +547,7 @@ fn getComparisonViewData(source: node<DataSource>, recordId: String): Comparison
 
     var candidateDetails = Array<MatchedCandidateDetail> {};
     for (_, candidate in candidates?) {
-        var basicRecord = candidate.candidateRecord->toMengplazRecord();
+        var basicRecord = candidate.candidateRecord->toAddressRecord();
         var details = MatchedCandidateDetail {
             ref: candidate.candidateRecord,
             numberScore: trunc((candidate.score?.numberScore ?? 1.0) * 100),
@@ -600,9 +564,8 @@ fn getComparisonViewData(source: node<DataSource>, recordId: String): Comparison
     }
     candidateDetails.sort_by(MatchedCandidateDetail::overallScore, SortOrder::desc);
 
-    ts.end();
     return ComparisonViewData {
-        sourceRecord: POIFullRecordRef {
+        sourceRecord: AddressFullRecordRef {
             ref: nSourceRecord,
             id: nSourceRecord->getId(),
             record: nSourceRecord->toFullRecord(),
@@ -614,7 +577,6 @@ fn getComparisonViewData(source: node<DataSource>, recordId: String): Comparison
 @expose
 @permission("admin")
 fn getLinkedComparisonViewData(source: node<DataSource>, recordId: String): ComparisonViewData {
-    var ts = Traffic_Service::start(getLinkedComparisonViewData);
     var nSourceRecord = source->getIndex().get(recordId);
     if (nSourceRecord == null) {
         throw "Record not found: ${recordId}";
@@ -640,28 +602,14 @@ fn getLinkedComparisonViewData(source: node<DataSource>, recordId: String): Comp
         candidateDetails.add(details);
     }
 
-    ts.end();
     return ComparisonViewData {
-        sourceRecord: POIFullRecordRef {
+        sourceRecord: AddressFullRecordRef {
             ref: nSourceRecord,
             id: nSourceRecord->getId(),
             record: nSourceRecord->toFullRecord(),
         },
         candidates: candidateDetails,
     };
-}
-
-@volatile
-type RecordLocation {
-    panel: String;
-}
-
-@volatile
-type QualityTrend {
-    currentScore: float;
-    previousScore: float?;
-    delta: float;
-    linkedSourcesCount: int;
 }
 
 @volatile
@@ -734,13 +682,11 @@ type GoldenRecordPage {
 @expose
 @permission("admin")
 fn computeGlobalQuality() {
-    var ts = Traffic_Service::start(computeGlobalQuality);
     GoldenServices::computeAndRecordGlobalQuality();
     var nGolden = sources_by_name.get(GoldenSource::NAME);
     if (nGolden != null) {
         DataSource::recordCounts(nGolden, DataSource::countRecords(nGolden));
     }
-    ts.end();
 }
 
 @expose
@@ -750,5 +696,90 @@ fn unlockSource(source: String) {
     if (nSource == null) {
         throw "Source with name ${source} not Found";
     }
-    nSource->removeIsReconciling();
+    nSource->clearIsReconciling();
+}
+
+// ------------------------------------------------------------------ operations
+//
+// Data loads, index rebuilds and backup are admin-only maintenance. The work lives in
+// `backend/services` and `backend/edi`; these are the HTTP surface for it.
+
+@expose
+@permission("admin")
+fn updateCACLR() {
+    UpdateService::caclr();
+}
+
+@expose
+@permission("admin")
+fn updateBDA() {
+    UpdateService::bda();
+}
+
+@expose
+@permission("admin")
+fn updateOSM() {
+    UpdateService::osm();
+}
+
+@expose
+@permission("admin")
+fn buildGoldenStreetIndex(): int {
+    return GoldenStreetSearch::rebuild();
+}
+
+@expose
+@permission("admin")
+fn goldenStreetIndexStats(): GoldenStreetIndexStats {
+    return GoldenStreetSearch::stats();
+}
+
+@expose
+@permission("admin")
+fn buildGoldenTextIndex(): int {
+    return GoldenTextSearch::rebuild();
+}
+
+@expose
+@permission("admin")
+fn goldenTextIndexStats(): GoldenTextIndexStats {
+    return GoldenTextSearch::stats();
+}
+
+@expose
+@permission("admin")
+fn buildSourceTextIndexes(): int {
+    return SourceTextSearch::rebuildAll();
+}
+
+@expose
+@permission("admin")
+fn buildSourceTextIndex(source: String): int {
+    return SourceTextSearch::rebuildByName(source);
+}
+
+@expose
+@permission("admin")
+fn sourceTextIndexStats(): Array<SourceTextIndexStats> {
+    return SourceTextSearch::stats();
+}
+
+@expose
+@permission("admin")
+fn recomputeGoldenGeoScore() {
+    GoldenServices::recomputeQueuedGeoScores();
+}
+
+/// Dumps the whole graph to `files/backup/` (plus the golden dump in `files/dump/`).
+@expose
+@permission("admin")
+fn backupGraph() {
+    BackupExporter::exportAll();
+}
+
+/// Restores the whole graph from `files/backup/`.
+@expose
+@permission("admin")
+fn restoreGraph() {
+    BackupImporter::importAll();
 }

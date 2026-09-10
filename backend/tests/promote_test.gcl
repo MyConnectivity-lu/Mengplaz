@@ -5,12 +5,7 @@
 /// new POI is indexed everywhere, the source record points at it, the link is recorded on
 /// both sides at a score of 1.0 by definition, a quality event is stamped, and the record
 /// moves out of the reconciliation report's `unlinked` bucket into `linked`.
-
 /// Luxembourg station.
-fn here(): geo {
-    return geo { 49.6116, 6.1319 };
-}
-
 /// An empty golden graph with one street to promote onto, plus one unreconciled OSM record
 /// sitting in the OSM report's `unlinked` bucket with no candidate.
 fn setupPromotion(): node<GoldenStreet> {
@@ -23,24 +18,24 @@ fn setupPromotion(): node<GoldenStreet> {
 @test
 fn promotingCreatesAnIndexedGoldenPoiOnTheChosenStreet() {
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     privateApi::promoteRecord(nOsm, nStreet->id);
 
-    Assert::equals(golden_pois_by_id.size(), 1);
+    Assert::equals(golden_addresses_by_id.size(), 1);
     var nGolden = nOsm->getLinkedGolden();
     Assert::isNotNull(nGolden);
     Assert::equals(nGolden!!->street, nStreet);
     Assert::equals(nGolden->number, 12);
     Assert::equals(nGolden->multipleCode, "");
-    Assert::equals(nGolden->postCode, "1234");
-    Assert::equals(nGolden->primaryLocation, here());
+    Assert::equals(nGolden->postcode, "1234");
+    Assert::equals(nGolden->primaryLocation, fixtures_test::here());
 
     // Reachable through every index `indexing()` writes.
-    Assert::equals(golden_pois_by_id.get(nGolden->uid), nGolden);
-    Assert::equals(nStreet->pois_by_id.get(nGolden->uid), nGolden);
-    Assert::equals(nStreet->pois_by_number?.get("12"), nGolden);
-    Assert::equals(golden_pois_by_geo.get(here()), nGolden);
+    Assert::equals(golden_addresses_by_id.get(nGolden->uid), nGolden);
+    Assert::equals(nStreet->addresses_by_id.get(nGolden->uid), nGolden);
+    Assert::equals(nStreet->addresses_by_number?.get("12"), nGolden);
+    Assert::equals(golden_addresses_by_geo.get(fixtures_test::here()), nGolden);
 }
 
 @test
@@ -48,15 +43,15 @@ fn promotingSplitsTheHouseNumberIntoNumberAndMultipleCode() {
     // The source keeps "12A" as one string; the golden model stores 12 and "A" separately,
     // which is what makes `computeNumberScore`'s two-tier comparison possible.
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12A", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     privateApi::promoteRecord(nOsm, nStreet->id);
 
     var nGolden = nOsm->getLinkedGolden()!!;
     Assert::equals(nGolden->number, 12);
     Assert::equals(nGolden->multipleCode, "A");
-    Assert::equals(nStreet->pois_by_number?.get("12A"), nGolden);
-    Assert::equals(nGolden->toMengplazRecord().number, "12 A");
+    Assert::equals(nStreet->addresses_by_number?.get("12A"), nGolden);
+    Assert::equals(nGolden->toAddressRecord().number, "12 A");
 }
 
 @test
@@ -64,7 +59,7 @@ fn promotingLinksTheSourceRecordAtAPerfectScore() {
     // A promoted record is by construction a perfect match for the POI it just created, so
     // every field score is 1.0 — including geo, because the source had coordinates.
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     privateApi::promoteRecord(nOsm, nStreet->id);
 
@@ -72,7 +67,7 @@ fn promotingLinksTheSourceRecordAtAPerfectScore() {
     Assert::equals(nGolden->linkedRecords.size(), 1);
 
     var entry = nGolden->linkedRecords[0];
-    Assert::equals(entry.record, nOsm as node<POIRecordProvider>);
+    Assert::equals(entry.record, nOsm as node<AddressRecordProvider>);
     Assert::equals(entry.score, 1.0);
 
     var score = entry.detailedScore?.resolve()!!;
@@ -89,7 +84,7 @@ fn promotingStampsALinkQualityEvent() {
     // The quality is the weighted one, not 1.0: OSM carries 2 of the 10 registered weight, so
     // a golden record corroborated by OSM alone starts at 0.2.
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     privateApi::promoteRecord(nOsm, nStreet->id);
 
@@ -98,15 +93,15 @@ fn promotingStampsALinkQualityEvent() {
 
     var event = nGolden->quality.last()!!;
     Assert::equals(event.eventType, QualityEventType::link);
-    Assert::equals(event.sourceRecord, nOsm as node<POIRecordProvider>);
+    Assert::equals(event.sourceRecord, nOsm as node<AddressRecordProvider>);
     Assert::equalsd(event.score, 0.2, 0.0001);
-    Assert::equalsd(nGolden->toMengplazRecord().quality!!, 0.2, 0.0001);
+    Assert::equalsd(nGolden->toAddressRecord().quality!!, 0.2, 0.0001);
 }
 
 @test
 fn promotingMovesTheRecordFromUnlinkedToLinkedInTheReport() {
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     var nSource = fixtures_test::osmSource();
     // A record reaching the promote button is one reconciliation found nothing for.
     nSource->reconciliationReport->unlinked.set(nOsm, Array<ReconciliationCandidate> {});
@@ -117,7 +112,7 @@ fn promotingMovesTheRecordFromUnlinkedToLinkedInTheReport() {
     Assert::isNull(nSource->reconciliationReport->unlinked.get(nOsm));
     var linked = nSource->reconciliationReport->linked.get(nOsm);
     Assert::isNotNull(linked);
-    Assert::equals(linked!!.candidateRecord, nOsm->getLinkedGolden()!! as node<POIRecordProvider>);
+    Assert::equals(linked!!.candidateRecord, nOsm->getLinkedGolden()!! as node<AddressRecordProvider>);
     Assert::equals(linked.detailedScore?.resolve()!!.overallScore, 1.0);
 }
 
@@ -125,7 +120,7 @@ fn promotingMovesTheRecordFromUnlinkedToLinkedInTheReport() {
 fn promotingAnAlreadyLinkedRecordIsRefused() {
     // The guard that stops one source record spawning a second golden POI on a double-click.
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     privateApi::promoteRecord(nOsm, nStreet->id);
 
     var threw = false;
@@ -135,13 +130,13 @@ fn promotingAnAlreadyLinkedRecordIsRefused() {
         threw = true;
     }
     Assert::isTrue(threw);
-    Assert::equals(golden_pois_by_id.size(), 1);
+    Assert::equals(golden_addresses_by_id.size(), 1);
 }
 
 @test
 fn promotingOntoAnUnknownStreetIsRefused() {
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     var threw = false;
     try {
@@ -150,7 +145,7 @@ fn promotingOntoAnUnknownStreetIsRefused() {
         threw = true;
     }
     Assert::isTrue(threw);
-    Assert::equals(golden_pois_by_id.size(), 0);
+    Assert::equals(golden_addresses_by_id.size(), 0);
     Assert::isNull(nOsm->getLinkedGolden());
     Assert::isNotNull(nStreet);
 }
@@ -161,7 +156,7 @@ fn promotingARecordWithAnUnparseableNumberIsRefused() {
     // path the promote path does not swallow it — the record is left untouched rather than
     // stored with a wrong number.
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12 bis", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12 bis", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     var threw = false;
     try {
@@ -170,22 +165,22 @@ fn promotingARecordWithAnUnparseableNumberIsRefused() {
         threw = true;
     }
     Assert::isTrue(threw);
-    Assert::equals(golden_pois_by_id.size(), 0);
+    Assert::equals(golden_addresses_by_id.size(), 0);
     Assert::isNull(nOsm->getLinkedGolden());
 }
 
 @test
 fn twoPromotionsOnTheSameStreetGetDistinctUids() {
     var nStreet = setupPromotion();
-    var nA = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nA = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     var nB = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
 
     privateApi::promoteRecord(nA, nStreet->id);
     privateApi::promoteRecord(nB, nStreet->id);
 
-    Assert::equals(golden_pois_by_id.size(), 2);
+    Assert::equals(golden_addresses_by_id.size(), 2);
     Assert::isFalse(nA->getLinkedGolden()!!->uid == nB->getLinkedGolden()!!->uid);
-    Assert::equals(nStreet->pois_by_id.size(), 2);
+    Assert::equals(nStreet->addresses_by_id.size(), 2);
 }
 
 @test
@@ -193,15 +188,22 @@ fn aPromotedRecordBecomesSearchableByTheReconciliationSearch() {
     // End-to-end: promoting is what makes a source record's address reachable as a golden
     // candidate for the *other* sources.
     var nStreet = setupPromotion();
-    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", here());
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     privateApi::promoteRecord(nOsm, nStreet->id);
 
     var nBda = fixtures_test::bdaAddress(
-        "GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", here()
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        fixtures_test::here()
     );
     var result = GoldenServices::searchItem(nBda, SearchParameters::default());
 
     Assert::equals(result.candidates.size(), 1);
-    Assert::equals(result.candidates[0].elem, nOsm->getLinkedGolden()!! as node<POIRecordProvider>);
+    Assert::equals(result.candidates[0].elem, nOsm->getLinkedGolden()!! as node<AddressRecordProvider>);
     Assert::equals(result.candidates[0].realOverallScore, 1.0);
 }

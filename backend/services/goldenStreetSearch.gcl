@@ -80,6 +80,21 @@ type GoldenStreetSearch {
         }
         return golden_streets_by_id.get(id as String);
     }
+    /// Index health, for the admin console.
+    static fn stats(): GoldenStreetIndexStats {
+        var idx = golden_street_index.resolve();
+        if (idx == null) {
+            return GoldenStreetIndexStats { built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 };
+        }
+        var s = idx.stats();
+        return GoldenStreetIndexStats {
+            built: idx.built ?? false,
+            docs: s.totalEntries,
+            terms: s.totalTerms,
+            avgLen: s.avgTokenCount,
+            dirty: idx.dirtyCount ?? 0,
+        };
+    }
 }
 
 @volatile
@@ -89,27 +104,4 @@ type GoldenStreetIndexStats {
     terms: int;
     avgLen: float;
     dirty: int;
-}
-
-@permission("admin")
-@expose
-fn buildGoldenStreetIndex(): int {
-    return GoldenStreetSearch::rebuild();
-}
-
-@permission("admin")
-@expose
-fn goldenStreetIndexStats(): GoldenStreetIndexStats {
-    var idx = golden_street_index.resolve();
-    if (idx == null) {
-        return GoldenStreetIndexStats { built: false, docs: 0, terms: 0, avgLen: 0.0, dirty: 0 };
-    }
-    var s = idx.stats();
-    return GoldenStreetIndexStats {
-        built: idx.built ?? false,
-        docs: s.totalEntries,
-        terms: s.totalTerms,
-        avgLen: s.avgTokenCount,
-        dirty: idx.dirtyCount ?? 0,
-    };
 }

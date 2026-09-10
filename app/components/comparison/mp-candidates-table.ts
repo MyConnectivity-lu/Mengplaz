@@ -126,7 +126,7 @@ export class MpCandidatesTable extends LitElement {
   `;
 
   @property({ attribute: false }) candidates: gc.privateApi.MatchedCandidateDetail[] = [];
-  @property({ attribute: false }) sourceRecord: gc.POIFullRecordRef | null = null;
+  @property({ attribute: false }) sourceRecord: gc.AddressFullRecordRef | null = null;
   @property({ type: Boolean, attribute: 'show-link-button' }) showLinkButton = true;
 
   private icon(inner: string, slot = '') {

@@ -1,7 +1,7 @@
-var osm_by_id: nodeIndex<String, node<OsmAddress>>;
-var osm_partial_by_id: nodeList<node<OsmPartialAddress>>;
-var osm_by_geo: nodeGeo<node<OsmAddress>>;
-var osm_partial_by_geo: nodeGeo<node<OsmPartialAddress>>;
+var osm_addresses_by_id: nodeIndex<String, node<OsmAddress>>;
+var osm_partial_addresses_by_id: nodeList<node<OsmPartialAddress>>;
+var osm_addresses_by_geo: nodeGeo<node<OsmAddress>>;
+var osm_partial_addresses_by_geo: nodeGeo<node<OsmPartialAddress>>;
 
 var osm_cities_by_name: nodeIndex<String, node<OsmCity>>;
 var osm_streets_by_name: nodeIndex<String, Array<node<OsmStreet>>>;
@@ -67,7 +67,7 @@ type OsmPartialAddress {
 }
 
 @volatile
-type OSMFullRecord {
+type OsmAddressFullRecord {
     id: String;
 
     number: String;
@@ -77,16 +77,16 @@ type OSMFullRecord {
     primaryLocation: geo?;
 
     sourceName: String;
-    goldenRef: node<GoldenPointOfInterest>?;
-
-    deprecated: bool?;
-    lastSeenAt: time?;
+    goldenRef: node<GoldenAddress>?;
 
     id_caclr: String?;
     kind: String?;
+
+    deprecated: bool;
+    lastSeenAt: time?;
 }
 
-type OsmAddress extends POIRecordProvider {
+type OsmAddress extends ExternalAddressRecord {
     private id: int;
     private position: geo;
     private city: String;
@@ -98,14 +98,6 @@ type OsmAddress extends POIRecordProvider {
     kind: String?;
 
     streetRef: node<OsmStreet>?;
-
-    lastSeenAt: time?;
-
-    createdAt: time?;
-
-    deprecated: bool?;
-
-    private goldenRef: node<GoldenPointOfInterest>?;
 
     static fn parse(elem: Map): OsmParsedAddress {
         var tags = elem.get("tags") as Map<String, String>;
@@ -148,15 +140,7 @@ type OsmAddress extends POIRecordProvider {
         };
     }
 
-    fn linkToGolden(nGolden: node<GoldenPointOfInterest>) {
-        this.goldenRef = nGolden;
-    }
-
-    fn unlinkGolden() {
-        this.goldenRef = null;
-    }
-
-    fn promoteToGolden(streetIdx: String): node<GoldenPointOfInterest> {
+    fn promoteToGolden(streetIdx: String): node<GoldenAddress> {
         if (this.goldenRef != null) {
             throw "Record is linked to Golden";
         }
@@ -169,14 +153,14 @@ type OsmAddress extends POIRecordProvider {
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
-        } while (golden_pois_by_id.get(newUID) != null);
+        } while (golden_addresses_by_id.get(newUID) != null);
         var alphaNum = extractAlphaCharsFromStreetNumber(this.number);
-        var nGoldenPOI = node<GoldenPointOfInterest> {
-            GoldenPointOfInterest {
+        var nGolden = node<GoldenAddress> {
+            GoldenAddress {
                 uid: newUID,
                 number: alphaNum.numerical,
                 multipleCode: alphaNum.alpha,
-                postCode: this.postcode,
+                postcode: this.postcode,
                 primaryLocation: this.position,
                 secondaryLocations: Map<String, geo> {},
                 lastUpdate: time::now(),
@@ -186,31 +170,14 @@ type OsmAddress extends POIRecordProvider {
                 createdAt: time::now(),
             }
         };
-        nGoldenPOI->indexing(nGoldenPOI);
+        nGolden->indexing(nGolden);
         // Newly created, so there is no earlier document to retract.
-        GoldenTextSearch::append(nGoldenPOI);
-        return nGoldenPOI;
+        GoldenTextSearch::append(nGolden);
+        return nGolden;
     }
 
-    fn getLinkedGolden(): node<GoldenPointOfInterest>? {
-        return this.goldenRef;
-    }
-
-    fn isDeprecated(): bool {
-        return this.deprecated ?? false;
-    }
-
-    fn markSeen() {
-        this.lastSeenAt = time::now();
-        this.deprecated = false;
-    }
-
-    fn isLinked(): bool {
-        return this.getLinkedGolden() != null;
-    }
-
-    fn toFullRecord(): OSMFullRecord {
-        return OSMFullRecord {
+    fn toFullRecord(): OsmAddressFullRecord {
+        return OsmAddressFullRecord {
             id: "${this.id}",
             number: "${this.number}",
             street: this.street,
@@ -226,8 +193,8 @@ type OsmAddress extends POIRecordProvider {
         };
     }
 
-    fn toMengplazRecord(): POIRecord {
-        var record = POIRecord {
+    fn toAddressRecord(): AddressRecord {
+        var record = AddressRecord {
             uid: "${this.id}",
             number: "${this.number}",
             street: this.street,
@@ -286,8 +253,8 @@ type OsmAddress extends POIRecordProvider {
     }
 
     fn indexing(self: node<OsmAddress>) {
-        osm_by_id.set("${this.id}", self);
-        osm_by_geo.set(this.position, self);
+        osm_addresses_by_id.set("${this.id}", self);
+        osm_addresses_by_geo.set(this.position, self);
         this.streetRef?->addresses_by_id.set("${this.id}", self);
         this.streetRef?->addresses_by_number?.set(this.number, self);
     }
@@ -319,109 +286,7 @@ type OsmSource extends DataSource {
         return *this.reconciliationReport;
     }
 
-    fn getIndex(): nodeIndex<String, node<POIRecordProvider>> {
-        return osm_by_id;
-    }
-
-    fn findLocalityScopes(name: String, max: int, distanceThreshold: int): Array<ScoredCity> {
-        var byKey = Map<int, ScoredCity> {};
-
-        var cityExact = osm_cities_by_name.get(name);
-        if (cityExact != null) {
-            byKey.set(cityExact as int, ScoredCity { city: cityExact, distance: 0.0 });
-        } else {
-            var cityResults = osm_cities_by_name.search(name, max);
-            for (_, cr in cityResults) {
-                if (cr.distance > distanceThreshold) {
-                    continue;
-                }
-                var k = cr.value as int;
-                if (byKey.get(k) == null) {
-                    byKey.set(k, ScoredCity { city: cr.value, distance: cr.distance });
-                }
-            }
-        }
-
-        var out = Array<ScoredCity> {};
-        for (_, sc in byKey) {
-            out.add(sc);
-        }
-        return out;
-    }
-
-    fn findStreetsInCity(sc: ScoredCity, road: String, max: int, distanceThreshold: int): Array<ScoredStreet> {
-        var streets = Array<ScoredStreet> {};
-        var nCity = sc.city as node<OsmCity>;
-        var idx = nCity->streets_by_name;
-        var exact = idx.get(road);
-        if (exact != null) {
-            streets.add(ScoredStreet { street: exact, distance: 0.0 });
-            return streets;
-        }
-        var streetResults = idx.search(road, max);
-        for (_, sr in streetResults) {
-            if (sr.distance > distanceThreshold) {
-                continue;
-            }
-            var jaroDist = 1.0 - sr.key.jaro(road);
-            streets.add(ScoredStreet { street: sr.value, distance: jaroDist });
-        }
-        return streets;
-    }
-
-    fn findStreetsByName(road: String, _max: int, distanceThreshold: int): Array<ScoredStreet> {
-        var streets = Array<ScoredStreet> {};
-        var exact = osm_streets_by_name.get(road);
-        if (exact != null) {
-            for (_, nStreet in exact) {
-                streets.add(ScoredStreet { street: nStreet, distance: 0.0 });
-            }
-            return streets;
-        }
-        var globalResults = osm_streets_by_name.search(road, 100);
-        for (_, gr in globalResults) {
-            if (gr.distance > distanceThreshold) {
-                continue;
-            }
-            var jaroDist = 1.0 - gr.key.jaro(road);
-            for (_, nStreet in gr.value) {
-                streets.add(ScoredStreet { street: nStreet, distance: jaroDist });
-            }
-        }
-        return streets;
-    }
-
-    fn findPoisInStreet(
-        ss: ScoredStreet,
-        houseNumber: String?,
-        postcode: String?,
-        max: int,
-        distanceThreshold: int
-    ): Array<ScoredPoi> {
-        var results = Array<ScoredPoi> {};
-        var nStreet = ss.street as node<OsmStreet>;
-        if (houseNumber == null) {
-            for (_, nPoi in nStreet->addresses_by_id) {
-                if (postcode == null || nPoi->getPostcode() == postcode) {
-                    results.add(ScoredPoi { poi: nPoi, distance: 4.0 });
-                }
-            }
-            return results;
-        }
-        var exact = nStreet->addresses_by_number.get(houseNumber);
-        if (exact != null) {
-            if (postcode == null || exact->getPostcode() == postcode) {
-                results.add(ScoredPoi { poi: exact, distance: 0.0 });
-                return results;
-            }
-        }
-        var poiResults = nStreet->addresses_by_number.search(houseNumber, max);
-        for (_, pr in poiResults) {
-            if (pr.distance > distanceThreshold) {
-                continue;
-            }
-            results.add(ScoredPoi { poi: pr.value, distance: pr.distance });
-        }
-        return results;
+    fn getIndex(): nodeIndex<String, node<AddressRecordProvider>> {
+        return osm_addresses_by_id;
     }
 }

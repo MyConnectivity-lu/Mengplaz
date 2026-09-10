@@ -5,7 +5,6 @@
 /// new golden POI) and inside every `toSearchItem()`, so a change here silently moves
 /// number scores across the whole reconciliation. The uppercase-only alphabet and the
 /// hyphen handling are the two behaviours worth pinning.
-
 @test
 fn plainNumberHasNoAlphaPart() {
     var r = extractAlphaCharsFromStreetNumber("12");

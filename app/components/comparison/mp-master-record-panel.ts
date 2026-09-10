@@ -50,7 +50,7 @@ export class MpMasterRecordPanel extends LitElement {
     }
   `;
 
-  @property({ attribute: false }) record: gc.POIFullRecordRef | null = null;
+  @property({ attribute: false }) record: gc.AddressFullRecordRef | null = null;
   @property({ type: Boolean, attribute: 'show-actions' }) showActions = true;
 
   private icon(inner: string, slot = '') {

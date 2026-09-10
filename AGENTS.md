@@ -51,16 +51,22 @@ Read the relevant one before touching scoring, linking, or quality code.
   search, scoring, reconciliation, quality, `backend/api` = the HTTP surface, `backend/common` =
   shared helpers, `backend/tests` = the `*_test.gcl` suite. An endpoint is a thin wrapper: it
   validates arguments and delegates to a service. Business logic never lives in `backend/api`.
-- **Graph state lives in module-level `var` node indices in `backend/model`.** `golden_pois_by_id`,
-  `osm_by_geo`, `bda_address_by_cacrid`, `sources_by_name`, ... Every persisted index is declared at
+- **Graph state lives in module-level `var` node indices in `backend/model`.** `golden_addresses_by_id`,
+  `osm_addresses_by_geo`, `bda_addresses_by_caclr_id`, `sources_by_name`, ... Every persisted index is declared at
   the top of its model module. Add a new one there, and add it to `fixtures_test::reset()` in the
   same change - the suite shares one module context, so an index not cleared by `reset()` leaks
   state between tests.
 - **Wire-only types are `@volatile`.** Anything that exists purely to cross to the browser or to
-  hold a computed view - `POIRecordRef`, `GoldenIndex`, `GoldenRecordPage`, `ComparisonViewData`,
+  hold a computed view - `AddressRecordRef`, `GoldenIndex`, `GoldenRecordPage`, `ComparisonViewData`,
   `GeoJSON`, `ReconciliationReportView` - is `@volatile` so it can never be written into the graph.
-  Only genuinely persisted types (`GoldenPointOfInterest`, `OsmAddress`, `BDAddress`, `DataSource`,
-  `ReconciliationReport`) stay non-volatile.
+  Only genuinely persisted types (`GoldenAddress`, `OsmAddress`, `BdaAddress`, `CaclrAddress`,
+  `DataSource`, `ReconciliationReport`) stay non-volatile.
+- **One address record per source, one word for it.** `GoldenAddress`, `CaclrAddress`, `BdaAddress`
+  and `OsmAddress`; indices are `<source>_addresses_by_<key>`, plural. The three external ones
+  extend `ExternalAddressRecord`, which owns the whole link/lifecycle side (`goldenRef`,
+  `deprecated`, `lastSeenAt`, `markSeen()`); only per-source fields belong on the subtype.
+  `GoldenAddress` extends `AddressRecordProvider` directly - it is never loaded, so it has no
+  `markSeen()` and is never deprecated.
 - **Backend logging uses the logger, not `println`.** `info()` / `warn()` / `error()`, so output
   carries a level and lands in the server log. Reserve `println` for a deliberate CLI dump.
 - **Comment sparingly - only where the code cannot speak for itself.** Default to none. Earn a
@@ -139,17 +145,17 @@ Read the relevant one before touching scoring, linking, or quality code.
     project.gcl                 # @include("backend"), @library pins, @role, main/bootstrap, load* endpoints
     backend/
       model/                    # persisted types + module-level node indices
-        golden.gcl              #   the golden record graph (constituency -> canton -> municipality -> city -> street -> POI)
-        caclr.gcl osm.gcl bdaddress.gcl   # one module per external source
-        mengplaz.gcl            #   DataSource, quality events, linked records
-        trafic.gcl errors.gcl
+        golden.gcl              #   the golden graph (constituency -> canton -> municipality -> city -> street -> address)
+        caclr.gcl osm.gcl bda.gcl # one module per external source
+        mengplaz.gcl            #   DataSource, ExternalAddressRecord, quality events, linked records
+        errors.gcl
       edi/                      # external data in/out
-        caclrLoader.gcl bdAddressLoader.gcl osmLoader.gcl
+        caclrLoader.gcl bdaLoader.gcl osmLoader.gcl
         backupExporter.gcl backupImporter.gcl
       services/                 # search, scoring, reconciliation, quality, text search
       api/
         api.gcl                 #   public reads   (@permission("public"), some @tag("openapi"))
-        privateApi.gcl          #   admin writes   (@permission("admin"))
+        privateApi.gcl          #   admin writes + ops (@permission("admin"))
       common/utils.gcl
       tests/                    # *_test.gcl - see backend/tests/README.md
     app/
