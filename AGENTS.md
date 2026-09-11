@@ -7,6 +7,9 @@ A GreyCat fullstack project. One `greycat` binary compiles the backend, stores t
 **MPA** of Lit web components - one document per page - that reconciles address records from
 several external sources (CACLR, BDA, OSM) into a single golden record set.
 
+!Important If you are not CODEX OR CLAUDE and dont have datathings greycat skill
+Load these Skills @./skills/SKILL.md
+
 ## Fresh clone to running app
 
     greycat install            # download lib/* and bin/greycat at the pinned versions
