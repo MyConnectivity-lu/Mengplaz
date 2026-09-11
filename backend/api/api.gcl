@@ -583,3 +583,32 @@ fn getSourceStats(from: time?, to: time?): SourceStats {
     var stats = StatsService::build(from, to);
     return stats;
 }
+
+/// A null `asOf` means the row was counted live, because the source has no snapshot yet.
+@volatile
+type DeprecatedCountRow {
+    source: String;
+    total: int;
+    deprecated: int;
+    asOf: time?;
+}
+
+@volatile
+type DeprecatedCounts {
+    rows: Array<DeprecatedCountRow>;
+    total: int;
+    deprecated: int;
+}
+
+/// How many addresses each source has stopped publishing. A record is deprecated once a
+/// successful load no longer sees it; it stays in the graph and heals if the source
+/// publishes it again. Pass a source name (CACLR, BDA, OSM, Golden) or null for all of them.
+@expose
+@permission("public")
+@tag("openapi", "mcp")
+fn getDeprecatedCounts(source: String?): DeprecatedCounts {
+    if (source != null && sources_by_name.get(source) == null) {
+        throw "Unknown source: ${source}";
+    }
+    return StatsService::deprecatedCounts(source);
+}

@@ -86,4 +86,35 @@ type StatsService {
         }
         return points;
     }
+
+    /// `total - active` off the last snapshot, so the tally costs nothing on a six-figure
+    /// index. A source that has never been snapshotted is scanned live instead and reported
+    /// with a null `asOf`.
+    static fn deprecatedCounts(source: String?): DeprecatedCounts {
+        var rows = Array<DeprecatedCountRow> {};
+        var total = 0;
+        var deprecated = 0;
+        for (name, nSource in sources_by_name) {
+            if (source != null && name != source) {
+                continue;
+            }
+
+            var row = DeprecatedCountRow { source: name, total: 0, deprecated: 0, asOf: null };
+            var last = nSource->countHistory?.last();
+            if (last == null) {
+                var live = DataSource::countRecords(nSource);
+                row.total = live.total;
+                row.deprecated = live.total - live.active;
+            } else {
+                row.total = last.total;
+                row.deprecated = last.total - last.active;
+                row.asOf = nSource->countHistory?.lastTime();
+            }
+
+            rows.add(row);
+            total = total + row.total;
+            deprecated = deprecated + row.deprecated;
+        }
+        return DeprecatedCounts { rows: rows, total: total, deprecated: deprecated };
+    }
 }
