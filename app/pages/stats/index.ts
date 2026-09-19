@@ -21,6 +21,17 @@ const COLUMNS: Column<StatsRow>[] = [
   { key: 'active', label: 'Active', kind: 'num', width: '9rem' },
   { key: 'linked', label: 'Linked', kind: 'num', width: '9rem' },
   {
+    key: 'deprecated',
+    label: 'Deprecated',
+    kind: 'num',
+    width: '9rem',
+    render: (row) => {
+      const deprecated =
+        row.deprecated != null ? Number(row.deprecated) : Number(row.total ?? 0) - Number(row.active ?? 0);
+      return deprecated.toString();
+    },
+  },
+  {
     key: 'share',
     label: 'Share',
     kind: 'num',
