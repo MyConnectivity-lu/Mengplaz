@@ -114,7 +114,7 @@ type CaclrResponseBuildingItem {
     number: int;
     isNumberUndefined: bool;
 
-    postcode: String;
+    postalCode: String;
     multipleCode: String;
 
     administrativeStatus: CaclrAdminStatus;
@@ -548,7 +548,7 @@ abstract type CaclrLoader {
                                         id: elem.id,
                                         number: elem.number,
                                         isNumberUndefined: elem.isNumberUndefined,
-                                        postcode: elem.postcode,
+                                        postcode: elem.postalCode,
                                         multipleCode: elem.multipleCode,
                                         administrativeStatus: elem.administrativeStatus,
                                         validityStartDate: elem.validityStartDate,
