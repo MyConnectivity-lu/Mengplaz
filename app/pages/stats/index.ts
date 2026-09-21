@@ -13,25 +13,21 @@ import '~/components/mp-data-table';
 
 initMode();
 
-type StatsRow = gc.privateApi.SourceStatsRow & Record<string, unknown>;
+/// `deprecated` is not on the wire: the column derives it as `total - active`.
+type StatsRow = gc.privateApi.SourceStatsRow & { deprecated?: undefined };
 
 const COLUMNS: Column<StatsRow>[] = [
   { key: 'source', label: 'Source', width: '9rem' },
   { key: 'total', label: 'Total', kind: 'num', width: '9rem' },
   { key: 'active', label: 'Active', kind: 'num', width: '9rem' },
-  { key: 'linked', label: 'Linked', kind: 'num', width: '9rem' },
   {
     key: 'deprecated',
     label: 'Deprecated',
     kind: 'num',
     width: '9rem',
-    render: (row) => {
-      if (row.deprecated != null) {
-        return Number(row.deprecated).toString();
-      }
-      return row.active != null ? (Number(row.total) - Number(row.active)).toString() : '-';
-    },
+    render: (row) => (row.active != null ? (Number(row.total) - Number(row.active)).toString() : '-'),
   },
+  { key: 'linked', label: 'Linked', kind: 'num', width: '9rem' },
   {
     key: 'share',
     label: 'Share',
