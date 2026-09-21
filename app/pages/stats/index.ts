@@ -26,9 +26,10 @@ const COLUMNS: Column<StatsRow>[] = [
     kind: 'num',
     width: '9rem',
     render: (row) => {
-      const deprecated =
-        row.deprecated != null ? Number(row.deprecated) : Number(row.total ?? 0) - Number(row.active ?? 0);
-      return deprecated.toString();
+      if (row.deprecated != null) {
+        return Number(row.deprecated).toString();
+      }
+      return row.active != null ? (Number(row.total) - Number(row.active)).toString() : '-';
     },
   },
   {
