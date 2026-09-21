@@ -84,7 +84,7 @@ refresh. See [CACLR API credentials](#caclr-api-credentials).
 - The helper scripts under `scripts/` are `bash` scripts. Run them from **WSL2** or **Git Bash**, or
   follow the manual `curl`/`tar` steps documented in
   [libpostal model data](#libpostal-model-data) - Windows 10+ ships both commands in PowerShell.
-- Paths in `.env` accept forward slashes: keep `GREYCAT_POSTAL_DATA_DIR="./files/postal-data"`.
+- `GREYCAT_POSTAL_DATA_DIR` must be an **absolute** path - a relative value silently fails to load the models (observed).
 - Only one process may hold the `gcdata/` lock, so stop a running `greycat serve`/`dev` before
   another `greycat run ...`.
 

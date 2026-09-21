@@ -37,8 +37,11 @@ golden indices are module-level nodes — so state carries between tests unless 
 cleared. Every test therefore starts with `fixtures_test::reset()`, which wipes every
 persistent index the backend writes to.
 
-`greycat test` never flushes to disk, so this only ever touches the in-memory graph of the
-test process. Running the suite cannot modify a real `gcdata`.
+**The suite locks and persists to the project's own `gcdata/`** (observed on GreyCat
+8.2.179: running it on a checkout sharing the dev store has wiped that store - the fixtures'
+reset state survived the run). The earlier claim that the suite "never flushes" no longer
+holds on this runtime. Never run `greycat test` against a store you care about: use a
+disposable checkout, or back `gcdata/` up first.
 
 ## libpostal
 

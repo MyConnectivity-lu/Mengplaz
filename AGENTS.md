@@ -195,9 +195,9 @@ Read the relevant one before touching scoring, linking, or quality code.
 
 ## Definition of done
 
-    greycat-lang fmt --mode=check   # backend formatting
+    greycat-lang fmt --mode=check   # backend formatting — WARNING: with -p project.gcl this WRITES, it does not only check
     greycat-lang lint               # backend lint (0 errors)
-    greycat test                    # backend unit tests (see backend/tests/README.md)
+    greycat test                    # backend unit tests — LOCKS AND CAN WIPE the dev gcdata/ (see backend/tests/README.md)
     pnpm check                      # frontend format + typecheck + lint (vp check --fix to autofix)
     pnpm build                      # frontend builds into webroot/
     pnpm exec playwright test       # e2e (serve must be able to bind :8080)
