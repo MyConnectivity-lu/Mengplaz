@@ -7,17 +7,23 @@ type SplitAlphaNumericalString {
 /// Best Effort to transform 7-8, into 7 , -8 , as done by CACLR
 fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString {
     var idx = -1;
-    for (var i = 0; i < number.size(); i++) {
+    for (var i = 0; i
+        < number.size(); i++) {
         var c = number.get(i);
-        if (c >= 'A' && c <= 'Z') {
+        if (c
+            >= 'A'
+            && c
+            <= 'Z') {
             idx = i;
             break;
         }
     }
 
-    if (idx != -1) {
+    if (idx
+        != -1) {
         var numPart = number.slice(0, idx);
-        if (numPart.indexOf('-') == -1) {
+        if (numPart.indexOf('-')
+            == -1) {
             return SplitAlphaNumericalString {
                 alpha: number.slice(idx, number.size()),
                 numerical: parseNumber(numPart) as int
@@ -26,7 +32,8 @@ fn extractAlphaCharsFromStreetNumber(number: String): SplitAlphaNumericalString 
     }
 
     var hyphenIdx = number.indexOf('-');
-    if (hyphenIdx != -1) {
+    if (hyphenIdx
+        != -1) {
         return SplitAlphaNumericalString {
             alpha: number.slice(hyphenIdx, number.size()),
             numerical: parseNumber(number.slice(0, hyphenIdx)) as int

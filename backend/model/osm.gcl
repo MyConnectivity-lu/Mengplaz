@@ -38,7 +38,8 @@ type OsmStreet {
     fn indexing(self: node<OsmStreet>) {
         var key = this.name.lowercase();
         var streets = osm_streets_by_name.get(key);
-        if (streets == null) {
+        if (streets
+            == null) {
             streets = Array<node<OsmStreet>> {};
         }
         streets.add(self);
@@ -102,28 +103,38 @@ type OsmAddress extends ExternalAddressRecord {
     static fn parse(elem: Map): OsmParsedAddress {
         var tags = elem.get("tags") as Map<String, String>;
         var kind = elem.get("type") as String?;
-        var street = tags.get("addr:street") ?? tags.get("addr:place");
-        if (street == null) {
+        var street = tags.get("addr:street")
+            ?? tags.get("addr:place");
+        if (street
+            == null) {
             throw valueOf(AddrErr::STREET_MISSING);
         }
         var city = tags.get("addr:city");
-        if (city == null) {
+        if (city
+            == null) {
             throw valueOf(AddrErr::CITY_MISSING);
         }
         var postcode = tags.get("addr:postcode");
-        if (postcode == null) {
+        if (postcode
+            == null) {
             throw valueOf(AddrErr::POSTCODE_MISSING);
         }
 
         var lat = elem.get("lat") as float?;
         var lon = elem.get("lon") as float?;
 
-        if (kind == "way" || kind == "relation") {
+        if (kind
+            == "way"
+            || kind
+            == "relation") {
             lat = elem.get("center")?.get("lat") as float;
             lon = elem.get("center")?.get("lon") as float;
         }
 
-        if (lat == null || lon == null) {
+        if (lat
+            == null
+            || lon
+            == null) {
             throw "Can't read geo coordinates";
         }
 
@@ -141,19 +152,22 @@ type OsmAddress extends ExternalAddressRecord {
     }
 
     fn promoteToGolden(streetIdx: String): node<GoldenAddress> {
-        if (this.goldenRef != null) {
+        if (this.goldenRef
+            != null) {
             throw "Record is linked to Golden";
         }
 
         var nGoldenStreet = golden_streets_by_id.get(streetIdx);
-        if (nGoldenStreet == null) {
+        if (nGoldenStreet
+            == null) {
             throw "Could not find street";
         }
 
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
-        } while (golden_addresses_by_id.get(newUID) != null);
+        } while (golden_addresses_by_id.get(newUID)
+            != null);
         var alphaNum = extractAlphaCharsFromStreetNumber(this.number);
         var nGolden = node<GoldenAddress> {
             GoldenAddress {
@@ -266,10 +280,11 @@ type OsmSource extends DataSource {
 
     static fn init() {
         var source = sources_by_name.get(OsmSource::NAME);
-        if (source == null) {
+        if (source
+            == null) {
             var source = OsmSource { reconciliationReport: node<ReconciliationReport> {
-                ReconciliationReport::init()
-            } };
+                    ReconciliationReport::init()
+                } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }

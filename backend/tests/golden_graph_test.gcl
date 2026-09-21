@@ -155,8 +155,7 @@ fn recordAliasesAreOnlyExposedWhenPresent() {
 @test
 fn addingAnAliasIsIdempotentAndRefusesTheCanonicalName() {
     // Aliases accumulate every time a source record with a differently-spelled street is
-    // linked, so the guard against duplicates and against re-adding the canonical name is
-    // what stops the array growing without bound.
+    // linked, so the guard against duplicates and against re-adding the canonical name is// what stops the array growing without bound.
     fixtures_test::reset();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
     var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
@@ -195,8 +194,7 @@ fn removingAnAliasDropsExactlyOneEntry() {
 @test
 fn aGoldenPoiRefusesToBePromoted() {
     // A golden POI is the *target* of promotion, so its own `promoteToGolden` throws.
-    // Driven through `promoteRecord` because the override's signature contradicts the one
-    // `AddressRecordProvider` declares, so a direct call typechecks on neither type.
+    // Driven through `promoteRecord` because the override's signature contradicts the one// `AddressRecordProvider` declares, so a direct call typechecks on neither type.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");

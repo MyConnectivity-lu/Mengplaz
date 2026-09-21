@@ -49,10 +49,19 @@ fn qualityWeightsEachSourceByItsTrust() {
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
-    var nBda = fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
-        49.6116,
-        6.1319
-    });
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        geo {
+            49.6116,
+            6.1319
+        }
+    );
 
     var entries = Array<LinkedRecordEntry> {
         fixtures_test::linkedEntry(nOsm, 1.0),
@@ -65,10 +74,19 @@ fn qualityWeightsEachSourceByItsTrust() {
 fn qualityScalesWithTheMatchScore() {
     fixtures_test::reset();
     fixtures_test::seedSources();
-    var nBda = fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
-        49.6116,
-        6.1319
-    });
+    var nBda = fixtures_test::bdaAddress(
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        geo {
+            49.6116,
+            6.1319
+        }
+    );
 
     // BDA weight 3 of 10, matched at 0.5 → 0.15.
     var entries = Array<LinkedRecordEntry> { fixtures_test::linkedEntry(nBda, 0.5) };
@@ -95,8 +113,7 @@ fn severalRecordsFromOneSourceAreAveragedNotSummed() {
 @test
 fn entriesWithoutADetailedScoreAreIgnored() {
     // `detailedScore` is only populated on the link paths; an entry restored from an older
-    // backup can lack one, and must be skipped rather than counted as zero — counting it as
-    // zero would drag the source's average down.
+    // backup can lack one, and must be skipped rather than counted as zero — counting it as// zero would drag the source's average down.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nA = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });

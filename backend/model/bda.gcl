@@ -24,7 +24,8 @@ type BdaCity {
     fn indexing(self: node<BdaCity>) {
         var cityKey = this.name.lowercase();
         var cities = bda_cities_by_name.get(cityKey);
-        if (cities == null) {
+        if (cities
+            == null) {
             cities = Array<node<BdaCity>> {};
         }
         cities.add(self);
@@ -44,7 +45,8 @@ type BdaStreet {
     fn indexing(self: node<BdaStreet>) {
         var streetKey = this.name.lowercase();
         var streets = bda_streets_by_name.get(streetKey);
-        if (streets == null) {
+        if (streets
+            == null) {
             streets = Array<node<BdaStreet>> {};
         }
         streets.add(self);
@@ -87,17 +89,20 @@ type BdaAddress extends ExternalAddressRecord {
     private street: node<BdaStreet>;
 
     fn promoteToGolden(streetIdx: String): node<GoldenAddress> {
-        if (this.goldenRef != null) {
+        if (this.goldenRef
+            != null) {
             throw "Record is linked to Golden";
         }
         var nGoldenStreet = golden_streets_by_id.get(streetIdx);
-        if (nGoldenStreet == null) {
+        if (nGoldenStreet
+            == null) {
             throw "Could not find street";
         }
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
-        } while (golden_addresses_by_id.get(newUID) != null);
+        } while (golden_addresses_by_id.get(newUID)
+            != null);
         //TODO How to handle when we cant parse number
         var alphaNum = extractAlphaCharsFromStreetNumber(this.number);
         var nGolden = node<GoldenAddress> {
@@ -214,10 +219,11 @@ type BdaSource extends DataSource {
 
     static fn init() {
         var source = sources_by_name.get(BdaSource::NAME);
-        if (source == null) {
+        if (source
+            == null) {
             var source = BdaSource { reconciliationReport: node<ReconciliationReport> {
-                ReconciliationReport::init()
-            } };
+                    ReconciliationReport::init()
+                } };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }

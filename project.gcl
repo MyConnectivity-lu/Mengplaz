@@ -17,17 +17,25 @@ fn main() {
 
     Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 1 }, PeriodicOptions { immediate: false });
 
-    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 30_s }, PeriodicOptions {
-        immediate: false,
-        start: time::now() + 10s
-    });
+    Scheduler::add(
+        runtime::RuntimeUsage::collect,
+        FixedPeriodicity { every: 30_s },
+        PeriodicOptions {
+            immediate: false,
+            start: time::now() + 10s
+        }
+    );
 
     Scheduler::add(UpdateService::caclr, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
     Scheduler::add(UpdateService::bda, DailyPeriodicity { hour: 23, minute: 15 }, PeriodicOptions { immediate: false });
     Scheduler::add(UpdateService::osm, DailyPeriodicity { hour: 23, minute: 30 }, PeriodicOptions { immediate: false });
-    Scheduler::add(BackupExporter::exportAll, DailyPeriodicity { hour: 23, minute: 55 }, PeriodicOptions {
-        immediate: false
-    });
+    Scheduler::add(
+        BackupExporter::exportAll,
+        DailyPeriodicity { hour: 23, minute: 55 },
+        PeriodicOptions {
+            immediate: false
+        }
+    );
 }
 
 fn bootstrap() {
@@ -42,10 +50,7 @@ fn bootstrap() {
     }
 
     // A missing or empty files/backup leaves the graph untouched, and a restore that threw
-    // half way may have written nothing at all. Either way a fresh install must not end up
-    // with an empty store, so fall back to the live sources. Same order as the restore's
-    // dependency chain: CACLR, then BDA, then OSM. Each load* catches its own failure, so one
-    // unreachable source does not stop the others.
+    // half way may have written nothing at all. Either way a fresh install must not end up// with an empty store, so fall back to the live sources. Same order as the restore's// dependency chain: CACLR, then BDA, then OSM. Each load* catches its own failure, so one// unreachable source does not stop the others.
     if (BackupImporter::isGraphEmpty()) {
         warn("Backup restored nothing: loading from the live sources instead.");
         CaclrSource::init();

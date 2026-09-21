@@ -2,8 +2,7 @@
 type BdaAddressLine {
     /* CSV Headers
     rue;numero;localite;code_postal;id_caclr_rue;id_caclr_bat;lat_wgs84;lon_wgs84;coord_est_luref;coord_nord_luref;id_geoportail;commune;lau2
-    */
-    rue: String;
+    */rue: String;
     numero: String;
     localite: String;
     code_postal: String;
@@ -30,7 +29,10 @@ abstract type BdaLoader {
         };
 
         var response = httpClient.send(httpRequest);
-        if (response.status_code == 302 && response.headers.get("location") != null) {
+        if (response.status_code
+            == 302
+            && response.headers.get("location")
+            != null) {
             httpRequest.url = response.headers.get("location")!!;
         }
 
@@ -45,7 +47,8 @@ abstract type BdaLoader {
 
             var munKey = record.commune.lowercase();
             var nMunicipality = bda_municipalities_by_name.get(munKey);
-            if (nMunicipality == null) {
+            if (nMunicipality
+                == null) {
                 var municipality = BdaMunicipality {
                     name: record.commune,
                     cities_by_name: nodeIndex<String, node<BdaCity>> {},
@@ -57,7 +60,8 @@ abstract type BdaLoader {
 
             var cityKey = record.localite.lowercase();
             var nCity = nMunicipality->cities_by_name?.get(cityKey);
-            if (nCity == null) {
+            if (nCity
+                == null) {
                 var city = BdaCity {
                     name: record.localite,
                     municipality: nMunicipality,
@@ -69,7 +73,8 @@ abstract type BdaLoader {
             }
 
             var nStreet = bda_streets_by_caclr_id.get(record.id_caclr_rue);
-            if (nStreet == null) {
+            if (nStreet
+                == null) {
                 var street = BdaStreet {
                     name: record.rue,
                     id_caclr: record.id_caclr_rue,
@@ -83,7 +88,8 @@ abstract type BdaLoader {
             }
 
             var nAddress = bda_addresses_by_geoportail_id.get(record.id_geoportail);
-            if (nAddress == null) {
+            if (nAddress
+                == null) {
                 var address = BdaAddress {
                     number: record.numero,
                     postcode: record.code_postal,
@@ -108,7 +114,8 @@ abstract type BdaLoader {
         File::delete(path);
 
         var nSource = sources_by_name.get(BdaSource::NAME);
-        if (nSource != null) {
+        if (nSource
+            != null) {
             SourceTextSearch::appendAll(nSource, newAddresses);
         }
 

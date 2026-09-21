@@ -153,8 +153,7 @@ fn promotingOntoAnUnknownStreetIsRefused() {
 @test
 fn promotingARecordWithAnUnparseableNumberIsRefused() {
     // `extractAlphaCharsFromStreetNumber` throws on a lowercase suffix, and unlike the search
-    // path the promote path does not swallow it — the record is left untouched rather than
-    // stored with a wrong number.
+    // path the promote path does not swallow it — the record is left untouched rather than// stored with a wrong number.
     var nStreet = setupPromotion();
     var nOsm = fixtures_test::osmAddress(1, "12 bis", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 

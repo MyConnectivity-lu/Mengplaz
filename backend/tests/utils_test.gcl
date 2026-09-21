@@ -71,8 +71,7 @@ fn emptyNumberIsRejected() {
 @test
 fn lowercaseSuffixIsRejected() {
     // The alphabet in the function is uppercase-only, so "12 bis" reaches `parseNumber` whole
-    // and fails. Callers on the search path swallow this in a try/catch and fall back to the
-    // raw string; the promote path does not, and lets it surface.
+    // and fails. Callers on the search path swallow this in a try/catch and fall back to the// raw string; the promote path does not, and lets it surface.
     var threw = false;
     try {
         extractAlphaCharsFromStreetNumber("12 bis");

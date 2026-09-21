@@ -93,10 +93,7 @@ fn linkingWithoutACandidateRecomputesTheScore() {
 @test
 fn linkingWithoutACandidateScoresGeoAsZero() {
     // Pins a discrepancy between the two link paths: `linkRecords` coalesces a null geo score
-    // to 0.0, where the search path leaves it null and `computeOverallScore` reads that as a
-    // neutral 1.0. Linking a coordinate-less POI by hand therefore records 11/14 = 0.79 where
-    // reconciling the same pair records 1.0. The 0.01 tolerance is `@precision(0.01)`, not an
-    // epsilon.
+    // to 0.0, where the search path leaves it null and `computeOverallScore` reads that as a// neutral 1.0. Linking a coordinate-less POI by hand therefore records 11/14 = 0.79 where// reconciling the same pair records 1.0. The 0.01 tolerance is `@precision(0.01)`, not an// epsilon.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
@@ -182,8 +179,7 @@ fn aliasParametersRecordTheSourceSpellings() {
 @test
 fn clearingSimilarStreetMismatchesFixesTheWholeStreetAtOnce() {
     // An operator who confirms that "Rue de la Gara" is really "Rue de la Gare" should not
-    // have to confirm it again for every house number on that street. This flag rewrites the
-    // remaining unlinked entries on the same street pair to a single, mismatch-free candidate.
+    // have to confirm it again for every house number on that street. This flag rewrites the// remaining unlinked entries on the same street pair to a single, mismatch-free candidate.
     var nGolden = fixtures_test::seedGolden("");
     var nStreet = nGolden->street!!;
     var nOther = fixtures_test::goldenPoi(nStreet, 14, "", "1234", geo { 49.6117, 6.1319 });
@@ -194,11 +190,15 @@ fn clearingSimilarStreetMismatchesFixesTheWholeStreetAtOnce() {
     fixtures_test::reportCandidate(nSource, nOsmA, nGolden, 0.9, MengplazMismatch::STREET_MISMATCH);
     fixtures_test::reportCandidate(nSource, nOsmB, nOther, 0.9, MengplazMismatch::STREET_MISMATCH);
 
-    privateApi::linkRecords(nOsmA, nGolden, LinkParameters {
-        addCityAlias: false,
-        addStreetAlias: false,
-        updateSimilarStreetMismatch: true,
-    });
+    privateApi::linkRecords(
+        nOsmA,
+        nGolden,
+        LinkParameters {
+            addCityAlias: false,
+            addStreetAlias: false,
+            updateSimilarStreetMismatch: true,
+        }
+    );
 
     var remaining = nSource->reconciliationReport->unlinked.get(nOsmB);
     Assert::isNotNull(remaining);
@@ -277,8 +277,7 @@ fn unlinkingARecordThatWasNeverLinkedIsANoOp() {
 @test
 fn unlinkingDoesNotPutTheRecordBackInTheUnlinkedBucket() {
     // Pins current behaviour, flagged as a TODO in `unlinkRecord`: an unlinked record vanishes
-    // from both report buckets and only reappears after a fresh reconcile. The reconcile page
-    // shows it under no tab until then.
+    // from both report buckets and only reappears after a fresh reconcile. The reconcile page// shows it under no tab until then.
     var nGolden = fixtures_test::seedGolden("");
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     var nSource = fixtures_test::osmSource();
@@ -449,8 +448,7 @@ fn mergingPositionsKeepsAnExistingPrimaryAndStoresTheRestAsSecondary() {
 @test
 fn adoptingAPositionQueuesAGeoRescoreWhenOtherSourcesAreLinked() {
     // Once a golden POI acquires coordinates, every score already recorded against it was
-    // computed with a null geo term. `golden_addresses_geo_recompute` is the queue
-    // `recomputeGoldenGeoScore` drains to fix them.
+    // computed with a null geo term. `golden_addresses_geo_recompute` is the queue// `recomputeGoldenGeoScore` drains to fix them.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");

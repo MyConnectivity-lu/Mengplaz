@@ -125,8 +125,7 @@ fn aPoorCityScoreAlwaysYieldsAComplexMismatch() {
 @test
 fn severalPerfectMatchesAreAllFlaggedAsMultipleMatches() {
     // Two golden POIs describing the same address is a data defect, and the source record
-    // cannot be linked automatically to either. Every candidate is flagged, not just the
-    // extras, so the UI can show the record as ambiguous rather than picking one.
+    // cannot be linked automatically to either. Every candidate is flagged, not just the// extras, so the UI can show the record as ambiguous rather than picking one.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");

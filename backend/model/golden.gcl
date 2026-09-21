@@ -19,7 +19,8 @@ type GoldenSource extends DataSource {
 
     static fn init() {
         var source = sources_by_name.get(GoldenSource::NAME);
-        if (source == null) {
+        if (source
+            == null) {
             var source = GoldenSource {
                 reconciliationReport: node<ReconciliationReport> { ReconciliationReport::init() },
                 qualityHistory: nodeTime<float> {}
@@ -85,7 +86,8 @@ type GoldenMunicipality {
     fn indexing(self: node<GoldenMunicipality>) {
         var munKey = this.name.lowercase();
 
-        if (this.cities_by_name == null) {
+        if (this.cities_by_name
+            == null) {
             this.cities_by_name = nodeIndex<String, node<GoldenCity>> {};
         }
 
@@ -112,12 +114,14 @@ type GoldenCity {
     fn indexing(self: node<GoldenCity>) {
         var cityKey = this.name.lowercase();
         var cities = golden_cities_by_name.get(cityKey);
-        if (cities == null) {
+        if (cities
+            == null) {
             cities = Array<node<GoldenCity>> {};
         }
         cities.add(self);
 
-        if (this.streets_by_name == null) {
+        if (this.streets_by_name
+            == null) {
             this.streets_by_name = nodeIndex<String, node<GoldenStreet>> {};
         }
 
@@ -147,10 +151,12 @@ type GoldenStreet extends StreetRecordProvider {
             street: this.name,
             city: this.city->name,
         };
-        if (this.nameAliases.size() > 0) {
+        if (this.nameAliases.size()
+            > 0) {
             record.streetAliases = this.nameAliases;
         }
-        if (this.city->nameAliases.size() > 0) {
+        if (this.city->nameAliases.size()
+            > 0) {
             record.cityAliases = this.city->nameAliases;
         }
         return record;
@@ -160,9 +166,9 @@ type GoldenStreet extends StreetRecordProvider {
         var arr = Array<AddressRecordRef> {};
         for (_, ref in this.addresses_by_id) {
             arr.add(AddressRecordRef {
-                ref: ref,
-                record: ref->toAddressRecord(),
-            });
+                    ref: ref,
+                    record: ref->toAddressRecord(),
+                });
         }
         return arr;
     }
@@ -170,12 +176,14 @@ type GoldenStreet extends StreetRecordProvider {
     fn indexing(self: node<GoldenStreet>) {
         var streetKey = this.name.lowercase();
         var streets = golden_streets_by_name.get(streetKey);
-        if (streets == null) {
+        if (streets
+            == null) {
             streets = Array<node<GoldenStreet>> {};
         }
         streets.add(self);
 
-        if (this.addresses_by_number == null) {
+        if (this.addresses_by_number
+            == null) {
             this.addresses_by_number = nodeIndex<String, node<GoldenAddress>> {};
         }
 
@@ -221,7 +229,8 @@ type GoldenAddress extends AddressRecordProvider {
     }
 
     fn isLinked(): bool {
-        return this.linkedRecords.size() > 0;
+        return this.linkedRecords.size()
+            > 0;
     }
 
     fn toFullRecord(): any {
@@ -245,11 +254,14 @@ type GoldenAddress extends AddressRecordProvider {
             sourceName: GoldenSource::NAME,
             quality: this.quality.last()?.score
         };
-        if (this.street != null) {
-            if (this.street->nameAliases.size() > 0) {
+        if (this.street
+            != null) {
+            if (this.street->nameAliases.size()
+                > 0) {
                 record.streetAliases = this.street->nameAliases;
             }
-            if (this.street->city->nameAliases.size() > 0) {
+            if (this.street->city->nameAliases.size()
+                > 0) {
                 record.localityAliases = this.street->city->nameAliases;
             }
         }
@@ -271,15 +283,20 @@ type GoldenAddress extends AddressRecordProvider {
     }
 
     fn addStreetAlias(name: String) {
-        if (this.street != null && name != this.street->name) {
+        if (this.street
+            != null
+            && name
+            != this.street->name) {
             var found = false;
             for (_, alias in this.street->nameAliases) {
-                if (alias.value == name) {
+                if (alias.value
+                    == name) {
                     found = true;
                     break;
                 }
             }
-            if (found == false) {
+            if (found
+                == false) {
                 this.street->nameAliases.add(Alias { value: name, id: "" });
             }
         }
@@ -287,24 +304,31 @@ type GoldenAddress extends AddressRecordProvider {
 
     fn addCityAlias(name: String) {
         var city = this.street?->city;
-        if (city != null && name != city->name) {
+        if (city
+            != null
+            && name
+            != city->name) {
             var found = false;
             for (_, alias in city->nameAliases) {
-                if (alias.value == name) {
+                if (alias.value
+                    == name) {
                     found = true;
                     break;
                 }
             }
-            if (found == false) {
+            if (found
+                == false) {
                 city->nameAliases.add(Alias { value: name, id: "" });
             }
         }
     }
 
     fn removeStreetAlias(name: String) {
-        if (this.street != null) {
+        if (this.street
+            != null) {
             for (i, alias in this.street->nameAliases) {
-                if (alias.value == name) {
+                if (alias.value
+                    == name) {
                     this.street->nameAliases.remove(i);
                     break;
                 }
@@ -330,7 +354,8 @@ type GoldenAddress extends AddressRecordProvider {
 
     fn indexing(self: node<GoldenAddress>) {
         var nStreet = this.street;
-        if (nStreet != null) {
+        if (nStreet
+            != null) {
             var numKey = "${this.number}${this.multipleCode}";
             nStreet->addresses_by_number?.set(numKey, self);
             nStreet->addresses_by_id.set(this.uid, self);
@@ -338,13 +363,13 @@ type GoldenAddress extends AddressRecordProvider {
 
         golden_addresses_by_id.set(this.uid, self);
 
-        if (this.primaryLocation != null) {
+        if (this.primaryLocation
+            != null) {
             golden_addresses_by_geo.set(this.primaryLocation, self);
         }
 
         // The text index is deliberately NOT updated here: `indexing()` also runs for every
-        // POI of a backup restore, and one post-build append costs O(docs). `promoteToGolden`
-        // appends a newly created POI instead.
+        // POI of a backup restore, and one post-build append costs O(docs). `promoteToGolden`// appends a newly created POI instead.
     }
 }
 

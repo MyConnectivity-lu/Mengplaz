@@ -1,14 +1,16 @@
 @expose
 @permission("admin")
 fn promoteRecord(sourceRecord: node<AddressRecordProvider>, streetIdx: String) {
-    if (sourceRecord->getLinkedGolden() != null) {
+    if (sourceRecord->getLinkedGolden()
+        != null) {
         throw "This record is already linked to a golden Record";
     }
     var nGolden = sourceRecord->promoteToGolden(streetIdx);
     sourceRecord->linkToGolden(nGolden);
 
     var geoScore: float?;
-    if (sourceRecord->toSearchItem().coordinates != null) {
+    if (sourceRecord->toSearchItem().coordinates
+        != null) {
         geoScore = 1.0;
     }
     var reconScore = node<ReconciliationCandidateScore> {
@@ -25,19 +27,25 @@ fn promoteRecord(sourceRecord: node<AddressRecordProvider>, streetIdx: String) {
     nGolden->linkedRecords.add(LinkedRecordEntry { record: sourceRecord, score: 1.0, detailedScore: reconScore });
 
     var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
-    nGolden->quality.setAt(time::now(), QualityEvent {
-        score: newQuality,
-        sourceRecord: sourceRecord,
-        eventType: QualityEventType::link
-    });
+    nGolden->quality.setAt(
+        time::now(),
+        QualityEvent {
+            score: newQuality,
+            sourceRecord: sourceRecord,
+            eventType: QualityEventType::link
+        }
+    );
 
     var source = sourceRecord->getSource();
     source->reconciliationReport->unlinked.remove(sourceRecord);
 
-    source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate {
-        candidateRecord: nGolden,
-        detailedScore: reconScore
-    });
+    source->reconciliationReport->linked.set(
+        sourceRecord,
+        ReconciliationCandidate {
+            candidateRecord: nGolden,
+            detailedScore: reconScore
+        }
+    );
 }
 
 @volatile
@@ -60,27 +68,32 @@ fn linkRecords(
     var reconScore: node<ReconciliationCandidateScore>?;
     var foundCandidate = false;
     for (_, candidate in candidates?) {
-        if (candidate.candidateRecord == candidateRecord) {
+        if (candidate.candidateRecord
+            == candidateRecord) {
             var cCandidate = clone(candidate);
-            if (candidate.score != null) {
+            if (candidate.score
+                != null) {
                 reconScore = node<ReconciliationCandidateScore> { clone(candidate.score) };
                 cCandidate.detailedScore = reconScore;
             }
             source->reconciliationReport->linked.set(sourceRecord, cCandidate);
-            score = candidate.score?.overallScore ?? 1.0;
+            score = candidate.score?.overallScore
+                ?? 1.0;
             foundCandidate = true;
             break;
         }
     }
 
     // The record came from a search rather than a reconciliation, so it carries no score.
-    if (foundCandidate == false) {
+    if (foundCandidate
+        == false) {
         var searchParams = SearchParameters::default();
         var item = sourceRecord->toSearchItem();
         var nCandidate = candidateRecord as node<GoldenAddress>;
         var cityScore = 0.0;
         var streetScore = 0.0;
-        if (nCandidate->street != null) {
+        if (nCandidate->street
+            != null) {
             cityScore = GoldenServices::computeCityScore(item.city, nCandidate->street->city);
             streetScore = GoldenServices::computeStreetScore(item.street, nCandidate->street->name);
         }
@@ -120,10 +133,13 @@ fn linkRecords(
             }
         };
         score = overallScore;
-        source->reconciliationReport->linked.set(sourceRecord, ReconciliationCandidate {
-            candidateRecord: candidateRecord,
-            detailedScore: reconScore
-        });
+        source->reconciliationReport->linked.set(
+            sourceRecord,
+            ReconciliationCandidate {
+                candidateRecord: candidateRecord,
+                detailedScore: reconScore
+            }
+        );
     }
 
     source->reconciliationReport->unlinked.remove(sourceRecord);
@@ -134,7 +150,8 @@ fn linkRecords(
     if (golden is GoldenAddress) {
         var found = false;
         for (_, entry in golden.linkedRecords) {
-            if (entry.record == sourceRecord) {
+            if (entry.record
+                == sourceRecord) {
                 found = true;
                 break;
             }
@@ -142,41 +159,51 @@ fn linkRecords(
 
         if (!found) {
             golden.linkedRecords.add(LinkedRecordEntry {
-                record: sourceRecord,
-                score: score,
-                detailedScore: reconScore
-            });
+                    record: sourceRecord,
+                    score: score,
+                    detailedScore: reconScore
+                });
 
-            if (params?.addStreetAlias == true) {
+            if (params?.addStreetAlias
+                == true) {
                 var street = sourceRecord->getStreet();
-                if (street != null) {
+                if (street
+                    != null) {
                     golden.addStreetAlias(street);
                 }
             }
-            if (params?.addCityAlias == true) {
+            if (params?.addCityAlias
+                == true) {
                 var city = sourceRecord->getCity();
-                if (city != null) {
+                if (city
+                    != null) {
                     golden.addCityAlias(city);
                 }
             }
 
             var newQuality = GoldenServices::computeQuality(golden.linkedRecords);
-            golden.quality.setAt(time::now(), QualityEvent {
-                score: newQuality,
-                sourceRecord: sourceRecord,
-                eventType: QualityEventType::link
-            });
+            golden.quality.setAt(
+                time::now(),
+                QualityEvent {
+                    score: newQuality,
+                    sourceRecord: sourceRecord,
+                    eventType: QualityEventType::link
+                }
+            );
         }
     }
 
-    if (params?.updateSimilarStreetMismatch == true) {
+    if (params?.updateSimilarStreetMismatch
+        == true) {
         var tmpMap = Map<node<AddressRecordProvider>, ReconciliationCandidate> {};
         var sStreet = sourceRecord->getStreet();
         var gStreet = golden.getStreet();
         for (s, candidates in source->reconciliationReport->unlinked) {
-            if (s->getStreet() == sStreet) {
+            if (s->getStreet()
+                == sStreet) {
                 for (_, c in candidates) {
-                    if (c.candidateRecord->getStreet() == gStreet) {
+                    if (c.candidateRecord->getStreet()
+                        == gStreet) {
                         tmpMap.set(s, clone(c));
                         break;
                     }
@@ -194,22 +221,27 @@ fn linkRecords(
 @permission("admin")
 fn unlinkRecord(sourceRecord: node<AddressRecordProvider>) {
     var nGolden = sourceRecord->getLinkedGolden();
-    if (nGolden != null) {
+    if (nGolden
+        != null) {
         // TODO Should the aliases be removed? That needs tracking which linked record added
         // the alias.
         for (i, entry in nGolden->linkedRecords) {
-            if (entry.record == sourceRecord) {
+            if (entry.record
+                == sourceRecord) {
                 nGolden->linkedRecords.remove(i);
                 break;
             }
         }
 
         var newQuality = GoldenServices::computeQuality(nGolden->linkedRecords);
-        nGolden->quality.setAt(time::now(), QualityEvent {
-            score: newQuality,
-            sourceRecord: sourceRecord,
-            eventType: QualityEventType::unlink
-        });
+        nGolden->quality.setAt(
+            time::now(),
+            QualityEvent {
+                score: newQuality,
+                sourceRecord: sourceRecord,
+                eventType: QualityEventType::unlink
+            }
+        );
     }
 
     sourceRecord->unlinkGolden();
@@ -225,16 +257,22 @@ fn linkAllFullMatched(source: node<DataSource>, recordIds: Array<String>) {
     var index = source->getIndex();
     for (_, recordId in recordIds) {
         var sourceRecord = index.get(recordId);
-        if (sourceRecord == null) {
+        if (sourceRecord
+            == null) {
             continue;
         }
         var candidates = report->unlinked.get(sourceRecord);
-        if (candidates?.size() == 1) {
+        if (candidates?.size()
+            == 1) {
             // TODO? We assume that since this function only gets called if 100% match no need to link aliases
-            linkRecords(sourceRecord, candidates!![0].candidateRecord, LinkParameters {
-                addCityAlias: false,
-                addStreetAlias: false
-            });
+            linkRecords(
+                sourceRecord,
+                candidates!![0].candidateRecord,
+                LinkParameters {
+                    addCityAlias: false,
+                    addStreetAlias: false
+                }
+            );
         }
     }
 }
@@ -257,10 +295,12 @@ fn batchLinkByScore(
     numberScore: float?,
     postcodeScore: float?
 ): int {
-    if (globalScore < 80.0) {
+    if (globalScore
+        < 80.0) {
         throw "globalScore cannot be lower than 80";
     }
-    var threshold = globalScore / 100.0;
+    var threshold = globalScore
+        / 100.0;
 
     var report = source->reconciliationReport;
 
@@ -271,29 +311,65 @@ fn batchLinkByScore(
         var bestScore = 0.0;
         for (_, candidate in candidates) {
             var s = candidate.score?.overallScore;
-            if (s != null && s >= bestScore) {
+            if (s
+                != null
+                && s
+                >= bestScore) {
                 bestScore = s;
                 bestCandidate = candidate;
             }
         }
-        if (bestCandidate != null && bestScore >= threshold) {
+        if (bestCandidate
+            != null
+            && bestScore
+            >= threshold) {
             var sc = bestCandidate.score;
             var ok = true;
-            if (ok && geoScore != null) {
+            if (ok
+                && geoScore
+                != null) {
                 var g = sc?.geoScore;
-                ok = g != null && g >= geoScore / 100.0;
+                ok = g
+                    != null
+                    && g
+                    >= geoScore
+                    / 100.0;
             }
-            if (ok && cityScore != null) {
-                ok = sc != null && sc.cityScore >= cityScore / 100.0;
+            if (ok
+                && cityScore
+                != null) {
+                ok = sc
+                    != null
+                    && sc.cityScore
+                    >= cityScore
+                    / 100.0;
             }
-            if (ok && streetScore != null) {
-                ok = sc != null && sc.streetScore >= streetScore / 100.0;
+            if (ok
+                && streetScore
+                != null) {
+                ok = sc
+                    != null
+                    && sc.streetScore
+                    >= streetScore
+                    / 100.0;
             }
-            if (ok && numberScore != null) {
-                ok = sc != null && sc.numberScore >= numberScore / 100.0;
+            if (ok
+                && numberScore
+                != null) {
+                ok = sc
+                    != null
+                    && sc.numberScore
+                    >= numberScore
+                    / 100.0;
             }
-            if (ok && postcodeScore != null) {
-                ok = sc != null && sc.postcodeScore >= postcodeScore / 100.0;
+            if (ok
+                && postcodeScore
+                != null) {
+                ok = sc
+                    != null
+                    && sc.postcodeScore
+                    >= postcodeScore
+                    / 100.0;
             }
             if (ok) {
                 toLink.set(record, bestCandidate.candidateRecord);
@@ -304,7 +380,8 @@ fn batchLinkByScore(
     var count = 0;
     for (record, candidate in toLink) {
         linkRecords(record, candidate, LinkParameters { addCityAlias: false, addStreetAlias: false });
-        count = count + 1;
+        count = count
+            + 1;
     }
 
     return count;
@@ -316,19 +393,26 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
     var index = source->getIndex();
     for (_, recordId in recordIds) {
         var nOther = index.get(recordId);
-        if (nOther == null) {
+        if (nOther
+            == null) {
             continue;
         }
         var nGolden = nOther->getLinkedGolden();
         var otherRecord = nOther->toAddressRecord();
-        if (nGolden != null && otherRecord.primaryLocation != null) {
-            if (nGolden->primaryLocation == null) {
+        if (nGolden
+            != null
+            && otherRecord.primaryLocation
+            != null) {
+            if (nGolden->primaryLocation
+                == null) {
                 golden_addresses_by_geo.set(otherRecord.primaryLocation, nGolden);
                 nGolden->primaryLocation = otherRecord.primaryLocation;
-                if (nGolden->linkedRecords.size() >= 2) {
+                if (nGolden->linkedRecords.size()
+                    >= 2) {
                     golden_addresses_geo_recompute.add(nGolden);
                 }
-            } else if (nGolden->secondaryLocations.get(otherRecord.sourceName) == null) {
+            } else if (nGolden->secondaryLocations.get(otherRecord.sourceName)
+                == null) {
                 nGolden->secondaryLocations.set(otherRecord.sourceName, otherRecord.primaryLocation);
             }
         }
@@ -339,10 +423,12 @@ fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
 @permission("admin")
 fn lockSource(source: String) {
     var nSource = sources_by_name.get(source);
-    if (nSource == null) {
+    if (nSource
+        == null) {
         throw "Source with name ${source} not Found";
     }
-    if (nSource->isReconciling?.resolve() == true) {
+    if (nSource->isReconciling?.resolve()
+        == true) {
         throw "Source ${source} has a reconciling in progress";
     }
     nSource->setIsReconciling();
@@ -352,7 +438,8 @@ fn lockSource(source: String) {
 @permission("admin")
 fn reconcile(source: String, params: SearchParameters?): ReconciliationReport? {
     var nSource = sources_by_name.get(source);
-    if (nSource == null) {
+    if (nSource
+        == null) {
         throw "Source with name ${source} not Found";
     }
 
@@ -370,7 +457,8 @@ fn reconcile(source: String, params: SearchParameters?): ReconciliationReport? {
 @permission("admin")
 fn reconcileAddresses(source: String, poiIds: Array<String>, params: SearchParameters?): ReconciliationReport? {
     var nSource = sources_by_name.get(source);
-    if (nSource == null) {
+    if (nSource
+        == null) {
         throw "Source with name ${source} not Found";
     }
 
@@ -379,7 +467,8 @@ fn reconcileAddresses(source: String, poiIds: Array<String>, params: SearchParam
         var pois = Array<node<AddressRecordProvider>> {};
         for (_, poiId in poiIds) {
             var poi = index.get(poiId);
-            if (poi != null) {
+            if (poi
+                != null) {
                 pois.add(poi);
             }
         }
@@ -413,7 +502,8 @@ type ReconciliationReportView {
 @permission("admin")
 fn getReconciliationReport(source: node<DataSource>, city: String?, municipality: String?): ReconciliationReportView? {
     var report = source->getReconciliationReport();
-    if (report == null) {
+    if (report
+        == null) {
         throw "Report not Found";
     }
 
@@ -422,32 +512,51 @@ fn getReconciliationReport(source: node<DataSource>, city: String?, municipality
     var partialMatch = Array<ReconciliationReportMatchView> {};
     var noMatch = Array<String> {};
     for (record, candidates in report.unlinked) {
-        if (municipality != null && record->getMunicipality() != municipality) {
+        if (municipality
+            != null
+            && record->getMunicipality()
+            != municipality) {
             continue;
         }
-        if (city != null && record->getCity() != city) {
+        if (city
+            != null
+            && record->getCity()
+            != city) {
             continue;
         }
-        if (candidates.size() == 1 && candidates[0].mismatch == null) {
+        if (candidates.size()
+            == 1
+            && candidates[0].mismatch
+            == null) {
             fullMatch.add(record->getId());
-        } else if (candidates.size() == 0) {
+        } else if (candidates.size()
+            == 0) {
             noMatch.add(record->getId());
-        } else if (candidates[0].mismatch == MengplazMismatch::MULTIPLE_MATCHES) {
+        } else if (candidates[0].mismatch
+            == MengplazMismatch::MULTIPLE_MATCHES) {
             multipleMatch.add(record->getId());
         } else {
-            partialMatch.add(ReconciliationReportMatchView {
-                id: record->getId(),
-                score: candidates[0].score?.overallScore
-            });
+            partialMatch.add(
+                ReconciliationReportMatchView {
+                    id: record->getId(),
+                    score: candidates[0].score?.overallScore
+                }
+            );
         }
     }
     partialMatch.sort_by(ReconciliationReportMatchView::score, SortOrder::desc);
     var linked = Array<String> {};
     for (key, _ in report.linked) {
-        if (municipality != null && key->getMunicipality() != municipality) {
+        if (municipality
+            != null
+            && key->getMunicipality()
+            != municipality) {
             continue;
         }
-        if (city != null && key->getCity() != city) {
+        if (city
+            != null
+            && key->getCity()
+            != city) {
             continue;
         }
         linked.add(key->getId());
@@ -475,26 +584,35 @@ type RecordTabResult {
 fn getRecordTab(source: node<DataSource>, recordId: String): RecordTabResult {
     var index = source->getIndex();
     var nRecord = index.get(recordId);
-    if (nRecord == null) {
+    if (nRecord
+        == null) {
         throw "Record not found: ${recordId}";
     }
 
     var report = source->reconciliationReport;
 
-    if (report->linked.get(nRecord) != null) {
+    if (report->linked.get(nRecord)
+        != null) {
         return RecordTabResult { tab: "Linked" };
     }
 
     var candidates = report->unlinked.get(nRecord);
-    if (candidates == null || candidates.size() == 0) {
+    if (candidates
+        == null
+        || candidates.size()
+        == 0) {
         return RecordTabResult { tab: "NoMatch" };
     }
 
-    if (candidates.size() == 1 && candidates[0].mismatch == null) {
+    if (candidates.size()
+        == 1
+        && candidates[0].mismatch
+        == null) {
         return RecordTabResult { tab: "Matched" };
     }
 
-    if (candidates[0].mismatch == MengplazMismatch::MULTIPLE_MATCHES) {
+    if (candidates[0].mismatch
+        == MengplazMismatch::MULTIPLE_MATCHES) {
         return RecordTabResult { tab: "MultipleMatch" };
     }
 
@@ -540,7 +658,8 @@ type ComparisonViewData {
 @permission("admin")
 fn getComparisonViewData(source: node<DataSource>, recordId: String): ComparisonViewData {
     var nSourceRecord = source->getIndex().get(recordId);
-    if (nSourceRecord == null) {
+    if (nSourceRecord
+        == null) {
         throw "Record not found: ${recordId}";
     }
     var candidates = source->reconciliationReport->unlinked.get(nSourceRecord);
@@ -550,15 +669,27 @@ fn getComparisonViewData(source: node<DataSource>, recordId: String): Comparison
         var basicRecord = candidate.candidateRecord->toAddressRecord();
         var details = MatchedCandidateDetail {
             ref: candidate.candidateRecord,
-            numberScore: trunc((candidate.score?.numberScore ?? 1.0) * 100),
-            streetScore: trunc((candidate.score?.streetScore ?? 1.0) * 100),
-            cityScore: trunc((candidate.score?.cityScore ?? 1.0) * 100),
-            overallScore: trunc((candidate.score?.overallScore ?? 1.0) * 100),
-            postcodeScore: trunc((candidate.score?.postcodeScore ?? 1.0) * 100),
+            numberScore: trunc((candidate.score?.numberScore
+                    ?? 1.0)
+                    * 100),
+            streetScore: trunc((candidate.score?.streetScore
+                    ?? 1.0)
+                    * 100),
+            cityScore: trunc((candidate.score?.cityScore
+                    ?? 1.0)
+                    * 100),
+            overallScore: trunc((candidate.score?.overallScore
+                    ?? 1.0)
+                    * 100),
+            postcodeScore: trunc((candidate.score?.postcodeScore
+                    ?? 1.0)
+                    * 100),
             record: basicRecord,
         };
-        if (candidate.score?.geoScore != null) {
-            details.geoScore = trunc((candidate.score.geoScore) * 100);
+        if (candidate.score?.geoScore
+            != null) {
+            details.geoScore = trunc((candidate.score.geoScore)
+                    * 100);
         }
         candidateDetails.add(details);
     }
@@ -578,26 +709,42 @@ fn getComparisonViewData(source: node<DataSource>, recordId: String): Comparison
 @permission("admin")
 fn getLinkedComparisonViewData(source: node<DataSource>, recordId: String): ComparisonViewData {
     var nSourceRecord = source->getIndex().get(recordId);
-    if (nSourceRecord == null) {
+    if (nSourceRecord
+        == null) {
         throw "Record not found: ${recordId}";
     }
     var candidate = source->reconciliationReport->linked.get(nSourceRecord);
 
     var candidateDetails = Array<MatchedCandidateDetail> {};
     var basicRecord = candidate?.candidateRecord->toFullRecord();
-    if (candidate != null && basicRecord != null) {
+    if (candidate
+        != null
+        && basicRecord
+        != null) {
         var score = candidate.detailedScore?.resolve();
         var details = MatchedCandidateDetail {
             ref: candidate.candidateRecord,
-            numberScore: trunc((score?.numberScore ?? 1.0) * 100),
-            streetScore: trunc((score?.streetScore ?? 1.0) * 100),
-            cityScore: trunc((score?.cityScore ?? 1.0) * 100),
-            overallScore: trunc((score?.overallScore ?? 1.0) * 100),
-            postcodeScore: trunc((score?.postcodeScore ?? 1.0) * 100),
+            numberScore: trunc((score?.numberScore
+                    ?? 1.0)
+                    * 100),
+            streetScore: trunc((score?.streetScore
+                    ?? 1.0)
+                    * 100),
+            cityScore: trunc((score?.cityScore
+                    ?? 1.0)
+                    * 100),
+            overallScore: trunc((score?.overallScore
+                    ?? 1.0)
+                    * 100),
+            postcodeScore: trunc((score?.postcodeScore
+                    ?? 1.0)
+                    * 100),
             record: basicRecord,
         };
-        if (score?.geoScore != null) {
-            details.geoScore = trunc(score.geoScore * 100);
+        if (score?.geoScore
+            != null) {
+            details.geoScore = trunc(score.geoScore
+                    * 100);
         }
         candidateDetails.add(details);
     }
@@ -684,7 +831,8 @@ type GoldenRecordPage {
 fn computeGlobalQuality() {
     GoldenServices::computeAndRecordGlobalQuality();
     var nGolden = sources_by_name.get(GoldenSource::NAME);
-    if (nGolden != null) {
+    if (nGolden
+        != null) {
         DataSource::recordCounts(nGolden, DataSource::countRecords(nGolden));
     }
 }
@@ -693,7 +841,8 @@ fn computeGlobalQuality() {
 @permission("admin")
 fn unlockSource(source: String) {
     var nSource = sources_by_name.get(source);
-    if (nSource == null) {
+    if (nSource
+        == null) {
         throw "Source with name ${source} not Found";
     }
     nSource->clearIsReconciling();

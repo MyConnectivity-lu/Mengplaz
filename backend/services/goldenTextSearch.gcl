@@ -28,9 +28,14 @@ type GoldenTextSearch {
     /// The literal rather than `AddressIndex::create`: GCL rejects generic arguments on a
     /// static access.
     static fn reset() {
-        golden_address_index.set(AddressIndex<String> { index: TextIndex<AddressDoc> {
-            config: address_index_config(TextSearchLanguage::fr)
-        }, lang: TextSearchLanguage::fr });
+        golden_address_index.set(
+            AddressIndex<String> {
+                index: TextIndex<AddressDoc> {
+                    config: address_index_config(TextSearchLanguage::fr)
+                },
+                lang: TextSearchLanguage::fr
+            }
+        );
     }
 
     static fn ready(): AddressIndex<String>? {

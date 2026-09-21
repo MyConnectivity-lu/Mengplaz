@@ -77,8 +77,7 @@ fn streetSearchScopedToACityOnlyReturnsThatCitysStreets() {
 @test
 fn globalStreetSearchUsesTheStricterEditDistanceMetric() {
     // Scoped search uses Jaro-Winkler; global search uses length-normalised Levenshtein,
-    // which is harsher on long divergent names. A name that clears the threshold when scoped
-    // to its city can therefore fall below it in a country-wide scan.
+    // which is harsher on long divergent names. A name that clears the threshold when scoped// to its city can therefore fall below it in a country-wide scan.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");

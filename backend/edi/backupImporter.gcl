@@ -47,21 +47,20 @@ abstract type BackupImporter {
         info("Restore: golden quality history=${BackupImporter::importGoldenQualityHistory()}");
         info("Restore: source count history=${BackupImporter::importSourceCountHistory(null)}");
 
-        info("Restore: done in ${(time::now() - start).to(DurationUnit::seconds)}s");
+        info("Restore: done in ${(time::now()
+                - start).to(DurationUnit::seconds)}s");
     }
 
     // Empty graph guard
-
     /// `sources_by_name` is deliberately not counted: `bootstrap()` initialises the sources
     /// before restoring, and `importSources()` is keyed by source name anyway.
     static fn graphContents(): String {
         var found = "";
-        found
-            = BackupImporter::appendIfFilled(
-                found,
-                "caclr_constituencies_by_code",
-                caclr_constituencies_by_code.size()
-            );
+        found = BackupImporter::appendIfFilled(
+            found,
+            "caclr_constituencies_by_code",
+            caclr_constituencies_by_code.size()
+        );
         found = BackupImporter::appendIfFilled(found, "caclr_cantons_by_id", caclr_cantons_by_id.size());
         found = BackupImporter::appendIfFilled(found, "caclr_municipalities_by_id", caclr_municipalities_by_id.size());
         found = BackupImporter::appendIfFilled(found, "caclr_cities_by_id", caclr_cities_by_id.size());
@@ -72,28 +71,24 @@ abstract type BackupImporter {
         found = BackupImporter::appendIfFilled(found, "bda_cities_by_name", bda_cities_by_name.size());
         found = BackupImporter::appendIfFilled(found, "bda_streets_by_name", bda_streets_by_name.size());
         found = BackupImporter::appendIfFilled(found, "bda_streets_by_caclr_id", bda_streets_by_caclr_id.size());
-        found
-            = BackupImporter::appendIfFilled(
-                found,
-                "bda_addresses_by_geoportail_id",
-                bda_addresses_by_geoportail_id.size()
-            );
+        found = BackupImporter::appendIfFilled(
+            found,
+            "bda_addresses_by_geoportail_id",
+            bda_addresses_by_geoportail_id.size()
+        );
 
         found = BackupImporter::appendIfFilled(found, "osm_cities_by_name", osm_cities_by_name.size());
         found = BackupImporter::appendIfFilled(found, "osm_streets_by_name", osm_streets_by_name.size());
         found = BackupImporter::appendIfFilled(found, "osm_addresses_by_id", osm_addresses_by_id.size());
-        found
-            = BackupImporter::appendIfFilled(found, "osm_partial_addresses_by_id", osm_partial_addresses_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "osm_partial_addresses_by_id", osm_partial_addresses_by_id.size());
 
-        found
-            = BackupImporter::appendIfFilled(
-                found,
-                "golden_constituencies_by_code",
-                golden_constituencies_by_code.size()
-            );
+        found = BackupImporter::appendIfFilled(
+            found,
+            "golden_constituencies_by_code",
+            golden_constituencies_by_code.size()
+        );
         found = BackupImporter::appendIfFilled(found, "golden_cantons_by_id", golden_cantons_by_id.size());
-        found
-            = BackupImporter::appendIfFilled(found, "golden_municipalities_by_id", golden_municipalities_by_id.size());
+        found = BackupImporter::appendIfFilled(found, "golden_municipalities_by_id", golden_municipalities_by_id.size());
         found = BackupImporter::appendIfFilled(found, "golden_cities_by_id", golden_cities_by_id.size());
         found = BackupImporter::appendIfFilled(found, "golden_streets_by_id", golden_streets_by_id.size());
         found = BackupImporter::appendIfFilled(found, "golden_addresses_by_id", golden_addresses_by_id.size());
@@ -103,29 +98,32 @@ abstract type BackupImporter {
 
     /// `bootstrap()` uses this to decide whether to fall back to the live loaders.
     static fn isGraphEmpty(): bool {
-        return BackupImporter::graphContents() == "";
+        return BackupImporter::graphContents()
+            == "";
     }
 
     /// Throws unless every data root is empty, listing what was found.
     static fn assertGraphIsEmpty() {
         var found = BackupImporter::graphContents();
-        if (found != "") {
+        if (found
+            != "") {
             throw "Restore refused: the graph is not empty (${found}). Stop the server, remove the gcdata directory, run 'greycat build', then restore again.";
         }
     }
 
     static fn appendIfFilled(found: String, name: String, size: int): String {
-        if (size == 0) {
+        if (size
+            == 0) {
             return found;
         }
-        if (found == "") {
+        if (found
+            == "") {
             return "${name}=${size}";
         }
         return "${found}, ${name}=${size}";
     }
 
     // Sources
-
     static fn importSources(): int {
         CaclrSource::init();
         BdaSource::init();
@@ -137,7 +135,8 @@ abstract type BackupImporter {
         while (fr.can_read()) {
             var l = fr.read();
             var nSource = sources_by_name.get(l.name);
-            if (nSource == null) {
+            if (nSource
+                == null) {
                 warn("Restore: unknown source ${l.name}, skipped");
                 continue;
             }
@@ -148,13 +147,13 @@ abstract type BackupImporter {
     }
 
     // CACLR
-
     static fn importCaclrConstituencies(): int {
         var fr = JsonReader<BkCaclrConstituencyDTO> { path: BackupExporter::caclrConstituencyPath };
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (caclr_constituencies_by_code.get(l.code) != null) {
+            if (caclr_constituencies_by_code.get(l.code)
+                != null) {
                 continue;
             }
             var nConstituency = node<CaclrConstituency> {
@@ -171,11 +170,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (caclr_cantons_by_id.get(l.id) != null) {
+            if (caclr_cantons_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nConstituency = caclr_constituencies_by_code.get(l.constituencyCode);
-            if (nConstituency == null) {
+            if (nConstituency
+                == null) {
                 warn("Restore: CACLR canton ${l.id} references unknown constituency ${l.constituencyCode}, skipped");
                 continue;
             }
@@ -201,11 +202,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (caclr_municipalities_by_id.get(l.id) != null) {
+            if (caclr_municipalities_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nCanton = caclr_cantons_by_id.get(l.cantonId);
-            if (nCanton == null) {
+            if (nCanton
+                == null) {
                 warn("Restore: CACLR municipality ${l.id} references unknown canton ${l.cantonId}, skipped");
                 continue;
             }
@@ -238,11 +241,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (caclr_cities_by_id.get(l.id) != null) {
+            if (caclr_cities_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nMunicipality = caclr_municipalities_by_id.get(l.municipalityId);
-            if (nMunicipality == null) {
+            if (nMunicipality
+                == null) {
                 warn("Restore: CACLR city ${l.id} references unknown municipality ${l.municipalityId}, skipped");
                 continue;
             }
@@ -273,11 +278,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (caclr_streets_by_id.get(l.id) != null) {
+            if (caclr_streets_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nCity = caclr_cities_by_id.get(l.cityId);
-            if (nCity == null) {
+            if (nCity
+                == null) {
                 warn("Restore: CACLR street ${l.id} references unknown city ${l.cityId}, skipped");
                 continue;
             }
@@ -308,13 +315,16 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (caclr_addresses_by_id.get(l.id) != null) {
+            if (caclr_addresses_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nStreet: node<CaclrStreet>?;
-            if (l.streetId != null) {
+            if (l.streetId
+                != null) {
                 nStreet = caclr_streets_by_id.get(l.streetId);
-                if (nStreet == null) {
+                if (nStreet
+                    == null) {
                     warn("Restore: CACLR building ${l.id} references unknown street ${l.streetId}");
                 }
             }
@@ -333,7 +343,8 @@ abstract type BackupImporter {
                     street: nStreet,
                     lastSeenAt: l.lastSeenAt,
                     createdAt: l.createdAt,
-                    deprecated: l.deprecated ?? false
+                    deprecated: l.deprecated
+                        ?? false
                 }
             };
             nBuilding->indexing(nBuilding);
@@ -343,13 +354,13 @@ abstract type BackupImporter {
     }
 
     // BDA
-
     static fn importBdaMunicipalities(): int {
         var fr = JsonReader<BkBdaMunicipalityDTO> { path: BackupExporter::bdaMunicipalityPath };
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (bda_municipalities_by_name.get(l.name.lowercase()) != null) {
+            if (bda_municipalities_by_name.get(l.name.lowercase())
+                != null) {
                 continue;
             }
             var nMunicipality = node<BdaMunicipality> {
@@ -367,10 +378,12 @@ abstract type BackupImporter {
         while (fr.can_read()) {
             var l = fr.read();
             var nMunicipality: node<BdaMunicipality>?;
-            if (l.municipalityName != null) {
+            if (l.municipalityName
+                != null) {
                 nMunicipality = bda_municipalities_by_name.get(l.municipalityName.lowercase());
             }
-            if (BackupImporter::findBdaCity(l.name, nMunicipality) != null) {
+            if (BackupImporter::findBdaCity(l.name, nMunicipality)
+                != null) {
                 continue;
             }
             var nCity = node<BdaCity> {
@@ -391,15 +404,18 @@ abstract type BackupImporter {
     /// same-named city - dropping the link would hide the street from city-scoped search.
     static fn findBdaCity(name: String, nMunicipality: node<BdaMunicipality>?): node<BdaCity>? {
         var cityKey = name.lowercase();
-        if (nMunicipality != null) {
+        if (nMunicipality
+            != null) {
             return nMunicipality->cities_by_name?.get(cityKey);
         }
         var candidates = bda_cities_by_name.get(cityKey);
-        if (candidates == null) {
+        if (candidates
+            == null) {
             return null;
         }
         for (_, nCity in candidates) {
-            if (nCity->municipality == null) {
+            if (nCity->municipality
+                == null) {
                 return nCity;
             }
         }
@@ -414,11 +430,13 @@ abstract type BackupImporter {
             var l = fr.read();
 
             var nMunicipality: node<BdaMunicipality>?;
-            if (l.municipalityName != null) {
+            if (l.municipalityName
+                != null) {
                 nMunicipality = bda_municipalities_by_name.get(l.municipalityName.lowercase());
             }
             var nCity: node<BdaCity>?;
-            if (l.cityName != null) {
+            if (l.cityName
+                != null) {
                 nCity = BackupImporter::findBdaCity(l.cityName, nMunicipality);
             }
             var nStreet = node<BdaStreet> {
@@ -433,7 +451,8 @@ abstract type BackupImporter {
             nStreet->indexing(nStreet);
             count++;
         }
-        if (duplicates > 0) {
+        if (duplicates
+            > 0) {
             info("Restore: ${duplicates} BDA street rows collapsed onto an existing CACLR id");
         }
         return count;
@@ -444,17 +463,22 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (bda_addresses_by_geoportail_id.get(l.idGeoportail) != null) {
+            if (bda_addresses_by_geoportail_id.get(l.idGeoportail)
+                != null) {
                 continue;
             }
             var nStreet = bda_streets_by_caclr_id.get(l.streetIdCaclr);
             var nMunicipality = bda_municipalities_by_name.get(l.municipalityName.lowercase());
-            if (nStreet == null || nMunicipality == null) {
+            if (nStreet
+                == null
+                || nMunicipality
+                == null) {
                 warn("Restore: BDA address ${l.idGeoportail} references an unknown street or municipality, skipped");
                 continue;
             }
             var nCity = BackupImporter::findBdaCity(l.cityName, nMunicipality);
-            if (nCity == null) {
+            if (nCity
+                == null) {
                 warn("Restore: BDA address ${l.idGeoportail} references unknown city ${l.cityName}, skipped");
                 continue;
             }
@@ -470,7 +494,8 @@ abstract type BackupImporter {
                     municipality: nMunicipality,
                     lastSeenAt: l.lastSeenAt,
                     createdAt: l.createdAt,
-                    deprecated: l.deprecated ?? false
+                    deprecated: l.deprecated
+                        ?? false
                 }
             };
             nAddress->indexing(nAddress);
@@ -480,13 +505,13 @@ abstract type BackupImporter {
     }
 
     // OSM
-
     static fn importOsmCities(): int {
         var fr = JsonReader<BkOsmCityDTO> { path: BackupExporter::osmCityPath };
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (osm_cities_by_name.get(l.name.lowercase()) != null) {
+            if (osm_cities_by_name.get(l.name.lowercase())
+                != null) {
                 continue;
             }
             var nCity = node<OsmCity> {
@@ -504,11 +529,13 @@ abstract type BackupImporter {
         while (fr.can_read()) {
             var l = fr.read();
             var nCity = osm_cities_by_name.get(l.cityName.lowercase());
-            if (nCity == null) {
+            if (nCity
+                == null) {
                 warn("Restore: OSM street ${l.name} references unknown city ${l.cityName}, skipped");
                 continue;
             }
-            if (nCity->streets_by_name.get(l.name.lowercase()) != null) {
+            if (nCity->streets_by_name.get(l.name.lowercase())
+                != null) {
                 continue;
             }
             var nStreet = node<OsmStreet> {
@@ -530,16 +557,18 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (osm_addresses_by_id.get("${l.id}") != null) {
+            if (osm_addresses_by_id.get("${l.id}")
+                != null) {
                 continue;
             }
             var nStreetRef: node<OsmStreet>?;
-            if (l.streetRefName != null && l.streetRefCity != null) {
-                nStreetRef
-                    = osm_cities_by_name
-                        .get(l.streetRefCity.lowercase())?
-                        ->streets_by_name
-                        .get(l.streetRefName.lowercase());
+            if (l.streetRefName
+                != null
+                && l.streetRefCity
+                != null) {
+                nStreetRef = osm_cities_by_name.get(l.streetRefCity.lowercase())?->streets_by_name.get(
+                    l.streetRefName.lowercase()
+                );
             }
             var nAddress = node<OsmAddress> {
                 OsmAddress {
@@ -555,7 +584,8 @@ abstract type BackupImporter {
                     streetRef: nStreetRef,
                     lastSeenAt: l.lastSeenAt,
                     createdAt: l.createdAt,
-                    deprecated: l.deprecated ?? false
+                    deprecated: l.deprecated
+                        ?? false
                 }
             };
             nAddress->indexing(nAddress);
@@ -569,7 +599,8 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (osm_partial_addresses_by_id.get(l.id) != null) {
+            if (osm_partial_addresses_by_id.get(l.id)
+                != null) {
                 continue;
             }
             // OsmPartialAddress has no `indexing()`: the loader wires both roots by hand.
@@ -586,7 +617,8 @@ abstract type BackupImporter {
                 }
             };
             osm_partial_addresses_by_id.set(l.id, nPartial);
-            if (l.position != null) {
+            if (l.position
+                != null) {
                 osm_partial_addresses_by_geo.set(l.position, nPartial);
             }
             count++;
@@ -595,13 +627,13 @@ abstract type BackupImporter {
     }
 
     // Golden
-
     static fn importGoldenConstituencies(): int {
         var fr = JsonReader<BkGoldenConstituencyDTO> { path: BackupExporter::goldenConstituencyPath };
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_constituencies_by_code.get(l.code) != null) {
+            if (golden_constituencies_by_code.get(l.code)
+                != null) {
                 continue;
             }
             var nConstituency = node<GoldenConstituency> {
@@ -623,11 +655,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_cantons_by_id.get(l.id) != null) {
+            if (golden_cantons_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nConstituency = golden_constituencies_by_code.get(l.constituencyId);
-            if (nConstituency == null) {
+            if (nConstituency
+                == null) {
                 warn("Restore: golden canton ${l.id} references unknown constituency ${l.constituencyId}, skipped");
                 continue;
             }
@@ -653,11 +687,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_municipalities_by_id.get(l.id) != null) {
+            if (golden_municipalities_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nCanton = golden_cantons_by_id.get(l.cantonId);
-            if (nCanton == null) {
+            if (nCanton
+                == null) {
                 warn("Restore: golden municipality ${l.id} references unknown canton ${l.cantonId}, skipped");
                 continue;
             }
@@ -682,11 +718,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_cities_by_id.get(l.id) != null) {
+            if (golden_cities_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nMunicipality = golden_municipalities_by_id.get(l.municipalityId);
-            if (nMunicipality == null) {
+            if (nMunicipality
+                == null) {
                 warn("Restore: golden city ${l.id} references unknown municipality ${l.municipalityId}, skipped");
                 continue;
             }
@@ -711,11 +749,13 @@ abstract type BackupImporter {
         var count = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_streets_by_id.get(l.id) != null) {
+            if (golden_streets_by_id.get(l.id)
+                != null) {
                 continue;
             }
             var nCity = golden_cities_by_id.get(l.cityId);
-            if (nCity == null) {
+            if (nCity
+                == null) {
                 warn("Restore: golden street ${l.id} references unknown city ${l.cityId}, skipped");
                 continue;
             }
@@ -743,11 +783,13 @@ abstract type BackupImporter {
         var linkCount = 0;
         while (fr.can_read()) {
             var l = fr.read();
-            if (golden_addresses_by_id.get(l.uid) != null) {
+            if (golden_addresses_by_id.get(l.uid)
+                != null) {
                 continue;
             }
             var nStreet: node<GoldenStreet>?;
-            if (l.streetId != null) {
+            if (l.streetId
+                != null) {
                 nStreet = golden_streets_by_id.get(l.streetId);
             }
             var nGolden = node<GoldenAddress> {
@@ -768,7 +810,8 @@ abstract type BackupImporter {
 
             for (_, linkedRecord in l.linkedRecords?) {
                 var nRecord = BackupImporter::findSourceRecord(linkedRecord.sourceName, linkedRecord.id);
-                if (nRecord == null) {
+                if (nRecord
+                    == null) {
                     warn(
                         "Restore: golden POI ${l.uid} links unknown ${linkedRecord.sourceName} record ${linkedRecord.id}"
                     );
@@ -776,7 +819,8 @@ abstract type BackupImporter {
                 }
                 nRecord->linkToGolden(nGolden);
                 var entry = LinkedRecordEntry { record: nRecord, score: linkedRecord.score };
-                if (linkedRecord.detailedScore != null) {
+                if (linkedRecord.detailedScore
+                    != null) {
                     entry.detailedScore = node<ReconciliationCandidateScore> { linkedRecord.detailedScore };
                 }
                 nGolden->linkedRecords.add(entry);
@@ -784,29 +828,39 @@ abstract type BackupImporter {
                 // `linkRecords`/`promoteRecord` mirror every link into the source's report, so
                 // rebuild that side too or the restored "Linked" tab comes up empty.
                 var nReport = reports.get(linkedRecord.sourceName);
-                if (nReport == null) {
+                if (nReport
+                    == null) {
                     warn(
                         "Restore: no reconciliation report for source ${linkedRecord.sourceName}, link ${linkedRecord.id} not reported"
                     );
                     continue;
                 }
-                nReport->linked.set(nRecord, ReconciliationCandidate {
-                    candidateRecord: nGolden,
-                    detailedScore: entry.detailedScore
-                });
+                nReport->linked.set(
+                    nRecord,
+                    ReconciliationCandidate {
+                        candidateRecord: nGolden,
+                        detailedScore: entry.detailedScore
+                    }
+                );
                 linkCount++;
             }
 
             for (_, event in l.quality?) {
                 var nRecord: node<AddressRecordProvider>?;
-                if (event.id != null && event.sourceName != null) {
+                if (event.id
+                    != null
+                    && event.sourceName
+                    != null) {
                     nRecord = BackupImporter::findSourceRecord(event.sourceName, event.id);
                 }
-                nGolden->quality.setAt(event.t, QualityEvent {
-                    score: event.score,
-                    sourceRecord: nRecord,
-                    eventType: event.eventType
-                });
+                nGolden->quality.setAt(
+                    event.t,
+                    QualityEvent {
+                        score: event.score,
+                        sourceRecord: nRecord,
+                        eventType: event.eventType
+                    }
+                );
             }
 
             nGolden->indexing(nGolden);
@@ -827,11 +881,14 @@ abstract type BackupImporter {
     }
 
     static fn findSourceRecord(sourceName: String, id: String): node<AddressRecordProvider>? {
-        if (sourceName == CaclrSource::NAME) {
+        if (sourceName
+            == CaclrSource::NAME) {
             return caclr_addresses_by_id.get(id);
-        } else if (sourceName == BdaSource::NAME) {
+        } else if (sourceName
+            == BdaSource::NAME) {
             return bda_addresses_by_geoportail_id.get(id);
-        } else if (sourceName == OsmSource::NAME) {
+        } else if (sourceName
+            == OsmSource::NAME) {
             return osm_addresses_by_id.get(id);
         }
         return null;
@@ -840,7 +897,8 @@ abstract type BackupImporter {
     static fn importGoldenQualityHistory(): int {
         // Dereference before the type test, see `BackupExporter::exportGoldenQualityHistory`.
         var nGoldenSource = sources_by_name.get(GoldenSource::NAME);
-        if (nGoldenSource == null) {
+        if (nGoldenSource
+            == null) {
             return 0;
         }
         var goldenSource = *nGoldenSource;
@@ -861,10 +919,12 @@ abstract type BackupImporter {
     }
 
     static fn importSourceCountHistory(path: String?): int {
-        var target = path ?? BackupExporter::sourceCountHistoryPath;
+        var target = path
+            ?? BackupExporter::sourceCountHistoryPath;
         // Absent from every backup written before this feature existed, so a missing file is
         // normal.
-        if (File::open(target) == null) {
+        if (File::open(target)
+            == null) {
             return 0;
         }
         var fr = CsvReader<BkSourceCountHistoryDTO> { path: target, format: CsvFormat { header_lines: 1 } };
@@ -873,7 +933,8 @@ abstract type BackupImporter {
         while (fr.can_read()) {
             var l = fr.read();
             var nSource = sources_by_name.get(l.sourceName);
-            if (nSource == null) {
+            if (nSource
+                == null) {
                 skipped++;
                 continue;
             }
@@ -881,7 +942,8 @@ abstract type BackupImporter {
             history.setAt(l.t, SourceCountSnapshot { total: l.total, active: l.active, linked: l.linked });
             count++;
         }
-        if (skipped > 0) {
+        if (skipped
+            > 0) {
             warn("Restore: ${skipped} count-history rows for unknown sources, skipped");
         }
         return count;

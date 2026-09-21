@@ -218,9 +218,11 @@ abstract type CaclrLoader {
 
         for (_, elem in cantons.items) {
             var record = caclr_cantons_by_id.get(elem.id);
-            if (record == null) {
+            if (record
+                == null) {
                 var nConstituency = caclr_constituencies_by_code.get(elem.constituency.code);
-                if (nConstituency == null) {
+                if (nConstituency
+                    == null) {
                     nConstituency = node<CaclrConstituency> {
                         CaclrConstituency {
                             code: elem.constituency.code,
@@ -244,7 +246,8 @@ abstract type CaclrLoader {
                 nConstituency->cantons_by_id.set(nCanton->id, nCanton);
                 caclr_cantons_by_id.set(nCanton->id, nCanton);
                 info("New CaclrCanton added: id=${nCanton->id} name=${nCanton->name}");
-            } else if (record->lastUpdate < elem.lastUpdate) {
+            } else if (record->lastUpdate
+                < elem.lastUpdate) {
                 warn("Record has been updated. Not supported yet.");
                 warn("Our record: ${*record}");
                 warn("New record: ${elem}");
@@ -274,14 +277,18 @@ abstract type CaclrLoader {
             var httpResponse = httpClient.send(request);
             var municipalities = httpResponse.content!!;
             totalItems = municipalities.totalCount;
-            requestStart = requestStart + municipalities.items.size();
-            info("Received ${requestStart - 1} / ${totalItems} municipalities.");
+            requestStart = requestStart
+                + municipalities.items.size();
+            info("Received ${requestStart
+                    - 1} / ${totalItems} municipalities.");
 
             for (_, elem in municipalities.items) {
                 var record = caclr_municipalities_by_id.get(elem.id);
-                if (record == null) {
+                if (record
+                    == null) {
                     var nCanton = caclr_cantons_by_id.get(elem.cantonId);
-                    if (nCanton == null) {
+                    if (nCanton
+                        == null) {
                         warn(
                             "Canton with id:${elem.cantonId} not found for municipality id:${elem.id}. Replacing by dummy."
                         );
@@ -308,13 +315,15 @@ abstract type CaclrLoader {
                     };
                     nMunicipality->indexing(nMunicipality);
                     info("New CaclrMunicipality added: id=${nMunicipality->id} name=${nMunicipality->name}");
-                } else if (record->lastUpdate < elem.lastUpdate) {
+                } else if (record->lastUpdate
+                    < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
                     warn("Our record: ${*record}");
                     warn("New record: ${elem}");
                 }
             }
-        } while (requestStart < totalItems);
+        } while (requestStart
+            < totalItems);
     }
 
     static fn loadCities() {
@@ -339,14 +348,18 @@ abstract type CaclrLoader {
             var httpResponse = httpClient.send(request);
             var cities = httpResponse.content!!;
             totalItems = cities.totalCount;
-            requestStart = requestStart + cities.items.size();
-            info("Received ${requestStart - 1} / ${totalItems} cities.");
+            requestStart = requestStart
+                + cities.items.size();
+            info("Received ${requestStart
+                    - 1} / ${totalItems} cities.");
 
             for (_, elem in cities.items) {
                 var record = caclr_cities_by_id.get(elem.id);
-                if (record == null) {
+                if (record
+                    == null) {
                     var nMunicipality = caclr_municipalities_by_id.get(elem.municipalityId);
-                    if (nMunicipality == null) {
+                    if (nMunicipality
+                        == null) {
                         warn(
                             "Municipality with id:${elem.municipalityId} not found for city id:${elem.id}. Replacing by dummy."
                         );
@@ -376,13 +389,15 @@ abstract type CaclrLoader {
                     };
                     nCity->indexing(nCity);
                     info("New CaclrCity added: id=${nCity->id} name=${nCity->name}");
-                } else if (record->lastUpdate < elem.lastUpdate) {
+                } else if (record->lastUpdate
+                    < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
                     warn("Our record: ${*record}");
                     warn("New record: ${elem}");
                 }
             }
-        } while (requestStart < totalItems);
+        } while (requestStart
+            < totalItems);
     }
 
     static fn loadStreets() {
@@ -407,14 +422,18 @@ abstract type CaclrLoader {
             var httpResponse = httpClient.send(request);
             var streets = httpResponse.content!!;
             totalItems = streets.totalCount;
-            requestStart = requestStart + streets.items.size();
-            info("Received ${requestStart - 1} / ${totalItems} streets.");
+            requestStart = requestStart
+                + streets.items.size();
+            info("Received ${requestStart
+                    - 1} / ${totalItems} streets.");
 
             for (_, elem in streets.items) {
                 var record = caclr_streets_by_id.get(elem.id);
-                if (record == null) {
+                if (record
+                    == null) {
                     var nCity = caclr_cities_by_id.get(elem.cityId);
-                    if (nCity == null) {
+                    if (nCity
+                        == null) {
                         warn("City with id:${elem.cityId} not found for street id:${elem.id}. Replacing by dummy.");
                         nCity = caclr_cities_by_id.get("UNKNOWN")!!;
                     }
@@ -442,27 +461,32 @@ abstract type CaclrLoader {
                     };
                     nStreet->indexing(nStreet);
                     info("New CaclrStreet added: id=${nStreet->id} name=${nStreet->name}");
-                } else if (record->lastUpdate < elem.lastUpdate) {
+                } else if (record->lastUpdate
+                    < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
                     warn("Our record: ${*record}");
                     warn("New record: ${elem}");
                 }
             }
-        } while (requestStart < totalItems);
+        } while (requestStart
+            < totalItems);
     }
 
     static fn loadBuildings(): bool {
         var jobs = Array<Job> {};
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i
+            < 5; i++) {
             jobs.add(Job {
-                function: CaclrLoader::loadBuildingsOfCity,
-                arguments: [Array<String> {}],
-            });
+                    function: CaclrLoader::loadBuildingsOfCity,
+                    arguments: [Array<String> {}],
+                });
         }
 
         for (cityId, _ in caclr_cities_by_id) {
-            if (cityId != "UNKNOWN") {
-                (jobs[parseNumber(cityId) % 5].arguments?[0] as Array<String>).add(cityId);
+            if (cityId
+                != "UNKNOWN") {
+                (jobs[parseNumber(cityId)
+                    % 5].arguments?[0] as Array<String>).add(cityId);
             }
         }
 
@@ -483,10 +507,13 @@ abstract type CaclrLoader {
                     newBuildings.add(nBuilding);
                 }
             }
-            count = count + (results?.size() ?? 0);
+            count = count
+                + (results?.size()
+                ?? 0);
         }
         var nSource = sources_by_name.get(CaclrSource::NAME);
-        if (nSource != null) {
+        if (nSource
+            != null) {
             SourceTextSearch::appendAll(nSource, newBuildings);
         }
 
@@ -518,10 +545,12 @@ abstract type CaclrLoader {
 
                 try {
                     var httpResponse = httpClient.send(request);
-                    if (httpResponse.content == null) {
+                    if (httpResponse.content
+                        == null) {
                         warn("Issue with the query on cityId:${cityId}");
                         warn(httpResponse);
-                        if (tentatives < 5) {
+                        if (tentatives
+                            < 5) {
                             tentatives++;
                         } else {
                             break;
@@ -529,14 +558,18 @@ abstract type CaclrLoader {
                     } else {
                         var buildings = httpResponse.content;
                         totalItems = buildings.totalCount;
-                        requestStart = requestStart + buildings.items.size();
-                        trace("Received ${requestStart - 1} / ${totalItems} buildings for cityId:${cityId}.");
+                        requestStart = requestStart
+                            + buildings.items.size();
+                        trace("Received ${requestStart
+                                - 1} / ${totalItems} buildings for cityId:${cityId}.");
 
                         for (_, elem in buildings.items) {
                             var record = caclr_addresses_by_id.get(elem.id);
-                            if (record == null) {
+                            if (record
+                                == null) {
                                 var nStreet = caclr_streets_by_id.get(elem.streetId);
-                                if (nStreet == null) {
+                                if (nStreet
+                                    == null) {
                                     warn(
                                         "Street with id:${elem.streetId} not found for building id:${elem.id}. Replacing by dummy."
                                     );
@@ -564,7 +597,8 @@ abstract type CaclrLoader {
                                 info(
                                     "New CaclrAddress added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}"
                                 );
-                            } else if (record->lastUpdate < elem.lastUpdate) {
+                            } else if (record->lastUpdate
+                                < elem.lastUpdate) {
                                 warn(
                                     "Record has been updated. Not supported yet. Our record: ${*record}, New record: ${elem}"
                                 );
@@ -576,7 +610,8 @@ abstract type CaclrLoader {
                     error(err);
                     break;
                 }
-            } while (requestStart < totalItems);
+            } while (requestStart
+                < totalItems);
         }
         return result;
     }

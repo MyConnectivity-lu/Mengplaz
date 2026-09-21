@@ -41,15 +41,17 @@ type StatsService {
                 share = total * 1.0 / grandTotal;
             }
 
-            rows.add(SourceStatsRow {
-                source: name,
-                total: total,
-                active: last?.active,
-                linked: last?.linked,
-                share: share,
-                lastUpdate: nSource->lastUpdate,
-                asOf: nSource->countHistory?.lastTime(),
-            });
+            rows.add(
+                SourceStatsRow {
+                    source: name,
+                    total: total,
+                    active: last?.active,
+                    linked: last?.linked,
+                    share: share,
+                    lastUpdate: nSource->lastUpdate,
+                    asOf: nSource->countHistory?.lastTime(),
+                }
+            );
 
             var history = nSource->countHistory;
             if (history != null) {
@@ -78,11 +80,13 @@ type StatsService {
                 continue;
             }
             var s = snapshot as SourceCountSnapshot;
-            points.add(SourceCountPoint {
-                timestamp: samples.get_cell(row, 0) as time,
-                total: s.total,
-                active: s.active,
-            });
+            points.add(
+                SourceCountPoint {
+                    timestamp: samples.get_cell(row, 0) as time,
+                    total: s.total,
+                    active: s.active,
+                }
+            );
         }
         return points;
     }

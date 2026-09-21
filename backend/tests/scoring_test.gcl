@@ -32,8 +32,7 @@ fn far(): geo {
 @test
 fn geoScoreIsNullWhenEitherSideHasNoCoordinates() {
     // Null is not zero: a missing coordinate must not be scored as a mismatch. Downstream,
-    // `computeOverallScore` turns this null into a neutral 1.0 rather than dragging the
-    // overall score down — see `overallScoreTreatsMissingGeoAsNeutral`.
+    // `computeOverallScore` turns this null into a neutral 1.0 rather than dragging the// overall score down — see `overallScoreTreatsMissingGeoAsNeutral`.
     var p = GeoParameters::default();
     Assert::isNull(GoldenServices::computeGeoScore(null, base(), p));
     Assert::isNull(GoldenServices::computeGeoScore(base(), null, p));
@@ -83,8 +82,7 @@ fn numberScoreIsOneOnAnExactMatch() {
 @test
 fn numberScoreIsPointEightWhenOnlyTheMultipleCodeDiffers() {
     // 12A vs 12B is the same building split two ways in two registries, so it stays a
-    // candidate — but never a perfect match, which is what keeps it out of the
-    // `overallScore == 1.0` fast path in `searchAddressForItem`.
+    // candidate — but never a perfect match, which is what keeps it out of the// `overallScore == 1.0` fast path in `searchAddressForItem`.
     Assert::equals(GoldenServices::computeNumberScore("12", "A", 12, "B"), 0.8);
     Assert::equals(GoldenServices::computeNumberScore("20", "", 20, "D"), 0.8);
 }
@@ -150,8 +148,7 @@ fn streetScoreToleratesSmallTypos() {
 @test
 fn globalStreetScoreIsLengthNormalisedEditDistance() {
     // The global variant swaps Jaro-Winkler for a length-normalised Levenshtein, because a
-    // country-wide street scan needs a metric that punishes long divergent names harder than
-    // Jaro-Winkler's shared-prefix bonus does.
+    // country-wide street scan needs a metric that punishes long divergent names harder than// Jaro-Winkler's shared-prefix bonus does.
     Assert::equals(GoldenServices::computeStreetScoreGlobal("rue de la gare", "Rue de la Gare"), 1.0);
     Assert::isTrue(GoldenServices::computeStreetScoreGlobal("rue de la gare", "Avenue Monterey") < 0.7);
 }
@@ -193,8 +190,7 @@ fn overallScoreTreatsMissingGeoAsNeutral() {
 @test
 fn overallScoreIsTheWeightedMeanOfItsFields() {
     // Defaults: city 4, street 3, postcode 3, number 1, geo 3 — total 14. Losing the number
-    // field alone therefore costs 1/14, which is why a number mismatch is filtered out
-    // upstream rather than left to the overall score to reject.
+    // field alone therefore costs 1/14, which is why a number mismatch is filtered out// upstream rather than left to the overall score to reject.
     var w = ScoringWeights::default();
     Assert::equals(w.total(), 14.0);
     Assert::equalsd(GoldenServices::computeOverallScore(1.0, 1.0, 0.0, 1.0, 1.0, w), 13.0 / 14.0, 0.0001);

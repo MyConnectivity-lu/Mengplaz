@@ -71,7 +71,8 @@ type CaclrMunicipality {
     fn indexing(self: node<CaclrMunicipality>) {
         var munKey = this.name.lowercase();
 
-        if (this.cities_by_name == null) {
+        if (this.cities_by_name
+            == null) {
             this.cities_by_name = nodeIndex<String, node<CaclrCity>> {};
         }
 
@@ -105,12 +106,14 @@ type CaclrCity {
     fn indexing(self: node<CaclrCity>) {
         var cityKey = this.name.lowercase();
         var cities = caclr_cities_by_name.get(cityKey);
-        if (cities == null) {
+        if (cities
+            == null) {
             cities = Array<node<CaclrCity>> {};
         }
         cities.add(self);
 
-        if (this.streets_by_name == null) {
+        if (this.streets_by_name
+            == null) {
             this.streets_by_name = nodeIndex<String, node<CaclrStreet>> {};
         }
 
@@ -147,12 +150,14 @@ type CaclrStreet {
     fn indexing(self: node<CaclrStreet>) {
         var streetKey = this.name.lowercase();
         var streets = caclr_streets_by_name.get(streetKey);
-        if (streets == null) {
+        if (streets
+            == null) {
             streets = Array<node<CaclrStreet>> {};
         }
         streets.add(self);
 
-        if (this.buildings_by_number == null) {
+        if (this.buildings_by_number
+            == null) {
             this.buildings_by_number = nodeIndex<String, node<CaclrAddress>> {};
         }
 
@@ -211,18 +216,21 @@ type CaclrAddress extends ExternalAddressRecord {
     private street: node<CaclrStreet>?;
 
     fn promoteToGolden(streetIdx: String): node<GoldenAddress> {
-        if (this.goldenRef != null) {
+        if (this.goldenRef
+            != null) {
             throw "Record is linked to Golden";
         }
         var nGoldenStreet = golden_streets_by_id.get(streetIdx);
-        if (nGoldenStreet == null) {
+        if (nGoldenStreet
+            == null) {
             throw "Could not find street";
         }
 
         var newUID: String;
         do {
             newUID = GoldenServices::generateUID();
-        } while (golden_addresses_by_id.get(newUID) != null);
+        } while (golden_addresses_by_id.get(newUID)
+            != null);
 
         var _ref = caclr_addresses_by_id.get(this.id)!!;
 
@@ -270,11 +278,14 @@ type CaclrAddress extends ExternalAddressRecord {
             lastSeenAt: this.lastSeenAt
         };
 
-        if (this.street != null) {
-            if (this.street->aliases.size() > 0) {
+        if (this.street
+            != null) {
+            if (this.street->aliases.size()
+                > 0) {
                 record.streetAliases = this.street->aliases;
             }
-            if (this.street->city->aliases.size() > 0) {
+            if (this.street->city->aliases.size()
+                > 0) {
                 record.localityAliases = this.street->city->aliases;
             }
         }
@@ -295,11 +306,14 @@ type CaclrAddress extends ExternalAddressRecord {
             goldenRef: this.goldenRef,
         };
 
-        if (this.street != null) {
-            if (this.street->aliases.size() > 0) {
+        if (this.street
+            != null) {
+            if (this.street->aliases.size()
+                > 0) {
                 record.streetAliases = this.street->aliases;
             }
-            if (this.street->city->aliases.size() > 0) {
+            if (this.street->city->aliases.size()
+                > 0) {
                 record.localityAliases = this.street->city->aliases;
             }
         }
@@ -323,8 +337,10 @@ type CaclrAddress extends ExternalAddressRecord {
             number: "${this.number}",
             multipleCode: "${this.multipleCode}",
             postcode: this.postcode,
-            street: this.street?.resolve().name.lowercase() ?? "",
-            city: this.street?.resolve().city->name.lowercase() ?? "",
+            street: this.street?.resolve().name.lowercase()
+                ?? "",
+            city: this.street?.resolve().city->name.lowercase()
+                ?? "",
             coordinates: this.position,
             streetAliases: this.street?.resolve().aliases,
             cityAliases: this.street?.resolve().city->aliases
@@ -349,7 +365,8 @@ type CaclrAddress extends ExternalAddressRecord {
 
     fn indexing(self: node<CaclrAddress>) {
         var nStreet = this.street;
-        if (nStreet != null) {
+        if (nStreet
+            != null) {
             var numKey = "${this.number}${this.multipleCode}";
             nStreet->buildings_by_number?.set(numKey, self);
             nStreet->buildings_by_id.set(this.id, self);
@@ -379,14 +396,19 @@ type CaclrToken {
     expiry_time: time;
 
     fn isValid(): bool {
-        return (time::now() + 60_s) < this.expiry_time;
+        return (time::now()
+            + 60_s)
+            < this.expiry_time;
     }
 
     static fn renew(): CaclrToken {
         var clientId = System::getEnv("CACLR_API_CLIENT_ID");
         var clientSecret = System::getEnv("CACLR_API_CLIENT_SECRET");
 
-        if (clientId == null || clientSecret == null) {
+        if (clientId
+            == null
+            || clientSecret
+            == null) {
             throw "No credentials provided to conect to CACLR source.";
         }
 
@@ -410,7 +432,10 @@ type CaclrToken {
         var httpClient = Http<CaclrTokenResponse> {};
         var response = httpClient.send(request);
 
-        if (response.status_code != 200 || response.content == null) {
+        if (response.status_code
+            != 200
+            || response.content
+            == null) {
             error(response);
             throw "Error while retrieving token.";
         }
@@ -421,7 +446,8 @@ type CaclrToken {
             scope: tokenData.scope,
             expires_in: tokenData.expires_in,
             iss: tokenData.iss,
-            expiry_time: time::now() + duration::new(tokenData.expires_in, DurationUnit::seconds),
+            expiry_time: time::now()
+                + duration::new(tokenData.expires_in, DurationUnit::seconds),
         };
         caclr_token.set(token);
         return token;
@@ -429,7 +455,9 @@ type CaclrToken {
 
     static fn get(): CaclrToken {
         var currentToken = *caclr_token;
-        if (currentToken == null || !currentToken.isValid()) {
+        if (currentToken
+            == null
+            || !currentToken.isValid()) {
             return CaclrToken::renew();
         } else {
             return currentToken;
@@ -443,10 +471,13 @@ type CaclrSource extends DataSource {
 
     static fn init() {
         var source = sources_by_name.get(CaclrSource::NAME);
-        if (source == null) {
-            var source = CaclrSource { reconciliationReport: node<ReconciliationReport> {
-                ReconciliationReport::init()
-            } };
+        if (source
+            == null) {
+            var source = CaclrSource {
+                reconciliationReport: node<ReconciliationReport> {
+                    ReconciliationReport::init()
+                }
+            };
             sources_by_name.set(source.name(), node<DataSource> { source });
         }
     }

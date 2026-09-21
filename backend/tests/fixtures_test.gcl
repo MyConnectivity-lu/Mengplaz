@@ -162,13 +162,9 @@ fn goldenStreet(nCity: node<GoldenCity>, streetName: String): node<GoldenStreet>
 
 /// A golden POI on `nStreet`, created and indexed. `location` may be null — a POI with no
 /// coordinates is normal in the real data and several scoring paths hinge on it.
-fn goldenPoi(
-    nStreet: node<GoldenStreet>,
-    houseNumber: int,
-    multipleCode: String,
-    postcode: String,
-    location: geo?
-): node<GoldenAddress> {
+fn goldenPoi(nStreet: node<GoldenStreet>, houseNumber: int, multipleCode: String, postcode: String, location: geo?): node<
+    GoldenAddress
+> {
     var nPoi = node<GoldenAddress> {
         GoldenAddress {
             uid: nextId("poi-"),
@@ -190,14 +186,9 @@ fn goldenPoi(
 /// An OSM source record, with its city and street created on demand — the same shape
 /// `OsmLoader` builds. OSM is the lightest `AddressRecordProvider` (flat strings, no
 /// municipality), which makes it the default source record for link/promote tests.
-fn osmAddress(
-    osmId: int,
-    houseNumber: String,
-    streetName: String,
-    cityName: String,
-    postcode: String,
-    position: geo
-): node<OsmAddress> {
+fn osmAddress(osmId: int, houseNumber: String, streetName: String, cityName: String, postcode: String, position: geo): node<
+    OsmAddress
+> {
     var cityKey = cityName.lowercase();
     var nCity = osm_cities_by_name.get(cityKey);
     if (nCity == null) {
@@ -342,17 +333,19 @@ fn reportCandidate(
     for (_, existing in nSource->getReconciliationReport()!!.unlinked.get(nRecord)?) {
         candidates.add(clone(existing));
     }
-    candidates.add(ReconciliationCandidate {
-        candidateRecord: nCandidate,
-        mismatch: mismatch,
-        score: ReconciliationCandidateScore {
-            cityScore: 1.0,
-            streetScore: 1.0,
-            numberScore: 1.0,
-            postcodeScore: 1.0,
-            geoScore: 1.0,
-            overallScore: overall,
-        },
-    });
+    candidates.add(
+        ReconciliationCandidate {
+            candidateRecord: nCandidate,
+            mismatch: mismatch,
+            score: ReconciliationCandidateScore {
+                cityScore: 1.0,
+                streetScore: 1.0,
+                numberScore: 1.0,
+                postcodeScore: 1.0,
+                geoScore: 1.0,
+                overallScore: overall,
+            },
+        }
+    );
     nSource->reconciliationReport->unlinked.set(nRecord, candidates);
 }

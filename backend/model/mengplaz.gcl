@@ -57,7 +57,8 @@ abstract type DataSource {
 
     static fn countHistoryOrCreate(nSource: node<DataSource>): nodeTime<SourceCountSnapshot> {
         var history = nSource->countHistory;
-        if (history == null) {
+        if (history
+            == null) {
             history = nodeTime<SourceCountSnapshot> {};
             nSource->countHistory = history;
         }
@@ -69,26 +70,31 @@ abstract type DataSource {
     }
 
     static fn reconcile(
-        nSource: node<DataSource>,
-        searchParams: SearchParameters?,
-        pois: Array<node<AddressRecordProvider>>?
+        nSource: node<DataSource>, searchParams: SearchParameters?, pois: Array<node<AddressRecordProvider>>?
     ): ReconciliationReport {
-        if (searchParams == null) {
+        if (searchParams
+            == null) {
             searchParams = SearchParameters::default();
         }
         var workers = Runtime::info().bg_threads;
         var jobs = Array<Job> {};
-        for (var i = 0; i < workers; i++) {
-            jobs.add(Job<any?> {
-                function: GoldenServices::search,
-                arguments: [SearchRequest { items: Array<node<AddressRecordProvider>> {}, params: searchParams }],
-            });
+        for (var i = 0; i
+            < workers; i++) {
+            jobs.add(
+                Job<any?> {
+                    function: GoldenServices::search,
+                    arguments: [SearchRequest { items: Array<node<AddressRecordProvider>> {}, params: searchParams }],
+                }
+            );
         }
 
         var count = 0;
-        for (_, sourceRecord in pois ?? nSource->getIndex()) {
-            if (sourceRecord->getLinkedGolden() == null) {
-                jobs[count % workers].arguments!![0]!!.items.add(sourceRecord);
+        for (_, sourceRecord in pois
+                ?? nSource->getIndex()) {
+            if (sourceRecord->getLinkedGolden()
+                == null) {
+                jobs[count
+                    % workers].arguments!![0]!!.items.add(sourceRecord);
                 count++;
             }
         }
@@ -114,16 +120,24 @@ abstract type DataSource {
                             overallScore: candidate.realOverallScore
                         }
                     };
-                    if (candidate.searchOverallScore != 1) {
+                    if (candidate.searchOverallScore
+                        != 1) {
                         var reason = MengplazMismatch::COMPLEX_MISMATCH;
-                        if (candidate.cityScore == 1) {
-                            if (candidate.postcodeScore == 1) {
-                                if (candidate.streetScore == 1) {
+                        if (candidate.cityScore
+                            == 1) {
+                            if (candidate.postcodeScore
+                                == 1) {
+                                if (candidate.streetScore
+                                    == 1) {
                                     reason = MengplazMismatch::NUMBER_MISMATCH;
-                                } else if (candidate.numberScore == 1) {
+                                } else if (candidate.numberScore
+                                    == 1) {
                                     reason = MengplazMismatch::STREET_MISMATCH;
                                 }
-                            } else if (candidate.streetScore == 1 && candidate.numberScore == 1) {
+                            } else if (candidate.streetScore
+                                == 1
+                                && candidate.numberScore
+                                == 1) {
                                 reason = MengplazMismatch::POSTCODE_MISMATCH;
                             }
                         }
@@ -133,7 +147,8 @@ abstract type DataSource {
                     }
                     results.add(reconCandidate);
                 }
-                if (perfectMatch > 1) {
+                if (perfectMatch
+                    > 1) {
                     for (_, res in results) {
                         res.mismatch = MengplazMismatch::MULTIPLE_MATCHES;
                     }
@@ -145,7 +160,8 @@ abstract type DataSource {
     }
 
     fn setIsReconciling() {
-        if (this.isReconciling == null) {
+        if (this.isReconciling
+            == null) {
             this.isReconciling = node<bool> { true };
         } else {
             this.isReconciling.set(true);
@@ -280,7 +296,8 @@ abstract type ExternalAddressRecord extends AddressRecordProvider {
     }
 
     fn isLinked(): bool {
-        return this.goldenRef != null;
+        return this.goldenRef
+            != null;
     }
 
     /// A record the current load still sees: heals one deprecated by a missed run.
@@ -342,7 +359,11 @@ type ScoringWeights {
     }
 
     fn total(): float {
-        return this.cityWeight + this.streetWeight + this.postcodeWeight + this.numberWeight + this.geoWeight;
+        return this.cityWeight
+            + this.streetWeight
+            + this.postcodeWeight
+            + this.numberWeight
+            + this.geoWeight;
     }
 }
 

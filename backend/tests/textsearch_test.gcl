@@ -165,9 +165,12 @@ fn appendingToAnAbsentIndexIsANoOpNotAnError() {
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
 
     Assert::isFalse(SourceTextSearch::append(nOsm));
-    Assert::equals(SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<AddressRecordProvider>> {
-        nOsm
-    }), 0);
+    Assert::equals(
+        SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<AddressRecordProvider>> {
+                nOsm
+            }),
+        0
+    );
 }
 
 @test

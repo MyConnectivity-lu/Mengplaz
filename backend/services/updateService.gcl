@@ -27,7 +27,7 @@ type UpdateService {
             DataSource::reconcile(s, null, toReconcile);
         }
 
-        var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
+        var lastT = s->lastUpdate ?? time::parse("2025-12-15", null);// Date of the last manual import
         var toPromote = Array<node<CaclrAddress>> {};
         if (golden_addresses_by_id.size() == 0) {
             // Empty Golden index, we are in a fresh bootstrap promote all CACLR to golden
@@ -98,7 +98,7 @@ type UpdateService {
         if (s == null) {
             return;
         }
-        var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
+        var lastT = s->lastUpdate ?? time::parse("2025-12-15", null);// Date of the last manual import
         var report = s->reconciliationReport;
         var toReconcile = Array<node<AddressRecordProvider>> {};
         for (_, nBuilding in bda_addresses_by_geoportail_id) {
@@ -167,8 +167,7 @@ type UpdateService {
         if (s == null) {
             return;
         }
-        var lastT = s->lastUpdate ?? time::parse("2025-12-15", null); // Date of the last manual import
-
+        var lastT = s->lastUpdate ?? time::parse("2025-12-15", null);// Date of the last manual import
         var report = s->reconciliationReport;
         var toReconcile = Array<node<AddressRecordProvider>> {};
         for (_, nBuilding in osm_addresses_by_id) {

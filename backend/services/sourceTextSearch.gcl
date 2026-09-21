@@ -28,9 +28,14 @@ type SourceTextSearch {
             nIdx = node<AddressIndex<String>?> {};
             source_address_indexes.set(sourceName, nIdx);
         }
-        nIdx.set(AddressIndex<String> { index: TextIndex<AddressDoc> {
-            config: address_index_config(TextSearchLanguage::fr)
-        }, lang: TextSearchLanguage::fr });
+        nIdx.set(
+            AddressIndex<String> {
+                index: TextIndex<AddressDoc> {
+                    config: address_index_config(TextSearchLanguage::fr)
+                },
+                lang: TextSearchLanguage::fr
+            }
+        );
         return nIdx;
     }
 
@@ -140,11 +145,9 @@ type SourceTextSearch {
     }
 
     /// Drops any hit whose record has since disappeared; relevance order is preserved.
-    static fn resolve(
-        nSource: node<DataSource>,
-        idx: AddressIndex<String>,
-        hits: Array<AddressSearchHit>
-    ): Array<node<AddressRecordProvider>> {
+    static fn resolve(nSource: node<DataSource>, idx: AddressIndex<String>, hits: Array<AddressSearchHit>): Array<
+        node<AddressRecordProvider>
+    > {
         var index = nSource->getIndex();
         var out = Array<node<AddressRecordProvider>> {};
         for (_, hit in hits) {
@@ -169,14 +172,16 @@ type SourceTextSearch {
                 continue;
             }
             var s = idx.index.stats();
-            out.add(SourceTextIndexStats {
-                source: name,
-                built: idx.index.built ?? false,
-                docs: s.totalEntries,
-                terms: s.totalTerms,
-                avgLen: s.avgTokenCount,
-                dirty: idx.index.dirtyCount ?? 0,
-            });
+            out.add(
+                SourceTextIndexStats {
+                    source: name,
+                    built: idx.index.built ?? false,
+                    docs: s.totalEntries,
+                    terms: s.totalTerms,
+                    avgLen: s.avgTokenCount,
+                    dirty: idx.index.dirtyCount ?? 0,
+                }
+            );
         }
         return out;
     }

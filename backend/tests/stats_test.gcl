@@ -7,8 +7,7 @@
 @test
 fn linkedIsReadFromEachSourcesOwnSide() {
     // A golden POI's `getLinkedGolden()` is null by definition, so "linked" has to mean
-    // "backed by at least one source record" on that side and "points at a golden" on the
-    // source side. Both readings answer the same question; neither works for both types.
+    // "backed by at least one source record" on that side and "points at a golden" on the// source side. Both readings answer the same question; neither works for both types.
     fixtures_test::reset();
     fixtures_test::seedSources();
 
@@ -70,8 +69,7 @@ fn countRecordsSeparatesTotalActiveAndLinked() {
 @test
 fn recordCountsCreatesTheSeriesOnFirstWrite() {
     // countHistory is nullable because the four DataSource objects in an existing store
-    // predate the field and every init() is guarded by `if (source == null)`, so nothing
-    // retrofits them. The series has to appear on first write instead.
+    // predate the field and every init() is guarded by `if (source == null)`, so nothing// retrofits them. The series has to appear on first write instead.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nSource = fixtures_test::osmSource();
@@ -92,9 +90,7 @@ fn recordCountsCreatesTheSeriesOnFirstWrite() {
 @test
 fn recordCountsAppendsRatherThanReplaces() {
     // Seeded at an explicit past timestamp rather than by a second recordCounts call:
-    // setAt overwrites on an exact-timestamp collision, and two back-to-back calls land on
-    // the same microsecond. Production writes a source once per import run, so what matters
-    // is appending to history that already exists.
+    // setAt overwrites on an exact-timestamp collision, and two back-to-back calls land on// the same microsecond. Production writes a source once per import run, so what matters// is appending to history that already exists.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nSource = fixtures_test::osmSource();
@@ -131,8 +127,7 @@ fn promotedGoldenRecordsAreStampedWithCreatedAt() {
 @test
 fn finalizeUpdateStampsLastUpdate() {
     // Regression test for `s->lastUpdate == time::now()` — a comparison, not an
-    // assignment, so no scheduled import ever wrote lastUpdate and every run compared
-    // against the hardcoded 2025-12-15 fallback instead.
+    // assignment, so no scheduled import ever wrote lastUpdate and every run compared// against the hardcoded 2025-12-15 fallback instead.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nSource = fixtures_test::osmSource();
@@ -179,8 +174,7 @@ fn finalizeUpdateOnAFailedLoadLeavesLastUpdateNullButStillRecordsACount() {
 @test
 fn markSeenClearsDeprecatedAndAdvancesLastSeenAt() {
     // Every loader calls `markSeen()` on a record it still sees, so one deprecated during a
-    // missed run heals itself. This pins `markSeen()`'s own contract; that the loaders call
-    // it cannot be tested without a live fetch.
+    // missed run heals itself. This pins `markSeen()`'s own contract; that the loaders call// it cannot be tested without a live fetch.
     fixtures_test::reset();
     fixtures_test::seedSources();
 
@@ -223,8 +217,7 @@ fn theDailyQualityRunAlsoSnapshotsGolden() {
 @test
 fn countHistorySurvivesABackupRoundTrip() {
     // bootstrap restores from ./backup, so a series that is not exported never accumulates.
-    // Written to a scratch path: the real one holds genuine, unreconstructable history and
-    // `greycat test` is part of the definition of done.
+    // Written to a scratch path: the real one holds genuine, unreconstructable history and// `greycat test` is part of the definition of done.
     var scratchPath = "files/backup/test_source_count_history.csv";
     fixtures_test::reset();
     fixtures_test::seedSources();
@@ -319,10 +312,19 @@ fn sourceStatsSharesSumToOne() {
     fixtures_test::reset();
     fixtures_test::seedSources();
     fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
-    fixtures_test::bdaAddress("GP-1", 900, "12", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
-        49.6116,
-        6.1319
-    });
+    fixtures_test::bdaAddress(
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        geo {
+            49.6116,
+            6.1319
+        }
+    );
 
     var stats = api::getSourceStats(null, null);
     var sum = 0.0;
@@ -354,8 +356,7 @@ fn sourceStatsReturnsOneSeriesPerSourceWithHistory() {
 @test
 fn sourceStatsRowDistinguishesLastUpdateFromAsOf() {
     // lastUpdate is the source's own import cutoff (null forever for Golden, which never
-    // imports); asOf is when the snapshot was counted. A failed load records a snapshot
-    // without advancing the cutoff, so the two must diverge here.
+    // imports); asOf is when the snapshot was counted. A failed load records a snapshot// without advancing the cutoff, so the two must diverge here.
     fixtures_test::reset();
     fixtures_test::seedSources();
     fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
@@ -377,8 +378,7 @@ fn sourceStatsRowDistinguishesLastUpdateFromAsOf() {
 @test
 fn sourceStatsSeriesIsDownsampledAndRangeNarrows() {
     // The one thing protecting this public, unauthenticated endpoint from an unbounded
-    // response is the MAX_POINTS cap on samplePoints; exercise it for real rather than
-    // with the single-point series every other test writes.
+    // response is the MAX_POINTS cap on samplePoints; exercise it for real rather than// with the single-point series every other test writes.
     fixtures_test::reset();
     fixtures_test::seedSources();
     var nSource = fixtures_test::osmSource();

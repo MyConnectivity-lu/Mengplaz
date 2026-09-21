@@ -32,7 +32,10 @@ abstract type OsmLoader {
             timeout: 5_min
         };
         var response = httpClient.send(req);
-        if (response.status_code == 200 && response.content != null) {
+        if (response.status_code
+            == 200
+            && response.content
+            != null) {
             var elements = response.content.elements;
             info("Collected ${elements.size()} addresses.");
 
@@ -46,7 +49,8 @@ abstract type OsmLoader {
 
                     var cityKey = parsed.city.lowercase();
                     var nCity = osm_cities_by_name.get(cityKey);
-                    if (nCity == null) {
+                    if (nCity
+                        == null) {
                         nCity = node<OsmCity> {
                             OsmCity {
                                 name: parsed.city,
@@ -59,7 +63,8 @@ abstract type OsmLoader {
 
                     var streetKey = parsed.street.lowercase();
                     var nStreet = nCity->streets_by_name.get(streetKey);
-                    if (nStreet == null) {
+                    if (nStreet
+                        == null) {
                         nStreet = node<OsmStreet> {
                             OsmStreet {
                                 name: parsed.street,
@@ -72,7 +77,8 @@ abstract type OsmLoader {
                         info("Created new street: ${parsed.street} (${parsed.city})");
                     }
                     var nAddr = osm_addresses_by_id.get("${parsed.id}");
-                    if (nAddr == null) {
+                    if (nAddr
+                        == null) {
                         nAddr = node<OsmAddress> {
                             OsmAddress {
                                 id: parsed.id,
@@ -95,23 +101,30 @@ abstract type OsmLoader {
                             "Created new address: ${parsed.number} ${parsed.street}, ${parsed.postcode} ${parsed.city}"
                         );
                     }
-                    if (nAddr->kind == null && parsed.kind != null) {
+                    if (nAddr->kind
+                        == null
+                        && parsed.kind
+                        != null) {
                         nAddr->kind = parsed.kind;
                     }
                     nAddr->markSeen();
                 } catch (e) {
-                    issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
+                    issues.set(e.message!!, (issues.get(e.message)
+                            ?? 0)
+                            + 1);
                     var addr = OsmPartialAddress::parse(elem);
                     var nAddr = node<OsmPartialAddress> { addr };
                     osm_partial_addresses_by_id.set(addr.id, nAddr);
-                    if (addr.position != null) {
+                    if (addr.position
+                        != null) {
                         osm_partial_addresses_by_geo.set(addr.position, nAddr);
                     }
                     warn("Could not parse: ${elem}\n${e}");
                 }
             }
             var nSource = sources_by_name.get(OsmSource::NAME);
-            if (nSource != null) {
+            if (nSource
+                != null) {
                 SourceTextSearch::appendAll(nSource, newAddresses);
             }
 
@@ -119,7 +132,8 @@ abstract type OsmLoader {
             info("Parsed ${(osm_partial_addresses_by_id).size()} partial addresses.");
             // Overpass answers 200 with an empty `elements` array when it is overloaded.
             // Reading that as a good load would deprecate the whole index.
-            if (elements.size() == 0) {
+            if (elements.size()
+                == 0) {
                 warn("Overpass returned 200 with no elements, treating as a failed load");
                 return false;
             }
