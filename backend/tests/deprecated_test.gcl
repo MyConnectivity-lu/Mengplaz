@@ -1,0 +1,113 @@
+/// The deprecated-record tally, per source and across all of them.
+///
+/// A deprecated record is one the last successful load no longer saw. The count is read
+/// from the source's `countHistory` snapshot (`total - active`) so the endpoint stays O(1)
+/// on six-figure indices; only a source that has never been snapshotted is scanned live.
+@test
+fn deprecatedCountsReportsOneRowPerRegisteredSource() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var counts = api::getDeprecatedCounts(null);
+
+    Assert::equals(counts.rows.size(), 4);
+}
+
+@test
+fn deprecatedCountsReadsTheTallyFromTheLastSnapshot() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+    var nGone = fixtures_test::osmAddress(3, "16", "Rue de la Gare", "Gasperich", "1234", geo { 49.6118, 6.1319 });
+    nGone->deprecated = true;
+    StatsService::finalizeUpdate(fixtures_test::osmSource(), true);
+
+    var counts = api::getDeprecatedCounts(OsmSource::NAME);
+
+    Assert::equals(counts.rows.size(), 1);
+    Assert::equals(counts.rows[0].source, OsmSource::NAME);
+    Assert::equals(counts.rows[0].total, 3);
+    Assert::equals(counts.rows[0].deprecated, 1);
+    Assert::isNotNull(counts.rows[0].asOf);
+}
+
+@test
+fn deprecatedCountsFallsBackToALiveScanBeforeTheFirstSnapshot() {
+    // A store that has not imported since snapshots shipped has a null countHistory. The
+    // tally is this endpoint's whole purpose, so it is worth scanning for rather than
+    // reporting as unknown. A null asOf is what marks the row as counted just now.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    var nGone = fixtures_test::osmAddress(2, "14", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+    nGone->deprecated = true;
+
+    var counts = api::getDeprecatedCounts(OsmSource::NAME);
+
+    Assert::equals(counts.rows[0].total, 2);
+    Assert::equals(counts.rows[0].deprecated, 1);
+    Assert::isNull(counts.rows[0].asOf);
+}
+
+@test
+fn deprecatedCountsTotalsSumEveryRow() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nOsmGone = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6116, 6.1319 });
+    nOsmGone->deprecated = true;
+    var nBdaGone = fixtures_test::bdaAddress(
+        "GP-1",
+        900,
+        "12",
+        "Rue de la Gare",
+        "Gasperich",
+        "Luxembourg",
+        "1234",
+        geo { 49.6116, 6.1319 }
+    );
+    nBdaGone->deprecated = true;
+    fixtures_test::bdaAddress("GP-2", 900, "14", "Rue de la Gare", "Gasperich", "Luxembourg", "1234", geo {
+        49.6117,
+        6.1319
+    });
+
+    var counts = api::getDeprecatedCounts(null);
+
+    Assert::equals(counts.total, 3);
+    Assert::equals(counts.deprecated, 2);
+}
+
+@test
+fn deprecatedCountsNeverReportsGoldenAsDeprecated() {
+    // GoldenAddress has no `deprecated` attribute: it is derived, never loaded, so nothing
+    // can stop seeing it. The row still appears, at zero.
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nCity = fixtures_test::goldenCity("Luxembourg", "Gasperich");
+    var nStreet = fixtures_test::goldenStreet(nCity, "Rue de la Gare");
+    fixtures_test::goldenPoi(nStreet, 12, "", "1234", geo { 49.6116, 6.1319 });
+
+    var counts = api::getDeprecatedCounts(GoldenSource::NAME);
+
+    Assert::equals(counts.rows[0].total, 1);
+    Assert::equals(counts.rows[0].deprecated, 0);
+}
+
+@test
+fn deprecatedCountsRejectsAnUnknownSource() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var threw = false;
+    try {
+        api::getDeprecatedCounts("NOT_A_SOURCE");
+    } catch (_) {
+        threw = true;
+    }
+    Assert::isTrue(threw);
+}
