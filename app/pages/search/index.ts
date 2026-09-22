@@ -163,24 +163,30 @@ export class MengplazSearchPage extends GcPage {
             ></mp-data-table>
           </mp-panel>
 
-          ${this.pois.length > 0
-        ? html`<mp-panel heading="Street Numbers">
+          ${
+            this.pois.length > 0
+              ? html`<mp-panel heading="Street Numbers">
                   <div class="numbers">
-                    ${this.pois.sort((a, b) => a.record.number?.localeCompare(b.record.number ?? '0', undefined, { numeric: true }) ?? 0).map(
-          (p) => html`<wa-badge
-                        variant=${this.selectedPoi?.ref === p.ref ? 'brand' : 'neutral'}
-                        pill
-                        data-ref=${String(p.ref)}
-                        @click=${() => {
-              this.selectedPoi = p;
-            }}
-                        >${p.record.number}</wa-badge
-                      >`,
-        )}
+                    ${this.pois
+                      .sort(
+                        (a, b) =>
+                          a.record.number?.localeCompare(b.record.number ?? '0', undefined, { numeric: true }) ?? 0,
+                      )
+                      .map(
+                        (p) => html`<wa-badge
+                          variant=${this.selectedPoi?.ref === p.ref ? 'brand' : 'neutral'}
+                          pill
+                          data-ref=${String(p.ref)}
+                          @click=${() => {
+                            this.selectedPoi = p;
+                          }}
+                          >${p.record.number}</wa-badge
+                        >`,
+                      )}
                   </div>
                 </mp-panel>`
-        : ''
-      }
+              : ''
+          }
           ${this.selectedPoi ? html`<mp-address-card .value=${this.selectedPoi} show-go-to></mp-address-card>` : ''}
         </div>
       </mengplaz-app-shell>
