@@ -1,8 +1,3 @@
-This MIT License applies to the MengPlaz SOURCE CODE only. It does NOT cover the
-data processed or served by the software. Address data is derived in part from
-OpenStreetMap and is subject to the ODbL (Open Database License) — see README.md,
-section "Data & attribution".
-
 MIT License
 
 Copyright (c) 2025 MyConnectivity
@@ -24,3 +19,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+This MIT License applies to the MengPlaz SOURCE CODE only. It does NOT cover the
+data processed or served by the software. Address data is derived in part from
+OpenStreetMap and is subject to the ODbL (Open Database License) — see README.md,
+section "Data & attribution".
