@@ -8,6 +8,14 @@ test('the statistics page lists a row per source', async ({ page }) => {
   }
 });
 
+test('the records table carries a Deprecated column next to Active', async ({ page }) => {
+  await page.goto('/stats/');
+  await expect(page.locator('mp-data-table').getByRole('columnheader')).toHaveText(
+    ['Source', 'Total', 'Active', 'Deprecated', 'Linked', 'Share', 'Last import', 'Counted'],
+    { timeout: 30_000 },
+  );
+});
+
 test('the growth chart renders onto a canvas', async ({ page }) => {
   await page.goto('/stats/');
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible({ timeout: 30_000 });
