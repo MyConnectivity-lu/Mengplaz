@@ -126,6 +126,13 @@ type CaclrResponseBuildingItem {
     streetId: String;
 }
 
+/// `abandonedCities` marks cities the run gave up on: the caller must treat the whole load as failed.
+@volatile
+type CaclrBuildingsResult {
+    addresses: Array<node<CaclrAddress>>;
+    abandonedCities: int;
+}
+
 abstract type CaclrLoader {
     static base_url: String = "https://caclr.api.etat.lu/caclr-rest-ws/consultation";
     static fn load() {
@@ -471,34 +478,44 @@ abstract type CaclrLoader {
 
         var count = 0;
         var errored = false;
+        var abandoned = 0;
         // Records created by this run, handed to the text index in one batch at the end.
         var newBuildings = Array<node<AddressRecordProvider>> {};
         for (_, job in jobs) {
             var results = job.result();
             if (results is Error) {
                 errored = true;
-            } else {
-                for (_, nBuilding: node<CaclrAddress> in results?) {
+            } else if (results is CaclrBuildingsResult) {
+                var r = results;
+                abandoned = abandoned + r.abandonedCities;
+                for (_, nBuilding: node<CaclrAddress> in r.addresses) {
                     nBuilding->indexing(nBuilding);
                     newBuildings.add(nBuilding);
                 }
+                count = count + r.addresses.size();
+            } else {
+                errored = true;
             }
-            count = count + (results?.size() ?? 0);
         }
         var nSource = sources_by_name.get(CaclrSource::NAME);
         if (nSource != null) {
             SourceTextSearch::appendAll(nSource, newBuildings);
         }
 
+        if (abandoned > 0) {
+            errored = true;
+            warn("${abandoned} cities were abandoned mid-load: treating the whole load as failed");
+        }
         info("${count} new Buildings added");
         return errored;
     }
 
-    static fn loadBuildingsOfCity(cityIds: Array<String>): Array<node<CaclrAddress>> {
+    static fn loadBuildingsOfCity(cityIds: Array<String>): CaclrBuildingsResult {
         var endpoint = "${CaclrLoader::base_url}/v1/buildings";
         var httpClient = Http<CaclrResponseBuildings> {};
 
         var result = Array<node<CaclrAddress>> {};
+        var abandoned = 0;
         for (_, cityId in cityIds) {
             var requestStart = 1;
             var totalItems: int = 0;
@@ -524,6 +541,7 @@ abstract type CaclrLoader {
                         if (tentatives < 5) {
                             tentatives++;
                         } else {
+                            abandoned = abandoned + 1;
                             break;
                         }
                     } else {
@@ -574,10 +592,11 @@ abstract type CaclrLoader {
                     }
                 } catch (err) {
                     error(err);
+                    abandoned = abandoned + 1;
                     break;
                 }
             } while (requestStart < totalItems);
         }
-        return result;
+        return CaclrBuildingsResult { addresses: result, abandonedCities: abandoned };
     }
 }
