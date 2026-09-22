@@ -2,9 +2,9 @@
 /// carrying the POI `uid` as its document payload.
 ///
 /// `AddressIndex::add()` returns no doc-id, so an indexed document can never be retracted.
-/// Edits are therefore rebuild-only, which the nightly schedule runs; a creation has no
-/// earlier document to layer over, so `promoteToGolden` appends it live. `rebuild()` runs
-/// one libpostal parse per POI and needs `GREYCAT_POSTAL_DATA_DIR`.
+/// Edits are therefore rebuild-only; a creation has no earlier document to layer over, so
+/// `promoteToGolden` appends it live and a scheduled run only calls `refresh()`. `rebuild()`
+/// runs one libpostal parse per POI, needs `GREYCAT_POSTAL_DATA_DIR`, and is admin-triggered.
 var golden_address_index: node<AddressIndex<String>?>;
 
 type GoldenTextSearch {
@@ -73,6 +73,27 @@ type GoldenTextSearch {
             "goldenTextSearch: ${n} addresses added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
         );
         return n;
+    }
+
+    /// What a scheduled run needs: `promoteToGolden` already appended the day's creations,
+    /// so only the drift they left has to be consolidated. `build()` recomputes exact IDF
+    /// and the vocabulary accelerators over the entries already there; `rebuild()` orphans
+    /// the whole index graph, which the store reclaims only on a `defrag`.
+    static fn refresh(): int {
+        var idx = GoldenTextSearch::ready();
+        if (idx == null) {
+            return GoldenTextSearch::rebuild();
+        }
+        var dirty = idx.index.dirtyCount ?? 0;
+        if (dirty == 0) {
+            info("goldenTextSearch: index clean, nothing to consolidate");
+            return 0;
+        }
+        var t0 = time::now().to(DurationUnit::milliseconds);
+        idx.build();
+        var t1 = time::now().to(DurationUnit::milliseconds);
+        info("goldenTextSearch: consolidated ${dirty} appended addresses in ${t1 - t0} ms");
+        return dirty;
     }
 
     /// Creation-only — an edit would leave the stale document behind. An append to a built

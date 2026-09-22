@@ -306,6 +306,99 @@ fn anEditedRecordIsOnlyPickedUpByARebuild() {
 }
 
 @test
+fn refreshBuildsFromScratchOnlyWhenThereIsNoIndexYet() {
+    // What a scheduled run calls. With nothing to consolidate it falls back to the full
+    // build that makes the corpus searchable in the first place.
+    if (!withPostal("refreshBuildsFromScratchOnlyWhenThereIsNoIndexYet")) {
+        return;
+    }
+    var nGolden = fixtures_test::seedGolden("A");
+    Assert::isNull(GoldenTextSearch::ready());
+
+    Assert::equals(GoldenTextSearch::refresh(), 1);
+
+    Assert::isTrue(GoldenTextSearch::stats().built);
+    var results = api::searchAddress("12A Rue de la Gare, 1234 Gasperich", 5, null);
+    Assert::isTrue(results.size() > 0);
+    Assert::equals(results[0].ref, nGolden as node<AddressRecordProvider>);
+}
+
+@test
+fn refreshConsolidatesTheLiveAppendsRatherThanRebuilding() {
+    // A promoted POI is already in the index, so a run only clears the drift its append
+    // left behind — it must not discard and re-create the index graph to do that.
+    if (!withPostal("refreshConsolidatesTheLiveAppendsRatherThanRebuilding")) {
+        return;
+    }
+    var nGolden = fixtures_test::seedGolden("A");
+    var nStreet = nGolden->street!!;
+    GoldenTextSearch::rebuild();
+    Assert::equals(GoldenTextSearch::stats().dirty, 0);
+
+    var nOsm = fixtures_test::osmAddress(1, "30", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
+    privateApi::promoteRecord(nOsm, nStreet->id);
+    Assert::isTrue(GoldenTextSearch::stats().dirty > 0);
+
+    Assert::equals(GoldenTextSearch::refresh(), 1);
+
+    var stats = GoldenTextSearch::stats();
+    Assert::equals(stats.dirty, 0);
+    Assert::equals(stats.docs, 2);
+}
+
+@test
+fn refreshOnACleanIndexTouchesNothing() {
+    // The common night: nothing was appended, so the run must do no work at all — where a
+    // rebuild would have re-created the whole index graph for no change.
+    if (!withPostal("refreshOnACleanIndexTouchesNothing")) {
+        return;
+    }
+    fixtures_test::seedGolden("A");
+    GoldenTextSearch::rebuild();
+
+    Assert::equals(GoldenTextSearch::refresh(), 0);
+    Assert::equals(GoldenTextSearch::stats().docs, 1);
+}
+
+@test
+fn refreshByNameFallsBackToABuildWhenTheSourceIndexIsAbsent() {
+    if (!withPostal("refreshByNameFallsBackToABuildWhenTheSourceIndexIsAbsent")) {
+        return;
+    }
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+
+    Assert::equals(SourceTextSearch::refreshByName(OsmSource::NAME), 1);
+    Assert::isNotNull(SourceTextSearch::ready(OsmSource::NAME));
+}
+
+@test
+fn refreshByNameConsolidatesWhatTheLoaderAppended() {
+    // The loader side of the same contract: `appendAll` puts the new records in, and the
+    // run only has to consolidate them.
+    if (!withPostal("refreshByNameConsolidatesWhatTheLoaderAppended")) {
+        return;
+    }
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+    fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    Assert::equals(SourceTextSearch::rebuildByName(OsmSource::NAME), 1);
+
+    var nNew = fixtures_test::osmAddress(2, "30", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    Assert::equals(SourceTextSearch::appendAll(fixtures_test::osmSource(), Array<node<AddressRecordProvider>> {
+        nNew
+    }), 1);
+
+    Assert::equals(SourceTextSearch::refreshByName(OsmSource::NAME), 1);
+
+    var idx = SourceTextSearch::require(OsmSource::NAME);
+    var hits = SourceTextSearch::search(idx, "30 Rue de la Gare, 1234 Gasperich", 5);
+    var resolved = SourceTextSearch::resolve(fixtures_test::osmSource(), idx, hits);
+    Assert::isTrue(resolved.size() > 0);
+}
+
+@test
 fn buildingASourceIndexMakesItsOwnRecordsSearchable() {
     if (!withPostal("buildingASourceIndexMakesItsOwnRecordsSearchable")) {
         return;

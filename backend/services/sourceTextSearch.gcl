@@ -123,6 +123,26 @@ type SourceTextSearch {
         return n;
     }
 
+    /// What a scheduled run needs: the loaders already handed their new records to
+    /// `appendAll`, so only the drift they left has to be consolidated — see
+    /// `GoldenTextSearch::refresh` for why this is not a `rebuild`.
+    static fn refreshByName(source: String): int {
+        var idx = SourceTextSearch::ready(source);
+        if (idx == null) {
+            return SourceTextSearch::rebuildByName(source);
+        }
+        var dirty = idx.index.dirtyCount ?? 0;
+        if (dirty == 0) {
+            info("sourceTextSearch[${source}]: index clean, nothing to consolidate");
+            return 0;
+        }
+        var t0 = time::now().to(DurationUnit::milliseconds);
+        idx.build();
+        var t1 = time::now().to(DurationUnit::milliseconds);
+        info("sourceTextSearch[${source}]: consolidated ${dirty} appended records in ${t1 - t0} ms");
+        return dirty;
+    }
+
     /// Golden has its own `GoldenTextSearch::rebuild` over the golden graph.
     static fn rebuildAll(): int {
         var total = 0;

@@ -83,9 +83,9 @@ type UpdateService {
         info("Updating Golden street index");
         GoldenStreetSearch::rebuild();
         info("Updating Golden address index");
-        GoldenTextSearch::rebuild();
+        GoldenTextSearch::refresh();
         info("Updating CACLR address index");
-        SourceTextSearch::rebuildByName(CaclrSource::NAME);
+        SourceTextSearch::refreshByName(CaclrSource::NAME);
         info("Caclr Update finished");
     }
 
@@ -151,7 +151,7 @@ type UpdateService {
         StatsService::finalizeUpdate(s, loaded > 0);
 
         info("Updating BDA address index");
-        SourceTextSearch::rebuildByName(BdaSource::NAME);
+        SourceTextSearch::refreshByName(BdaSource::NAME);
 
         info("BDA import finished");
     }
@@ -219,7 +219,7 @@ type UpdateService {
         StatsService::finalizeUpdate(s, true);
 
         info("Updating OSM address index");
-        SourceTextSearch::rebuildByName(OsmSource::NAME);
+        SourceTextSearch::refreshByName(OsmSource::NAME);
 
         info("OSM import finished");
     }
