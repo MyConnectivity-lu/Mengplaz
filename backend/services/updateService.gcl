@@ -7,6 +7,11 @@ type UpdateService {
         CaclrLoader::loadStreets();
         var errored = CaclrLoader::loadBuildings();
 
+        if (errored) {
+            warn("Import failed skipping update steps");
+            return;
+        }
+
         info("Filling Golden from fresh CACLR Import");
         GoldenServices::fillFromCaclr();
 

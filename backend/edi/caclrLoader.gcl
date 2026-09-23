@@ -389,6 +389,7 @@ abstract type CaclrLoader {
                     warn("New record: ${elem}");
                 }
             }
+            Runtime::sleep(1_s);
         } while (requestStart < totalItems);
     }
 
@@ -451,63 +452,41 @@ abstract type CaclrLoader {
                     info("New CaclrStreet added: id=${nStreet->id} name=${nStreet->name}");
                 } else if (record->lastUpdate < elem.lastUpdate) {
                     warn("Record has been updated. Not supported yet.");
-                    warn("Our record: ${*record}");
-                    warn("New record: ${elem}");
                 }
             }
+            Runtime::sleep(1_s);
         } while (requestStart < totalItems);
     }
 
     static fn loadBuildings(): bool {
-        var jobs = Array<Job> {};
-        for (var i = 0; i < 5; i++) {
-            jobs.add(Job {
-                function: CaclrLoader::loadBuildingsOfCity,
-                arguments: [Array<String> {}],
-            });
-        }
-
+        var cityIds = Array<String> {};
         for (cityId, _ in caclr_cities_by_id) {
             if (cityId != "UNKNOWN") {
-                (jobs[parseNumber(cityId) % 5].arguments?[0] as Array<String>).add(cityId);
+                cityIds.add(cityId);
             }
         }
 
-        await(jobs, MergeStrategy::strict);
+        var r = CaclrLoader::loadBuildingsOfCity(cityIds);
         info("Integrating Results.");
 
-        var count = 0;
-        var errored = false;
-        var abandoned = 0;
+        if (r.abandonedCities > 0) {
+            throw ("${r.abandonedCities} cities were abandoned mid-load: treating the whole load as failed");
+        }
+
         // Records created by this run, handed to the text index in one batch at the end.
         var newBuildings = Array<node<AddressRecordProvider>> {};
-        for (_, job in jobs) {
-            var results = job.result();
-            if (results is Error) {
-                errored = true;
-            } else if (results is CaclrBuildingsResult) {
-                var r = results;
-                abandoned = abandoned + r.abandonedCities;
-                for (_, nBuilding: node<CaclrAddress> in r.addresses) {
-                    nBuilding->indexing(nBuilding);
-                    newBuildings.add(nBuilding);
-                }
-                count = count + r.addresses.size();
-            } else {
-                errored = true;
-            }
+        for (_, nBuilding: node<CaclrAddress> in r.addresses) {
+            nBuilding->indexing(nBuilding);
+            newBuildings.add(nBuilding);
         }
+        var count = r.addresses.size();
         var nSource = sources_by_name.get(CaclrSource::NAME);
         if (nSource != null) {
             SourceTextSearch::appendAll(nSource, newBuildings);
         }
 
-        if (abandoned > 0) {
-            errored = true;
-            warn("${abandoned} cities were abandoned mid-load: treating the whole load as failed");
-        }
         info("${count} new Buildings added");
-        return errored;
+        return false;
     }
 
     static fn loadBuildingsOfCity(cityIds: Array<String>): CaclrBuildingsResult {
@@ -533,68 +512,62 @@ abstract type CaclrLoader {
                     headers: headers
                 };
 
-                try {
-                    var httpResponse = httpClient.send(request);
-                    if (httpResponse.content == null) {
-                        warn("Issue with the query on cityId:${cityId}");
-                        warn(httpResponse);
-                        if (tentatives < 5) {
-                            tentatives++;
-                        } else {
-                            abandoned = abandoned + 1;
-                            break;
-                        }
+                var httpResponse = httpClient.send(request);
+                if (httpResponse.content == null) {
+                    warn("Issue with the query on cityId:${cityId}");
+                    warn(httpResponse);
+                    if (tentatives < 20) {
+                        tentatives++;
+                        Runtime::sleep(5_s);
                     } else {
-                        var buildings = httpResponse.content;
-                        totalItems = buildings.totalCount;
-                        requestStart = requestStart + buildings.items.size();
-                        trace("Received ${requestStart - 1} / ${totalItems} buildings for cityId:${cityId}.");
-
-                        for (_, elem in buildings.items) {
-                            var record = caclr_addresses_by_id.get(elem.id);
-                            if (record == null) {
-                                var nStreet = caclr_streets_by_id.get(elem.streetId);
-                                if (nStreet == null) {
-                                    warn(
-                                        "Street with id:${elem.streetId} not found for building id:${elem.id}. Replacing by dummy."
-                                    );
-                                    nStreet = caclr_streets_by_id.get("UNKNOWN")!!;
-                                }
-
-                                var nBuilding = node<CaclrAddress> {
-                                    CaclrAddress {
-                                        id: elem.id,
-                                        number: elem.number,
-                                        isNumberUndefined: elem.isNumberUndefined,
-                                        postcode: elem.postalCode,
-                                        multipleCode: elem.multipleCode,
-                                        administrativeStatus: elem.administrativeStatus,
-                                        validityStartDate: elem.validityStartDate,
-                                        validityEndDate: elem.validityEndDate,
-                                        lastUpdate: elem.lastUpdate,
-                                        street: nStreet,
-                                        createdAt: time::now(),
-                                        deprecated: false,
-                                    }
-                                };
-                                result.add(nBuilding);
-                                record = nBuilding;
-                                info(
-                                    "New CaclrAddress added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}"
-                                );
-                            } else if (record->lastUpdate < elem.lastUpdate) {
-                                warn(
-                                    "Record has been updated. Not supported yet. Our record: ${*record}, New record: ${elem}"
-                                );
-                            }
-                            record->markSeen();
-                        }
+                        throw "Load city buildings failed ${httpResponse}";
                     }
-                } catch (err) {
-                    error(err);
-                    abandoned = abandoned + 1;
-                    break;
+                } else {
+                    var buildings = httpResponse.content;
+                    totalItems = buildings.totalCount;
+                    requestStart = requestStart + buildings.items.size();
+                    trace("Received ${requestStart - 1} / ${totalItems} buildings for cityId:${cityId}.");
+
+                    for (_, elem in buildings.items) {
+                        var record = caclr_addresses_by_id.get(elem.id);
+                        if (record == null) {
+                            var nStreet = caclr_streets_by_id.get(elem.streetId);
+                            if (nStreet == null) {
+                                warn(
+                                    "Street with id:${elem.streetId} not found for building id:${elem.id}. Replacing by dummy."
+                                );
+                                nStreet = caclr_streets_by_id.get("UNKNOWN")!!;
+                            }
+
+                            var nBuilding = node<CaclrAddress> {
+                                CaclrAddress {
+                                    id: elem.id,
+                                    number: elem.number,
+                                    isNumberUndefined: elem.isNumberUndefined,
+                                    postcode: elem.postalCode,
+                                    multipleCode: elem.multipleCode,
+                                    administrativeStatus: elem.administrativeStatus,
+                                    validityStartDate: elem.validityStartDate,
+                                    validityEndDate: elem.validityEndDate,
+                                    lastUpdate: elem.lastUpdate,
+                                    street: nStreet,
+                                    createdAt: time::now(),
+                                    deprecated: false,
+                                }
+                            };
+                            result.add(nBuilding);
+                            record = nBuilding;
+                            info(
+                                "New CaclrAddress added: id=${nBuilding->id} number=${nBuilding->number}${nBuilding->multipleCode} streetId=${elem.streetId}"
+                            );
+                        } else if (record->lastUpdate < elem.lastUpdate) {
+                            // warn("Record has been updated. Not supported yet");
+                        }
+                        record->markSeen();
+                    }
                 }
+
+                Runtime::sleep(1_s);
             } while (requestStart < totalItems);
         }
         return CaclrBuildingsResult { addresses: result, abandonedCities: abandoned };
