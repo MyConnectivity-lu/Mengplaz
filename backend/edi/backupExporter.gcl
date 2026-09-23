@@ -33,6 +33,7 @@ type BkGoldenConstituencyDTO {
     code: String;
     name: String;
     nameAliases: Array<Alias>;
+    caclrCode: String?;
 }
 
 @volatile
@@ -42,6 +43,7 @@ type BkGoldenCantonDTO {
     nameAliases: Array<Alias>;
     constituencyId: String;
     lastUpdate: time;
+    caclrId: String?;
 }
 
 @volatile
@@ -51,6 +53,7 @@ type BkGoldenMunicipalityDTO {
     nameAliases: Array<Alias>;
     cantonId: String;
     lastUpdate: time;
+    caclrId: String?;
 }
 
 @volatile
@@ -60,6 +63,7 @@ type BkGoldenCityDTO {
     nameAliases: Array<Alias>;
     municipalityId: String;
     lastUpdate: time;
+    caclrId: String?;
 }
 
 @volatile
@@ -69,6 +73,7 @@ type BkGoldenStreetDTO {
     nameAliases: Array<Alias>;
     cityId: String;
     lastUpdate: time;
+    caclrId: String?;
 }
 
 @volatile
@@ -458,7 +463,8 @@ abstract type BackupExporter {
             fw.writeln(BkGoldenConstituencyDTO {
                 code: nConstituency->code,
                 name: nConstituency->name,
-                nameAliases: nConstituency->nameAliases
+                nameAliases: nConstituency->nameAliases,
+                caclrCode: nConstituency->caclrConstituency?->code,
             });
             count++;
         }
@@ -475,7 +481,8 @@ abstract type BackupExporter {
                 name: nCanton->name,
                 nameAliases: nCanton->nameAliases,
                 constituencyId: nCanton->constituency->code,
-                lastUpdate: nCanton->lastUpdate
+                lastUpdate: nCanton->lastUpdate,
+                caclrId: nCanton->caclrCanton?->id,
             });
             count++;
         }
@@ -492,7 +499,8 @@ abstract type BackupExporter {
                 name: nMunicipality->name,
                 nameAliases: nMunicipality->nameAliases,
                 cantonId: nMunicipality->canton->id,
-                lastUpdate: nMunicipality->lastUpdate
+                lastUpdate: nMunicipality->lastUpdate,
+                caclrId: nMunicipality->caclrMunicipality?->id,
             });
             count++;
         }
@@ -509,7 +517,8 @@ abstract type BackupExporter {
                 name: nCity->name,
                 nameAliases: nCity->nameAliases,
                 municipalityId: nCity->municipality->id,
-                lastUpdate: nCity->lastUpdate
+                lastUpdate: nCity->lastUpdate,
+                caclrId: nCity->caclrCity?->id,
             });
             count++;
         }
@@ -526,7 +535,8 @@ abstract type BackupExporter {
                 name: nStreet->name,
                 nameAliases: nStreet->nameAliases,
                 cityId: nStreet->city->id,
-                lastUpdate: nStreet->lastUpdate
+                lastUpdate: nStreet->lastUpdate,
+                caclrId: nStreet->caclrStreet?->id,
             });
             count++;
         }

@@ -613,6 +613,17 @@ abstract type BackupImporter {
                 }
             };
             golden_constituencies_by_code.set(nConstituency->code, nConstituency);
+            if (l.caclrCode != null) {
+                var nCaclr = caclr_constituencies_by_code.get(l.caclrCode);
+                if (nCaclr == null) {
+                    warn(
+                        "Restore: golden constituency ${nConstituency->code} references unknown CACLR constituency ${l.caclrCode}"
+                    );
+                } else {
+                    nConstituency->caclrConstituency = nCaclr;
+                    nCaclr->goldenConstituency = nConstituency;
+                }
+            }
             count++;
         }
         return count;
@@ -638,11 +649,20 @@ abstract type BackupImporter {
                     nameAliases: l.nameAliases,
                     lastUpdate: l.lastUpdate,
                     constituency: nConstituency,
-                    municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {}
+                    municipalities_by_id: nodeIndex<String, node<GoldenMunicipality>> {},
                 }
             };
             nConstituency->cantons_by_id.set(nCanton->id, nCanton);
             golden_cantons_by_id.set(nCanton->id, nCanton);
+            if (l.caclrId != null) {
+                var nCaclr = caclr_cantons_by_id.get(l.caclrId);
+                if (nCaclr == null) {
+                    warn("Restore: golden canton ${nCanton->id} references unknown CACLR canton ${l.caclrId}");
+                } else {
+                    nCanton->caclrCanton = nCaclr;
+                    nCaclr->goldenCanton = nCanton;
+                }
+            }
             count++;
         }
         return count;
@@ -672,6 +692,17 @@ abstract type BackupImporter {
                 }
             };
             nMunicipality->indexing(nMunicipality);
+            if (l.caclrId != null) {
+                var nCaclr = caclr_municipalities_by_id.get(l.caclrId);
+                if (nCaclr == null) {
+                    warn(
+                        "Restore: golden municipality ${nMunicipality->id} references unknown CACLR municipality ${l.caclrId}"
+                    );
+                } else {
+                    nMunicipality->caclrMunicipality = nCaclr;
+                    nCaclr->goldenMunicipality = nMunicipality;
+                }
+            }
             count++;
         }
         return count;
@@ -701,6 +732,15 @@ abstract type BackupImporter {
                 }
             };
             nCity->indexing(nCity);
+            if (l.caclrId != null) {
+                var nCaclr = caclr_cities_by_id.get(l.caclrId);
+                if (nCaclr == null) {
+                    warn("Restore: golden city ${nCity->id} references unknown CACLR city ${l.caclrId}");
+                } else {
+                    nCity->caclrCity = nCaclr;
+                    nCaclr->goldenCity = nCity;
+                }
+            }
             count++;
         }
         return count;
@@ -731,6 +771,15 @@ abstract type BackupImporter {
                 }
             };
             nStreet->indexing(nStreet);
+            if (l.caclrId != null) {
+                var nCaclr = caclr_streets_by_id.get(l.caclrId);
+                if (nCaclr == null) {
+                    warn("Restore: golden street ${nStreet->id} references unknown CACLR street ${l.caclrId}");
+                } else {
+                    nStreet->caclrStreet = nCaclr;
+                    nCaclr->goldenStreet = nStreet;
+                }
+            }
             count++;
         }
         return count;
