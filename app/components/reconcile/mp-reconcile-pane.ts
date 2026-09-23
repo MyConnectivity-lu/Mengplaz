@@ -76,6 +76,7 @@ export class MpReconcilePane extends LitElement {
   @property() category = '';
   /** Show the batch-link control alongside the bulk action. */
   @property({ type: Boolean, attribute: 'show-batch-link' }) showBatchLink = false;
+  @property({ type: Boolean, attribute: 'detail-only' }) detailOnly = false;
 
   /** Position in the queue. Read by the page so an action can keep the
       reviewer near where they were once a record leaves the tab. */
@@ -266,6 +267,7 @@ export class MpReconcilePane extends LitElement {
             : html`<mp-comparison-dashboard
                 .comparisonData=${this.data}
                 ?show-actions=${this.showActions}
+                ?detail-only=${this.detailOnly}
               ></mp-comparison-dashboard>`
         }
         <mp-search-dialog

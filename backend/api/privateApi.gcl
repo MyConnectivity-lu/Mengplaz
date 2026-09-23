@@ -312,27 +312,8 @@ fn batchLinkByScore(
 
 @expose
 @permission("admin")
-fn mergePositionsToGolden(source: node<DataSource>, recordIds: Array<String>) {
-    var index = source->getIndex();
-    for (_, recordId in recordIds) {
-        var nOther = index.get(recordId);
-        if (nOther == null) {
-            continue;
-        }
-        var nGolden = nOther->getLinkedGolden();
-        var otherRecord = nOther->toAddressRecord();
-        if (nGolden != null && otherRecord.primaryLocation != null) {
-            if (nGolden->primaryLocation == null) {
-                golden_addresses_by_geo.set(otherRecord.primaryLocation, nGolden);
-                nGolden->primaryLocation = otherRecord.primaryLocation;
-                if (nGolden->linkedRecords.size() >= 2) {
-                    golden_addresses_geo_recompute.add(nGolden);
-                }
-            } else if (nGolden->secondaryLocations.get(otherRecord.sourceName) == null) {
-                nGolden->secondaryLocations.set(otherRecord.sourceName, otherRecord.primaryLocation);
-            }
-        }
-    }
+fn mergePositionsToGolden() {
+    GoldenServices::mergeAllLinkedPositions();
 }
 
 @expose

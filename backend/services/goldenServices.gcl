@@ -634,6 +634,33 @@ type GoldenServices {
             source.qualityHistory.setAt(time::now(), avg);
         }
     }
+
+    /// The first linked position becomes the golden primary; later ones are kept per source.
+    static fn mergePositionToGolden(nRecord: node<AddressRecordProvider>) {
+        var nGolden = nRecord->getLinkedGolden();
+        var record = nRecord->toAddressRecord();
+        if (nGolden == null || record.primaryLocation == null) {
+            return;
+        }
+        if (nGolden->primaryLocation == null) {
+            golden_addresses_by_geo.set(record.primaryLocation, nGolden);
+            nGolden->primaryLocation = record.primaryLocation;
+            if (nGolden->linkedRecords.size() >= 2) {
+                golden_addresses_geo_recompute.add(nGolden);
+            }
+        } else if (nGolden->secondaryLocations.get(record.sourceName) == null) {
+            nGolden->secondaryLocations.set(record.sourceName, record.primaryLocation);
+        }
+    }
+
+    static fn mergeAllLinkedPositions() {
+        for (_, nSource in sources_by_name) {
+            for (nRecord, _ in nSource->reconciliationReport->linked) {
+                GoldenServices::mergePositionToGolden(nRecord);
+            }
+        }
+    }
+
     /// Rescores the geo component of every record queued by an adopted position, then
     /// drains the queue.
     static fn recomputeQueuedGeoScores() {

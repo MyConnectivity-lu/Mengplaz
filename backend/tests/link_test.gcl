@@ -424,7 +424,7 @@ fn mergingPositionsFillsAMissingPrimaryLocation() {
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
     privateApi::linkRecords(nOsm, nGolden, null);
 
-    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1" });
+    privateApi::mergePositionsToGolden();
 
     Assert::equals(nGolden->primaryLocation, fixtures_test::here());
     Assert::equals(golden_addresses_by_geo.get(fixtures_test::here()), nGolden);
@@ -440,7 +440,7 @@ fn mergingPositionsKeepsAnExistingPrimaryAndStoresTheRestAsSecondary() {
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", elsewhere);
     privateApi::linkRecords(nOsm, nGolden, null);
 
-    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1" });
+    privateApi::mergePositionsToGolden();
 
     Assert::equals(nGolden->primaryLocation, fixtures_test::here());
     Assert::equals(nGolden->secondaryLocations.get(OsmSource::NAME), elsewhere);
@@ -471,7 +471,7 @@ fn adoptingAPositionQueuesAGeoRescoreWhenOtherSourcesAreLinked() {
     privateApi::linkRecords(nBda, nGolden, null);
     privateApi::linkRecords(nOsm, nGolden, null);
 
-    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1" });
+    privateApi::mergePositionsToGolden();
 
     Assert::equals(nGolden->primaryLocation, fixtures_test::here());
     Assert::equals(golden_addresses_geo_recompute.size(), 1);
@@ -493,7 +493,7 @@ fn mergingPositionsIgnoresUnlinkedAndUnknownRecords() {
     var nGolden = fixtures_test::seedGolden("");
     var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", geo { 49.6117, 6.1319 });
 
-    privateApi::mergePositionsToGolden(fixtures_test::osmSource(), Array<String> { "1", "no-such-id" });
+    privateApi::mergePositionsToGolden();
 
     Assert::equals(nGolden->primaryLocation, fixtures_test::here());
     Assert::equals(nGolden->secondaryLocations.size(), 0);

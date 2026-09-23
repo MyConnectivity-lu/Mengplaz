@@ -591,7 +591,7 @@ export class MengplazReconcilePage extends GcPage {
         return;
       }
       try {
-        await gc.privateApi.mergePositionsToGolden(this.report.source, this.report.linked);
+        await gc.privateApi.mergePositionsToGolden();
         toast('Positions added to linked Golden Records.', 'success');
         await this.refreshReport();
       } catch {
@@ -776,6 +776,7 @@ export class MengplazReconcilePage extends GcPage {
               .bulkAction=${config.bulkAction}
               ?show-actions=${config.showActions}
               ?show-batch-link=${config.key === 'Mismatched'}
+              ?detail-only=${config.key === 'Linked'}
               ?active=${this.currentTab === config.key}
               @bulk-action=${() => void this.onBulkAction(config.key)}
               @batch-link=${() => void this.onBatchLink()}

@@ -122,12 +122,10 @@ type UpdateService {
         }
 
         var toLink = Array<node<BdaAddress>> {};
-        var ids = Array<String> {};
         for (record: node<BdaAddress>, _ in report->unlinked) {
             var caclrRecord = caclr_addresses_by_id.get("${record->id_caclr}");
             if (caclrRecord != null && caclrRecord->getLinkedGolden() != null) {
                 toLink.add(record);
-                ids.add(record->getId());
             }
         }
 
@@ -135,9 +133,9 @@ type UpdateService {
             var caclrRecord = caclr_addresses_by_id.get("${value->id_caclr}");
             if (caclrRecord != null) {
                 linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
+                GoldenServices::mergePositionToGolden(value);
             }
         }
-        mergePositionsToGolden(s, ids);
         info("Linked ${toLink.size()} Records");
 
         // An empty CSV is indistinguishable from a good one until it is counted, and deprecating
@@ -217,15 +215,12 @@ type UpdateService {
             }
         }
 
-        var ids = Array<String> {};
         for (record, nGolden in toLink) {
             linkRecords(record, nGolden, null);
-            ids.add(record->getId());
+            GoldenServices::mergePositionToGolden(record);
         }
 
-        mergePositionsToGolden(s, ids);
-
-        info("Linked ${ids.size()} Records");
+        info("Linked ${toLink.size()} Records");
         if (rejected > 0) {
             warn(
                 "${rejected} OSM records kept unlinked: their CACLR ref is not confirmed by the reconciliation candidates"

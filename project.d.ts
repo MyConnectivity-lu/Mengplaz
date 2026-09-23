@@ -98,739 +98,37 @@ declare namespace gc {
 
   }
 
-  namespace privateApi {
-    class ComparisonViewData extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::ComparisonViewData';
-      static readonly $fields: ComparisonViewData.$Fields;
-      sourceRecord: gc.mengplaz.AddressFullRecordRef;
-      candidates: globalThis.Array<gc.privateApi.MatchedCandidateDetail>;
-      constructor(sourceRecord: gc.mengplaz.AddressFullRecordRef, candidates: globalThis.Array<gc.privateApi.MatchedCandidateDetail>);
-      static createFrom(fields: {sourceRecord: gc.mengplaz.AddressFullRecordRef, candidates: globalThis.Array<gc.privateApi.MatchedCandidateDetail>}): ComparisonViewData;
-    }
-    namespace ComparisonViewData {
-      interface $Fields {
-        sourceRecord: 0;
-        candidates: 1;
-      }
-    }
-
-    class SourceCountPoint extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::SourceCountPoint';
-      static readonly $fields: SourceCountPoint.$Fields;
-      timestamp: gc.core.time;
-      total: number | bigint;
-      active: number | bigint;
-      constructor(timestamp: gc.core.time, total: number | bigint, active: number | bigint);
-      static createFrom(fields: {timestamp: gc.core.time, total: number | bigint, active: number | bigint}): SourceCountPoint;
-    }
-    namespace SourceCountPoint {
-      interface $Fields {
-        timestamp: 0;
-        total: 1;
-        active: 2;
-      }
-    }
-
-    class SourceStats extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::SourceStats';
-      static readonly $fields: SourceStats.$Fields;
-      rows: globalThis.Array<gc.privateApi.SourceStatsRow>;
-      series: globalThis.Array<gc.privateApi.SourceCountSeries>;
-      constructor(rows: globalThis.Array<gc.privateApi.SourceStatsRow>, series: globalThis.Array<gc.privateApi.SourceCountSeries>);
-      static createFrom(fields: {rows: globalThis.Array<gc.privateApi.SourceStatsRow>, series: globalThis.Array<gc.privateApi.SourceCountSeries>}): SourceStats;
-    }
-    namespace SourceStats {
-      interface $Fields {
-        rows: 0;
-        series: 1;
-      }
-    }
-
-    class restoreGraph$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::restoreGraph$args';
-    }
-
-    class goldenTextIndexStats$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::goldenTextIndexStats$args';
-    }
-
-    class updateBDA$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::updateBDA$args';
-    }
-
-    class linkRecords$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::linkRecords$args';
-      static readonly $fields: linkRecords$args.$Fields;
-      sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      params: gc.privateApi.LinkParameters | null;
-      constructor(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null);
-      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null}): linkRecords$args;
-    }
-    namespace linkRecords$args {
-      interface $Fields {
-        sourceRecord: 0;
-        candidateRecord: 1;
-        params: 2;
-      }
-    }
-
-    class getLinkedComparisonViewData$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getLinkedComparisonViewData$args';
-      static readonly $fields: getLinkedComparisonViewData$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordId: string;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getLinkedComparisonViewData$args;
-    }
-    namespace getLinkedComparisonViewData$args {
-      interface $Fields {
-        source: 0;
-        recordId: 1;
-      }
-    }
-
-    class recomputeGoldenGeoScore$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::recomputeGoldenGeoScore$args';
-    }
-
-    class GoldenRecordScore extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::GoldenRecordScore';
-      static readonly $fields: GoldenRecordScore.$Fields;
-      uid: string;
-      number: string;
-      street: string | null;
-      city: string | null;
-      postcode: string;
-      linkedCount: number | bigint;
-      quality: number;
-      constructor(uid: string, number: string, street: string | null, city: string | null, postcode: string, linkedCount: number | bigint, quality: number);
-      static createFrom(fields: {uid: string, number: string, street?: string | null, city?: string | null, postcode: string, linkedCount: number | bigint, quality: number}): GoldenRecordScore;
-    }
-    namespace GoldenRecordScore {
-      interface $Fields {
-        uid: 0;
-        number: 1;
-        street: 2;
-        city: 3;
-        postcode: 4;
-        linkedCount: 5;
-        quality: 6;
-      }
-    }
-
-    class goldenStreetIndexStats$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::goldenStreetIndexStats$args';
-    }
-
-    class ReconciliationReportMatchView extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::ReconciliationReportMatchView';
-      static readonly $fields: ReconciliationReportMatchView.$Fields;
-      score: number | null;
-      id: string;
-      constructor(score: number | null, id: string);
-      static createFrom(fields: {score?: number | null, id: string}): ReconciliationReportMatchView;
-    }
-    namespace ReconciliationReportMatchView {
-      interface $Fields {
-        score: 0;
-        id: 1;
-      }
-    }
-
-    class unlinkRecord$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::unlinkRecord$args';
-      static readonly $fields: unlinkRecord$args.$Fields;
-      sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      constructor(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>);
-      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>}): unlinkRecord$args;
-    }
-    namespace unlinkRecord$args {
-      interface $Fields {
-        sourceRecord: 0;
-      }
-    }
-
-    class unlockSource$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::unlockSource$args';
-      static readonly $fields: unlockSource$args.$Fields;
-      source: string;
-      constructor(source: string);
-      static createFrom(fields: {source: string}): unlockSource$args;
-    }
-    namespace unlockSource$args {
-      interface $Fields {
-        source: 0;
-      }
-    }
-
-    class buildGoldenTextIndex$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::buildGoldenTextIndex$args';
-    }
-
-    class RecordTabResult extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::RecordTabResult';
-      static readonly $fields: RecordTabResult.$Fields;
-      tab: string;
-      score: number | null;
-      constructor(tab: string, score?: number | null);
-      static createFrom(fields: {tab: string, score?: number | null}): RecordTabResult;
-    }
-    namespace RecordTabResult {
-      interface $Fields {
-        tab: 0;
-        score: 1;
-      }
-    }
-
-    class getRecordTab$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getRecordTab$args';
-      static readonly $fields: getRecordTab$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordId: string;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getRecordTab$args;
-    }
-    namespace getRecordTab$args {
-      interface $Fields {
-        source: 0;
-        recordId: 1;
-      }
-    }
-
-    class getComparisonViewData$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getComparisonViewData$args';
-      static readonly $fields: getComparisonViewData$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordId: string;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getComparisonViewData$args;
-    }
-    namespace getComparisonViewData$args {
-      interface $Fields {
-        source: 0;
-        recordId: 1;
-      }
-    }
-
-    class buildGoldenStreetIndex$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::buildGoldenStreetIndex$args';
-    }
-
-    class SourceStatsRow extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::SourceStatsRow';
-      static readonly $fields: SourceStatsRow.$Fields;
-      source: string;
-      total: number | bigint;
-      active: number | bigint | null;
-      linked: number | bigint | null;
-      share: number;
-      lastUpdate: gc.core.time | null;
-      asOf: gc.core.time | null;
-      constructor(source: string, total: number | bigint, active: number | bigint | null, linked: number | bigint | null, share: number, lastUpdate?: gc.core.time | null, asOf?: gc.core.time | null);
-      static createFrom(fields: {source: string, total: number | bigint, active?: number | bigint | null, linked?: number | bigint | null, share: number, lastUpdate?: gc.core.time | null, asOf?: gc.core.time | null}): SourceStatsRow;
-    }
-    namespace SourceStatsRow {
-      interface $Fields {
-        source: 0;
-        total: 1;
-        active: 2;
-        linked: 3;
-        share: 4;
-        lastUpdate: 5;
-        asOf: 6;
-      }
-    }
-
-    class linkAllFullMatched$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::linkAllFullMatched$args';
-      static readonly $fields: linkAllFullMatched$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordIds: globalThis.Array<string>;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>}): linkAllFullMatched$args;
-    }
-    namespace linkAllFullMatched$args {
-      interface $Fields {
-        source: 0;
-        recordIds: 1;
-      }
-    }
-
-    class GoldenRecordPage extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::GoldenRecordPage';
-      static readonly $fields: GoldenRecordPage.$Fields;
-      total: number | bigint;
-      offset: number | bigint;
-      limit: number | bigint;
-      rows: globalThis.Array<gc.privateApi.GoldenRecordScore>;
-      constructor(total: number | bigint, offset: number | bigint, limit: number | bigint, rows: globalThis.Array<gc.privateApi.GoldenRecordScore>);
-      static createFrom(fields: {total: number | bigint, offset: number | bigint, limit: number | bigint, rows: globalThis.Array<gc.privateApi.GoldenRecordScore>}): GoldenRecordPage;
-    }
-    namespace GoldenRecordPage {
-      interface $Fields {
-        total: 0;
-        offset: 1;
-        limit: 2;
-        rows: 3;
-      }
-    }
-
-    class SourceCountSeries extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::SourceCountSeries';
-      static readonly $fields: SourceCountSeries.$Fields;
-      source: string;
-      points: globalThis.Array<gc.privateApi.SourceCountPoint>;
-      constructor(source: string, points: globalThis.Array<gc.privateApi.SourceCountPoint>);
-      static createFrom(fields: {source: string, points: globalThis.Array<gc.privateApi.SourceCountPoint>}): SourceCountSeries;
-    }
-    namespace SourceCountSeries {
-      interface $Fields {
-        source: 0;
-        points: 1;
-      }
-    }
-
-    class sourceTextIndexStats$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::sourceTextIndexStats$args';
-    }
-
-    class getReconciliationReport$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getReconciliationReport$args';
-      static readonly $fields: getReconciliationReport$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      city: string | null;
-      municipality: string | null;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null}): getReconciliationReport$args;
-    }
-    namespace getReconciliationReport$args {
-      interface $Fields {
-        source: 0;
-        city: 1;
-        municipality: 2;
-      }
-    }
-
-    class SourceRef extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::SourceRef';
-      static readonly $fields: SourceRef.$Fields;
-      ref: gc.core.node<gc.mengplaz.DataSource>;
-      name: string;
-      locked: boolean | null;
-      constructor(ref: gc.core.node<gc.mengplaz.DataSource>, name: string, locked?: boolean | null);
-      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.DataSource>, name: string, locked?: boolean | null}): SourceRef;
-    }
-    namespace SourceRef {
-      interface $Fields {
-        ref: 0;
-        name: 1;
-        locked: 2;
-      }
-    }
-
-    class GlobalQualityHistory extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::GlobalQualityHistory';
-      static readonly $fields: GlobalQualityHistory.$Fields;
-      current: number;
-      history: globalThis.Array<gc.privateApi.GlobalQualityEntry>;
-      constructor(current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>);
-      static createFrom(fields: {current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>}): GlobalQualityHistory;
-    }
-    namespace GlobalQualityHistory {
-      interface $Fields {
-        current: 0;
-        history: 1;
-      }
-    }
-
-    class mergePositionsToGolden$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::mergePositionsToGolden$args';
-      static readonly $fields: mergePositionsToGolden$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      recordIds: globalThis.Array<string>;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>}): mergePositionsToGolden$args;
-    }
-    namespace mergePositionsToGolden$args {
-      interface $Fields {
-        source: 0;
-        recordIds: 1;
-      }
-    }
-
-    class updateOSM$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::updateOSM$args';
-    }
-
-    class buildSourceTextIndexes$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::buildSourceTextIndexes$args';
-    }
-
-    class backupGraph$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::backupGraph$args';
-    }
-
-    class MatchedCandidateDetail extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::MatchedCandidateDetail';
-      static readonly $fields: MatchedCandidateDetail.$Fields;
-      ref: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      numberScore: number;
-      streetScore: number;
-      cityScore: number;
-      postcodeScore: number;
-      geoScore: number | null;
-      overallScore: number;
-      record: any;
-      constructor(ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, numberScore: number, streetScore: number, cityScore: number, postcodeScore: number, geoScore: number | null, overallScore: number, record: any);
-      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, numberScore: number, streetScore: number, cityScore: number, postcodeScore: number, geoScore?: number | null, overallScore: number, record: any}): MatchedCandidateDetail;
-    }
-    namespace MatchedCandidateDetail {
-      interface $Fields {
-        ref: 0;
-        numberScore: 1;
-        streetScore: 2;
-        cityScore: 3;
-        postcodeScore: 4;
-        geoScore: 5;
-        overallScore: 6;
-        record: 7;
-      }
-    }
-
-    class getSources$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::getSources$args';
-    }
-
-    class GlobalQualityEntry extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::GlobalQualityEntry';
-      static readonly $fields: GlobalQualityEntry.$Fields;
-      timestamp: gc.core.time;
-      averageQuality: number;
-      constructor(timestamp: gc.core.time, averageQuality: number);
-      static createFrom(fields: {timestamp: gc.core.time, averageQuality: number}): GlobalQualityEntry;
-    }
-    namespace GlobalQualityEntry {
-      interface $Fields {
-        timestamp: 0;
-        averageQuality: 1;
-      }
-    }
-
-    class batchLinkByScore$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::batchLinkByScore$args';
-      static readonly $fields: batchLinkByScore$args.$Fields;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      globalScore: number;
-      geoScore: number | null;
-      cityScore: number | null;
-      streetScore: number | null;
-      numberScore: number | null;
-      postcodeScore: number | null;
-      constructor(source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null);
-      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null}): batchLinkByScore$args;
-    }
-    namespace batchLinkByScore$args {
-      interface $Fields {
-        source: 0;
-        globalScore: 1;
-        geoScore: 2;
-        cityScore: 3;
-        streetScore: 4;
-        numberScore: 5;
-        postcodeScore: 6;
-      }
-    }
-
-    class lockSource$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::lockSource$args';
-      static readonly $fields: lockSource$args.$Fields;
-      source: string;
-      constructor(source: string);
-      static createFrom(fields: {source: string}): lockSource$args;
-    }
-    namespace lockSource$args {
-      interface $Fields {
-        source: 0;
-      }
-    }
-
-    class LinkParameters extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::LinkParameters';
-      static readonly $fields: LinkParameters.$Fields;
-      addCityAlias: boolean;
-      addStreetAlias: boolean;
-      updateSimilarStreetMismatch: boolean | null;
-      constructor(addCityAlias: boolean, addStreetAlias: boolean, updateSimilarStreetMismatch?: boolean | null);
-      static createFrom(fields: {addCityAlias: boolean, addStreetAlias: boolean, updateSimilarStreetMismatch?: boolean | null}): LinkParameters;
-    }
-    namespace LinkParameters {
-      interface $Fields {
-        addCityAlias: 0;
-        addStreetAlias: 1;
-        updateSimilarStreetMismatch: 2;
-      }
-    }
-
-    class ReconciliationReportView extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::ReconciliationReportView';
-      static readonly $fields: ReconciliationReportView.$Fields;
-      date: gc.core.time;
-      linked: globalThis.Array<string>;
-      fullMatch: globalThis.Array<string>;
-      multipleMatch: globalThis.Array<string>;
-      partialMatch: globalThis.Array<gc.privateApi.ReconciliationReportMatchView>;
-      noMatch: globalThis.Array<string>;
-      source: gc.core.node<gc.mengplaz.DataSource>;
-      constructor(date: gc.core.time, linked: globalThis.Array<string>, fullMatch: globalThis.Array<string>, multipleMatch: globalThis.Array<string>, partialMatch: globalThis.Array<gc.privateApi.ReconciliationReportMatchView>, noMatch: globalThis.Array<string>, source: gc.core.node<gc.mengplaz.DataSource>);
-      static createFrom(fields: {date: gc.core.time, linked: globalThis.Array<string>, fullMatch: globalThis.Array<string>, multipleMatch: globalThis.Array<string>, partialMatch: globalThis.Array<gc.privateApi.ReconciliationReportMatchView>, noMatch: globalThis.Array<string>, source: gc.core.node<gc.mengplaz.DataSource>}): ReconciliationReportView;
-    }
-    namespace ReconciliationReportView {
-      interface $Fields {
-        date: 0;
-        linked: 1;
-        fullMatch: 2;
-        multipleMatch: 3;
-        partialMatch: 4;
-        noMatch: 5;
-        source: 6;
-      }
-    }
-
-    class promoteRecord$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::promoteRecord$args';
-      static readonly $fields: promoteRecord$args.$Fields;
-      sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      streetIdx: string;
-      constructor(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string);
-      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string}): promoteRecord$args;
-    }
-    namespace promoteRecord$args {
-      interface $Fields {
-        sourceRecord: 0;
-        streetIdx: 1;
-      }
-    }
-
-    class buildSourceTextIndex$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::buildSourceTextIndex$args';
-      static readonly $fields: buildSourceTextIndex$args.$Fields;
-      source: string;
-      constructor(source: string);
-      static createFrom(fields: {source: string}): buildSourceTextIndex$args;
-    }
-    namespace buildSourceTextIndex$args {
-      interface $Fields {
-        source: 0;
-      }
-    }
-
-    class updateCACLR$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::updateCACLR$args';
-    }
-
-    class computeGlobalQuality$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::computeGlobalQuality$args';
-    }
-
-    class reconcileAddresses$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::reconcileAddresses$args';
-      static readonly $fields: reconcileAddresses$args.$Fields;
-      source: string;
-      poiIds: globalThis.Array<string>;
-      params: gc.mengplaz.SearchParameters | null;
-      constructor(source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null);
-      static createFrom(fields: {source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null}): reconcileAddresses$args;
-    }
-    namespace reconcileAddresses$args {
-      interface $Fields {
-        source: 0;
-        poiIds: 1;
-        params: 2;
-      }
-    }
-
-    class reconcile$args extends gc.sdk.GCObject {
-      static readonly _type = 'privateApi::reconcile$args';
-      static readonly $fields: reconcile$args.$Fields;
-      source: string;
-      params: gc.mengplaz.SearchParameters | null;
-      constructor(source: string, params?: gc.mengplaz.SearchParameters | null);
-      static createFrom(fields: {source: string, params?: gc.mengplaz.SearchParameters | null}): reconcile$args;
-    }
-    namespace reconcile$args {
-      interface $Fields {
-        source: 0;
-        params: 1;
-      }
-    }
-
-    const promoteRecord: ((sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const linkRecords: ((sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const unlinkRecord: ((sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const linkAllFullMatched: ((source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    /**
-     * Batch links reconciled records to their best Golden candidate based on score rules.
-     * All scores are expressed on a 0-100 scale.
-     *  - links every unlinked record whose best candidate overall score is >= `globalScore`;
-     *  - each optional per-field score (`geoScore`, `cityScore`, `streetScore`, `numberScore`,
-     *    `postcodeScore`), when provided, adds a further constraint: the best candidate's matching
-     *    field score must be >= the given value. Pass null to ignore that field.
-     * `globalScore` cannot be lower than 80. Returns the number of records linked.
-     */
-    const batchLinkByScore: ((source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
-    };
-    const mergePositionsToGolden: ((source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const lockSource: ((source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const reconcile: ((source: string, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.mengplaz.ReconciliationReport | null>) & {
-      spawn(source: string, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.mengplaz.ReconciliationReport | null>>;
-    };
-    const reconcileAddresses: ((source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.mengplaz.ReconciliationReport | null>) & {
-      spawn(source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.mengplaz.ReconciliationReport | null>>;
-    };
-    const getReconciliationReport: ((source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.ReconciliationReportView | null>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.ReconciliationReportView | null>>;
-    };
-    const getRecordTab: ((source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.RecordTabResult>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.RecordTabResult>>;
-    };
-    const getSources: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<globalThis.Array<gc.privateApi.SourceRef>>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<globalThis.Array<gc.privateApi.SourceRef>>>;
-    };
-    const getComparisonViewData: ((source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.ComparisonViewData>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.ComparisonViewData>>;
-    };
-    const getLinkedComparisonViewData: ((source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.ComparisonViewData>) & {
-      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.ComparisonViewData>>;
-    };
-    /**
-     * Walks every golden POI; call periodically to extend the global quality history.
-     */
-    const computeGlobalQuality: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const unlockSource: ((source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn(source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const updateCACLR: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const updateBDA: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const updateOSM: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    const buildGoldenStreetIndex: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
-    };
-    const goldenStreetIndexStats: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.goldenStreetSearch.GoldenStreetIndexStats>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.goldenStreetSearch.GoldenStreetIndexStats>>;
-    };
-    const buildGoldenTextIndex: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
-    };
-    const goldenTextIndexStats: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.goldenTextSearch.GoldenTextIndexStats>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.goldenTextSearch.GoldenTextIndexStats>>;
-    };
-    const buildSourceTextIndexes: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
-    };
-    const buildSourceTextIndex: ((source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
-      spawn(source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
-    };
-    const sourceTextIndexStats: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<globalThis.Array<gc.sourceTextSearch.SourceTextIndexStats>>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<globalThis.Array<gc.sourceTextSearch.SourceTextIndexStats>>>;
-    };
-    const recomputeGoldenGeoScore: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    /**
-     * Dumps the whole graph to `files/backup/` (plus the golden dump in `files/dump/`).
-     */
-    const backupGraph: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-    /**
-     * Restores the whole graph from `files/backup/`.
-     */
-    const restoreGraph: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
-      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
-    };
-  }
-
   namespace api {
-    class DeprecatedCounts extends gc.sdk.GCObject {
-      static readonly _type = 'api::DeprecatedCounts';
-      static readonly $fields: DeprecatedCounts.$Fields;
-      rows: globalThis.Array<gc.api.DeprecatedCountRow>;
+    class getGoldenStreetsByLocalityId$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenStreetsByLocalityId$args';
+      static readonly $fields: getGoldenStreetsByLocalityId$args.$Fields;
+      localityId: string;
+      constructor(localityId: string);
+      static createFrom(fields: {localityId: string}): getGoldenStreetsByLocalityId$args;
+    }
+    namespace getGoldenStreetsByLocalityId$args {
+      interface $Fields {
+        localityId: 0;
+      }
+    }
+
+    class DeprecatedCountRow extends gc.sdk.GCObject {
+      static readonly _type = 'api::DeprecatedCountRow';
+      static readonly $fields: DeprecatedCountRow.$Fields;
+      source: string;
       total: number | bigint;
       deprecated: number | bigint;
-      constructor(rows: globalThis.Array<gc.api.DeprecatedCountRow>, total: number | bigint, deprecated: number | bigint);
-      static createFrom(fields: {rows: globalThis.Array<gc.api.DeprecatedCountRow>, total: number | bigint, deprecated: number | bigint}): DeprecatedCounts;
+      asOf: gc.core.time | null;
+      constructor(source: string, total: number | bigint, deprecated: number | bigint, asOf?: gc.core.time | null);
+      static createFrom(fields: {source: string, total: number | bigint, deprecated: number | bigint, asOf?: gc.core.time | null}): DeprecatedCountRow;
     }
-    namespace DeprecatedCounts {
+    namespace DeprecatedCountRow {
       interface $Fields {
-        rows: 0;
+        source: 0;
         total: 1;
         deprecated: 2;
+        asOf: 3;
       }
-    }
-
-    class getGoldenNumbersByStreetId$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenNumbersByStreetId$args';
-      static readonly $fields: getGoldenNumbersByStreetId$args.$Fields;
-      streetId: string;
-      constructor(streetId: string);
-      static createFrom(fields: {streetId: string}): getGoldenNumbersByStreetId$args;
-    }
-    namespace getGoldenNumbersByStreetId$args {
-      interface $Fields {
-        streetId: 0;
-      }
-    }
-
-    class getGoldenRecordDetails$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenRecordDetails$args';
-      static readonly $fields: getGoldenRecordDetails$args.$Fields;
-      uid: string;
-      constructor(uid: string);
-      static createFrom(fields: {uid: string}): getGoldenRecordDetails$args;
-    }
-    namespace getGoldenRecordDetails$args {
-      interface $Fields {
-        uid: 0;
-      }
-    }
-
-    class getGoldenWithLinkedRecords$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenWithLinkedRecords$args';
-      static readonly $fields: getGoldenWithLinkedRecords$args.$Fields;
-      addr: string;
-      constructor(addr: string);
-      static createFrom(fields: {addr: string}): getGoldenWithLinkedRecords$args;
-    }
-    namespace getGoldenWithLinkedRecords$args {
-      interface $Fields {
-        addr: 0;
-      }
-    }
-
-    class getPois$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getPois$args';
     }
 
     class GeoJSONFeature extends gc.sdk.GCObject {
@@ -850,65 +148,95 @@ declare namespace gc {
       }
     }
 
-    class getGlobalQualityHistory$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGlobalQualityHistory$args';
-      static readonly $fields: getGlobalQualityHistory$args.$Fields;
-      from: gc.core.time | null;
-      to: gc.core.time | null;
-      constructor(from?: gc.core.time | null, to?: gc.core.time | null);
-      static createFrom(fields: {from?: gc.core.time | null, to?: gc.core.time | null}): getGlobalQualityHistory$args;
+    class LinkedRecordDetails<T = any> extends gc.sdk.GCObject {
+      static readonly _type = 'api::LinkedRecordDetails';
+      static readonly $fields: LinkedRecordDetails.$Fields;
+      score: gc.mengplaz.ReconciliationCandidateScore | null;
+      record: T;
+      constructor(score?: gc.mengplaz.ReconciliationCandidateScore | null, record?: T);
+      static createFrom<T>(fields: {score?: gc.mengplaz.ReconciliationCandidateScore | null, record?: T}): LinkedRecordDetails;
     }
-    namespace getGlobalQualityHistory$args {
+    namespace LinkedRecordDetails {
       interface $Fields {
-        from: 0;
-        to: 1;
+        score: 0;
+        record: 1;
       }
     }
 
-    class getGoldenRecords$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenRecords$args';
-      static readonly $fields: getGoldenRecords$args.$Fields;
-      offset: number | bigint;
-      limit: number | bigint;
-      constructor(offset: number | bigint, limit: number | bigint);
-      static createFrom(fields: {offset: number | bigint, limit: number | bigint}): getGoldenRecords$args;
+    class DataAttribution extends gc.sdk.GCObject {
+      static readonly _type = 'api::DataAttribution';
+      static readonly $fields: DataAttribution.$Fields;
+      notice: string;
+      sources: globalThis.Array<string>;
+      constructor(notice: string, sources: globalThis.Array<string>);
+      static createFrom(fields: {notice: string, sources: globalThis.Array<string>}): DataAttribution;
     }
-    namespace getGoldenRecords$args {
+    namespace DataAttribution {
       interface $Fields {
-        offset: 0;
-        limit: 1;
+        notice: 0;
+        sources: 1;
       }
     }
 
-    class GoldenRecordDetails extends gc.sdk.GCObject {
-      static readonly _type = 'api::GoldenRecordDetails';
-      static readonly $fields: GoldenRecordDetails.$Fields;
-      golden: gc.mengplaz.AddressRecordRef;
-      associated: globalThis.Array<gc.mengplaz.AddressFullRecordRef>;
-      constructor(golden: gc.mengplaz.AddressRecordRef, associated: globalThis.Array<gc.mengplaz.AddressFullRecordRef>);
-      static createFrom(fields: {golden: gc.mengplaz.AddressRecordRef, associated: globalThis.Array<gc.mengplaz.AddressFullRecordRef>}): GoldenRecordDetails;
+    class RankedGoldenRecord extends gc.sdk.GCObject {
+      static readonly _type = 'api::RankedGoldenRecord';
+      static readonly $fields: RankedGoldenRecord.$Fields;
+      record: gc.core.node<gc.golden.GoldenAddress>;
+      value: number;
+      constructor(record: gc.core.node<gc.golden.GoldenAddress>, value: number);
+      static createFrom(fields: {record: gc.core.node<gc.golden.GoldenAddress>, value: number}): RankedGoldenRecord;
     }
-    namespace GoldenRecordDetails {
+    namespace RankedGoldenRecord {
       interface $Fields {
-        golden: 0;
-        associated: 1;
+        record: 0;
+        value: 1;
       }
     }
 
-    class attribution$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::attribution$args';
+    class appInfo$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::appInfo$args';
     }
 
-    class getDeprecatedCounts$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getDeprecatedCounts$args';
-      static readonly $fields: getDeprecatedCounts$args.$Fields;
+    class getGoldenRecordRefByUid$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenRecordRefByUid$args';
+      static readonly $fields: getGoldenRecordRefByUid$args.$Fields;
+      uid: string;
+      constructor(uid: string);
+      static createFrom(fields: {uid: string}): getGoldenRecordRefByUid$args;
+    }
+    namespace getGoldenRecordRefByUid$args {
+      interface $Fields {
+        uid: 0;
+      }
+    }
+
+    class searchAddress$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::searchAddress$args';
+      static readonly $fields: searchAddress$args.$Fields;
+      addr: string;
+      max: number | bigint | null;
       source: string | null;
-      constructor(source?: string | null);
-      static createFrom(fields: {source?: string | null}): getDeprecatedCounts$args;
+      constructor(addr: string, max?: number | bigint | null, source?: string | null);
+      static createFrom(fields: {addr: string, max?: number | bigint | null, source?: string | null}): searchAddress$args;
     }
-    namespace getDeprecatedCounts$args {
+    namespace searchAddress$args {
       interface $Fields {
-        source: 0;
+        addr: 0;
+        max: 1;
+        source: 2;
+      }
+    }
+
+    class searchStreet$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::searchStreet$args';
+      static readonly $fields: searchStreet$args.$Fields;
+      e: string;
+      constructor(e: string);
+      static createFrom(fields: {e: string}): searchStreet$args;
+    }
+    namespace searchStreet$args {
+      interface $Fields {
+        e: 0;
       }
     }
 
@@ -942,29 +270,78 @@ declare namespace gc {
       }
     }
 
-    class getPoisInStreet$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getPoisInStreet$args';
-      static readonly $fields: getPoisInStreet$args.$Fields;
-      streetId: string;
-      constructor(streetId: string);
-      static createFrom(fields: {streetId: string}): getPoisInStreet$args;
+    class getGoldenRecords$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenRecords$args';
+      static readonly $fields: getGoldenRecords$args.$Fields;
+      offset: number | bigint;
+      limit: number | bigint;
+      constructor(offset: number | bigint, limit: number | bigint);
+      static createFrom(fields: {offset: number | bigint, limit: number | bigint}): getGoldenRecords$args;
     }
-    namespace getPoisInStreet$args {
+    namespace getGoldenRecords$args {
       interface $Fields {
-        streetId: 0;
+        offset: 0;
+        limit: 1;
       }
     }
 
-    class getGoldenStreetsByLocalityId$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenStreetsByLocalityId$args';
-      static readonly $fields: getGoldenStreetsByLocalityId$args.$Fields;
-      localityId: string;
-      constructor(localityId: string);
-      static createFrom(fields: {localityId: string}): getGoldenStreetsByLocalityId$args;
+    class getGoldenRecordDetails$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenRecordDetails$args';
+      static readonly $fields: getGoldenRecordDetails$args.$Fields;
+      uid: string;
+      constructor(uid: string);
+      static createFrom(fields: {uid: string}): getGoldenRecordDetails$args;
     }
-    namespace getGoldenStreetsByLocalityId$args {
+    namespace getGoldenRecordDetails$args {
       interface $Fields {
-        localityId: 0;
+        uid: 0;
+      }
+    }
+
+    class attribution$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::attribution$args';
+    }
+
+    class GoldenIndex extends gc.sdk.GCObject {
+      static readonly _type = 'api::GoldenIndex';
+      static readonly $fields: GoldenIndex.$Fields;
+      id: string;
+      name: string;
+      constructor(id: string, name: string);
+      static createFrom(fields: {id: string, name: string}): GoldenIndex;
+    }
+    namespace GoldenIndex {
+      interface $Fields {
+        id: 0;
+        name: 1;
+      }
+    }
+
+    class getRecordByGeoportailID$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getRecordByGeoportailID$args';
+      static readonly $fields: getRecordByGeoportailID$args.$Fields;
+      id: string;
+      constructor(id: string);
+      static createFrom(fields: {id: string}): getRecordByGeoportailID$args;
+    }
+    namespace getRecordByGeoportailID$args {
+      interface $Fields {
+        id: 0;
+      }
+    }
+
+    class getSourceStats$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getSourceStats$args';
+      static readonly $fields: getSourceStats$args.$Fields;
+      from: gc.core.time | null;
+      to: gc.core.time | null;
+      constructor(from?: gc.core.time | null, to?: gc.core.time | null);
+      static createFrom(fields: {from?: gc.core.time | null, to?: gc.core.time | null}): getSourceStats$args;
+    }
+    namespace getSourceStats$args {
+      interface $Fields {
+        from: 0;
+        to: 1;
       }
     }
 
@@ -987,112 +364,6 @@ declare namespace gc {
       }
     }
 
-    class RankedGoldenRecord extends gc.sdk.GCObject {
-      static readonly _type = 'api::RankedGoldenRecord';
-      static readonly $fields: RankedGoldenRecord.$Fields;
-      record: gc.core.node<gc.golden.GoldenAddress>;
-      value: number;
-      constructor(record: gc.core.node<gc.golden.GoldenAddress>, value: number);
-      static createFrom(fields: {record: gc.core.node<gc.golden.GoldenAddress>, value: number}): RankedGoldenRecord;
-    }
-    namespace RankedGoldenRecord {
-      interface $Fields {
-        record: 0;
-        value: 1;
-      }
-    }
-
-    class GoldenWithLinkedRecords extends gc.sdk.GCObject {
-      static readonly _type = 'api::GoldenWithLinkedRecords';
-      static readonly $fields: GoldenWithLinkedRecords.$Fields;
-      golden: gc.mengplaz.AddressRecord;
-      osm: globalThis.Array<gc.api.LinkedRecordDetails<gc.osm.OsmAddressFullRecord>>;
-      caclr: globalThis.Array<gc.api.LinkedRecordDetails<gc.caclr.CaclrAddressFullRecord>>;
-      bda: globalThis.Array<gc.api.LinkedRecordDetails<gc.bda.BdaAddressFullRecord>>;
-      constructor(golden: gc.mengplaz.AddressRecord, osm: globalThis.Array<gc.api.LinkedRecordDetails<gc.osm.OsmAddressFullRecord>>, caclr: globalThis.Array<gc.api.LinkedRecordDetails<gc.caclr.CaclrAddressFullRecord>>, bda: globalThis.Array<gc.api.LinkedRecordDetails<gc.bda.BdaAddressFullRecord>>);
-      static createFrom(fields: {golden: gc.mengplaz.AddressRecord, osm: globalThis.Array<gc.api.LinkedRecordDetails<gc.osm.OsmAddressFullRecord>>, caclr: globalThis.Array<gc.api.LinkedRecordDetails<gc.caclr.CaclrAddressFullRecord>>, bda: globalThis.Array<gc.api.LinkedRecordDetails<gc.bda.BdaAddressFullRecord>>}): GoldenWithLinkedRecords;
-    }
-    namespace GoldenWithLinkedRecords {
-      interface $Fields {
-        golden: 0;
-        osm: 1;
-        caclr: 2;
-        bda: 3;
-      }
-    }
-
-    class searchAddress$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::searchAddress$args';
-      static readonly $fields: searchAddress$args.$Fields;
-      addr: string;
-      max: number | bigint | null;
-      source: string | null;
-      constructor(addr: string, max?: number | bigint | null, source?: string | null);
-      static createFrom(fields: {addr: string, max?: number | bigint | null, source?: string | null}): searchAddress$args;
-    }
-    namespace searchAddress$args {
-      interface $Fields {
-        addr: 0;
-        max: 1;
-        source: 2;
-      }
-    }
-
-    class DeprecatedCountRow extends gc.sdk.GCObject {
-      static readonly _type = 'api::DeprecatedCountRow';
-      static readonly $fields: DeprecatedCountRow.$Fields;
-      source: string;
-      total: number | bigint;
-      deprecated: number | bigint;
-      asOf: gc.core.time | null;
-      constructor(source: string, total: number | bigint, deprecated: number | bigint, asOf?: gc.core.time | null);
-      static createFrom(fields: {source: string, total: number | bigint, deprecated: number | bigint, asOf?: gc.core.time | null}): DeprecatedCountRow;
-    }
-    namespace DeprecatedCountRow {
-      interface $Fields {
-        source: 0;
-        total: 1;
-        deprecated: 2;
-        asOf: 3;
-      }
-    }
-
-    class openapi$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::openapi$args';
-    }
-
-    class appInfo$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::appInfo$args';
-    }
-
-    class LinkedRecordDetails<T = any> extends gc.sdk.GCObject {
-      static readonly _type = 'api::LinkedRecordDetails';
-      static readonly $fields: LinkedRecordDetails.$Fields;
-      score: gc.mengplaz.ReconciliationCandidateScore | null;
-      record: T;
-      constructor(score?: gc.mengplaz.ReconciliationCandidateScore | null, record?: T);
-      static createFrom<T>(fields: {score?: gc.mengplaz.ReconciliationCandidateScore | null, record?: T}): LinkedRecordDetails;
-    }
-    namespace LinkedRecordDetails {
-      interface $Fields {
-        score: 0;
-        record: 1;
-      }
-    }
-
-    class getGoldenLocalities$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenLocalities$args';
-      static readonly $fields: getGoldenLocalities$args.$Fields;
-      communeName: string | null;
-      constructor(communeName?: string | null);
-      static createFrom(fields: {communeName?: string | null}): getGoldenLocalities$args;
-    }
-    namespace getGoldenLocalities$args {
-      interface $Fields {
-        communeName: 0;
-      }
-    }
-
     class GeoJSON extends gc.sdk.GCObject {
       static readonly _type = 'api::GeoJSON';
       static readonly $fields: GeoJSON.$Fields;
@@ -1105,6 +376,51 @@ declare namespace gc {
       interface $Fields {
         type: 0;
         features: 1;
+      }
+    }
+
+    class getGlobalQualityHistory$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGlobalQualityHistory$args';
+      static readonly $fields: getGlobalQualityHistory$args.$Fields;
+      from: gc.core.time | null;
+      to: gc.core.time | null;
+      constructor(from?: gc.core.time | null, to?: gc.core.time | null);
+      static createFrom(fields: {from?: gc.core.time | null, to?: gc.core.time | null}): getGlobalQualityHistory$args;
+    }
+    namespace getGlobalQualityHistory$args {
+      interface $Fields {
+        from: 0;
+        to: 1;
+      }
+    }
+
+    class getPois$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getPois$args';
+    }
+
+    class getPoisInStreet$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getPoisInStreet$args';
+      static readonly $fields: getPoisInStreet$args.$Fields;
+      streetId: string;
+      constructor(streetId: string);
+      static createFrom(fields: {streetId: string}): getPoisInStreet$args;
+    }
+    namespace getPoisInStreet$args {
+      interface $Fields {
+        streetId: 0;
+      }
+    }
+
+    class getDeprecatedCounts$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getDeprecatedCounts$args';
+      static readonly $fields: getDeprecatedCounts$args.$Fields;
+      source: string | null;
+      constructor(source?: string | null);
+      static createFrom(fields: {source?: string | null}): getDeprecatedCounts$args;
+    }
+    namespace getDeprecatedCounts$args {
+      interface $Fields {
+        source: 0;
       }
     }
 
@@ -1127,44 +443,50 @@ declare namespace gc {
       }
     }
 
-    class DataAttribution extends gc.sdk.GCObject {
-      static readonly _type = 'api::DataAttribution';
-      static readonly $fields: DataAttribution.$Fields;
-      notice: string;
-      sources: globalThis.Array<string>;
-      constructor(notice: string, sources: globalThis.Array<string>);
-      static createFrom(fields: {notice: string, sources: globalThis.Array<string>}): DataAttribution;
+    class GoldenWithLinkedRecords extends gc.sdk.GCObject {
+      static readonly _type = 'api::GoldenWithLinkedRecords';
+      static readonly $fields: GoldenWithLinkedRecords.$Fields;
+      golden: gc.mengplaz.AddressRecord;
+      osm: globalThis.Array<gc.api.LinkedRecordDetails<gc.osm.OsmAddressFullRecord>>;
+      caclr: globalThis.Array<gc.api.LinkedRecordDetails<gc.caclr.CaclrAddressFullRecord>>;
+      bda: globalThis.Array<gc.api.LinkedRecordDetails<gc.bda.BdaAddressFullRecord>>;
+      constructor(golden: gc.mengplaz.AddressRecord, osm: globalThis.Array<gc.api.LinkedRecordDetails<gc.osm.OsmAddressFullRecord>>, caclr: globalThis.Array<gc.api.LinkedRecordDetails<gc.caclr.CaclrAddressFullRecord>>, bda: globalThis.Array<gc.api.LinkedRecordDetails<gc.bda.BdaAddressFullRecord>>);
+      static createFrom(fields: {golden: gc.mengplaz.AddressRecord, osm: globalThis.Array<gc.api.LinkedRecordDetails<gc.osm.OsmAddressFullRecord>>, caclr: globalThis.Array<gc.api.LinkedRecordDetails<gc.caclr.CaclrAddressFullRecord>>, bda: globalThis.Array<gc.api.LinkedRecordDetails<gc.bda.BdaAddressFullRecord>>}): GoldenWithLinkedRecords;
     }
-    namespace DataAttribution {
+    namespace GoldenWithLinkedRecords {
       interface $Fields {
-        notice: 0;
-        sources: 1;
+        golden: 0;
+        osm: 1;
+        caclr: 2;
+        bda: 3;
       }
     }
 
-    class getRecordByGeoportailID$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getRecordByGeoportailID$args';
-      static readonly $fields: getRecordByGeoportailID$args.$Fields;
-      id: string;
-      constructor(id: string);
-      static createFrom(fields: {id: string}): getRecordByGeoportailID$args;
+    class GoldenRecordDetails extends gc.sdk.GCObject {
+      static readonly _type = 'api::GoldenRecordDetails';
+      static readonly $fields: GoldenRecordDetails.$Fields;
+      golden: gc.mengplaz.AddressRecordRef;
+      associated: globalThis.Array<gc.mengplaz.AddressFullRecordRef>;
+      constructor(golden: gc.mengplaz.AddressRecordRef, associated: globalThis.Array<gc.mengplaz.AddressFullRecordRef>);
+      static createFrom(fields: {golden: gc.mengplaz.AddressRecordRef, associated: globalThis.Array<gc.mengplaz.AddressFullRecordRef>}): GoldenRecordDetails;
     }
-    namespace getRecordByGeoportailID$args {
+    namespace GoldenRecordDetails {
       interface $Fields {
-        id: 0;
+        golden: 0;
+        associated: 1;
       }
     }
 
-    class searchStreet$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::searchStreet$args';
-      static readonly $fields: searchStreet$args.$Fields;
-      e: string;
-      constructor(e: string);
-      static createFrom(fields: {e: string}): searchStreet$args;
+    class getGoldenNumbersByStreetId$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenNumbersByStreetId$args';
+      static readonly $fields: getGoldenNumbersByStreetId$args.$Fields;
+      streetId: string;
+      constructor(streetId: string);
+      static createFrom(fields: {streetId: string}): getGoldenNumbersByStreetId$args;
     }
-    namespace searchStreet$args {
+    namespace getGoldenNumbersByStreetId$args {
       interface $Fields {
-        e: 0;
+        streetId: 0;
       }
     }
 
@@ -1172,51 +494,34 @@ declare namespace gc {
       static readonly _type = 'api::getGoldenRecordsGeoJson$args';
     }
 
-    class GoldenIndex extends gc.sdk.GCObject {
-      static readonly _type = 'api::GoldenIndex';
-      static readonly $fields: GoldenIndex.$Fields;
-      id: string;
-      name: string;
-      constructor(id: string, name: string);
-      static createFrom(fields: {id: string, name: string}): GoldenIndex;
+    class getGoldenWithLinkedRecords$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenWithLinkedRecords$args';
+      static readonly $fields: getGoldenWithLinkedRecords$args.$Fields;
+      addr: string;
+      constructor(addr: string);
+      static createFrom(fields: {addr: string}): getGoldenWithLinkedRecords$args;
     }
-    namespace GoldenIndex {
+    namespace getGoldenWithLinkedRecords$args {
       interface $Fields {
-        id: 0;
-        name: 1;
+        addr: 0;
       }
     }
 
-    class getSourceStats$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getSourceStats$args';
-      static readonly $fields: getSourceStats$args.$Fields;
-      from: gc.core.time | null;
-      to: gc.core.time | null;
-      constructor(from?: gc.core.time | null, to?: gc.core.time | null);
-      static createFrom(fields: {from?: gc.core.time | null, to?: gc.core.time | null}): getSourceStats$args;
+    class DeprecatedCounts extends gc.sdk.GCObject {
+      static readonly _type = 'api::DeprecatedCounts';
+      static readonly $fields: DeprecatedCounts.$Fields;
+      rows: globalThis.Array<gc.api.DeprecatedCountRow>;
+      total: number | bigint;
+      deprecated: number | bigint;
+      constructor(rows: globalThis.Array<gc.api.DeprecatedCountRow>, total: number | bigint, deprecated: number | bigint);
+      static createFrom(fields: {rows: globalThis.Array<gc.api.DeprecatedCountRow>, total: number | bigint, deprecated: number | bigint}): DeprecatedCounts;
     }
-    namespace getSourceStats$args {
+    namespace DeprecatedCounts {
       interface $Fields {
-        from: 0;
-        to: 1;
+        rows: 0;
+        total: 1;
+        deprecated: 2;
       }
-    }
-
-    class getGoldenRecordRefByUid$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenRecordRefByUid$args';
-      static readonly $fields: getGoldenRecordRefByUid$args.$Fields;
-      uid: string;
-      constructor(uid: string);
-      static createFrom(fields: {uid: string}): getGoldenRecordRefByUid$args;
-    }
-    namespace getGoldenRecordRefByUid$args {
-      interface $Fields {
-        uid: 0;
-      }
-    }
-
-    class getGoldenCommunes$args extends gc.sdk.GCObject {
-      static readonly _type = 'api::getGoldenCommunes$args';
     }
 
     class getPoisByGeo$args extends gc.sdk.GCObject {
@@ -1229,6 +534,27 @@ declare namespace gc {
     namespace getPoisByGeo$args {
       interface $Fields {
         coords: 0;
+      }
+    }
+
+    class openapi$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::openapi$args';
+    }
+
+    class getGoldenCommunes$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenCommunes$args';
+    }
+
+    class getGoldenLocalities$args extends gc.sdk.GCObject {
+      static readonly _type = 'api::getGoldenLocalities$args';
+      static readonly $fields: getGoldenLocalities$args.$Fields;
+      communeName: string | null;
+      constructor(communeName?: string | null);
+      static createFrom(fields: {communeName?: string | null}): getGoldenLocalities$args;
+    }
+    namespace getGoldenLocalities$args {
+      interface $Fields {
+        communeName: 0;
       }
     }
 
@@ -1340,6 +666,669 @@ declare namespace gc {
      */
     const getDeprecatedCounts: ((source?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.api.DeprecatedCounts>) & {
       spawn(source?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.api.DeprecatedCounts>>;
+    };
+  }
+
+  namespace privateApi {
+    class updateBDA$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::updateBDA$args';
+    }
+
+    class getSources$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getSources$args';
+    }
+
+    class recomputeGoldenGeoScore$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::recomputeGoldenGeoScore$args';
+    }
+
+    class lockSource$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::lockSource$args';
+      static readonly $fields: lockSource$args.$Fields;
+      source: string;
+      constructor(source: string);
+      static createFrom(fields: {source: string}): lockSource$args;
+    }
+    namespace lockSource$args {
+      interface $Fields {
+        source: 0;
+      }
+    }
+
+    class promoteRecord$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::promoteRecord$args';
+      static readonly $fields: promoteRecord$args.$Fields;
+      sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      streetIdx: string;
+      constructor(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string);
+      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string}): promoteRecord$args;
+    }
+    namespace promoteRecord$args {
+      interface $Fields {
+        sourceRecord: 0;
+        streetIdx: 1;
+      }
+    }
+
+    class updateOSM$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::updateOSM$args';
+    }
+
+    class ReconciliationReportMatchView extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::ReconciliationReportMatchView';
+      static readonly $fields: ReconciliationReportMatchView.$Fields;
+      score: number | null;
+      id: string;
+      constructor(score: number | null, id: string);
+      static createFrom(fields: {score?: number | null, id: string}): ReconciliationReportMatchView;
+    }
+    namespace ReconciliationReportMatchView {
+      interface $Fields {
+        score: 0;
+        id: 1;
+      }
+    }
+
+    class goldenStreetIndexStats$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::goldenStreetIndexStats$args';
+    }
+
+    class SourceCountPoint extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::SourceCountPoint';
+      static readonly $fields: SourceCountPoint.$Fields;
+      timestamp: gc.core.time;
+      total: number | bigint;
+      active: number | bigint;
+      constructor(timestamp: gc.core.time, total: number | bigint, active: number | bigint);
+      static createFrom(fields: {timestamp: gc.core.time, total: number | bigint, active: number | bigint}): SourceCountPoint;
+    }
+    namespace SourceCountPoint {
+      interface $Fields {
+        timestamp: 0;
+        total: 1;
+        active: 2;
+      }
+    }
+
+    class reconcile$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::reconcile$args';
+      static readonly $fields: reconcile$args.$Fields;
+      source: string;
+      params: gc.mengplaz.SearchParameters | null;
+      constructor(source: string, params?: gc.mengplaz.SearchParameters | null);
+      static createFrom(fields: {source: string, params?: gc.mengplaz.SearchParameters | null}): reconcile$args;
+    }
+    namespace reconcile$args {
+      interface $Fields {
+        source: 0;
+        params: 1;
+      }
+    }
+
+    class batchLinkByScore$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::batchLinkByScore$args';
+      static readonly $fields: batchLinkByScore$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      globalScore: number;
+      geoScore: number | null;
+      cityScore: number | null;
+      streetScore: number | null;
+      numberScore: number | null;
+      postcodeScore: number | null;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null}): batchLinkByScore$args;
+    }
+    namespace batchLinkByScore$args {
+      interface $Fields {
+        source: 0;
+        globalScore: 1;
+        geoScore: 2;
+        cityScore: 3;
+        streetScore: 4;
+        numberScore: 5;
+        postcodeScore: 6;
+      }
+    }
+
+    class SourceRef extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::SourceRef';
+      static readonly $fields: SourceRef.$Fields;
+      ref: gc.core.node<gc.mengplaz.DataSource>;
+      name: string;
+      locked: boolean | null;
+      constructor(ref: gc.core.node<gc.mengplaz.DataSource>, name: string, locked?: boolean | null);
+      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.DataSource>, name: string, locked?: boolean | null}): SourceRef;
+    }
+    namespace SourceRef {
+      interface $Fields {
+        ref: 0;
+        name: 1;
+        locked: 2;
+      }
+    }
+
+    class GlobalQualityEntry extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::GlobalQualityEntry';
+      static readonly $fields: GlobalQualityEntry.$Fields;
+      timestamp: gc.core.time;
+      averageQuality: number;
+      constructor(timestamp: gc.core.time, averageQuality: number);
+      static createFrom(fields: {timestamp: gc.core.time, averageQuality: number}): GlobalQualityEntry;
+    }
+    namespace GlobalQualityEntry {
+      interface $Fields {
+        timestamp: 0;
+        averageQuality: 1;
+      }
+    }
+
+    class buildGoldenTextIndex$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::buildGoldenTextIndex$args';
+    }
+
+    class computeGlobalQuality$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::computeGlobalQuality$args';
+    }
+
+    class GoldenRecordPage extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::GoldenRecordPage';
+      static readonly $fields: GoldenRecordPage.$Fields;
+      total: number | bigint;
+      offset: number | bigint;
+      limit: number | bigint;
+      rows: globalThis.Array<gc.privateApi.GoldenRecordScore>;
+      constructor(total: number | bigint, offset: number | bigint, limit: number | bigint, rows: globalThis.Array<gc.privateApi.GoldenRecordScore>);
+      static createFrom(fields: {total: number | bigint, offset: number | bigint, limit: number | bigint, rows: globalThis.Array<gc.privateApi.GoldenRecordScore>}): GoldenRecordPage;
+    }
+    namespace GoldenRecordPage {
+      interface $Fields {
+        total: 0;
+        offset: 1;
+        limit: 2;
+        rows: 3;
+      }
+    }
+
+    class buildSourceTextIndexes$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::buildSourceTextIndexes$args';
+    }
+
+    class buildGoldenStreetIndex$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::buildGoldenStreetIndex$args';
+    }
+
+    class SourceStatsRow extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::SourceStatsRow';
+      static readonly $fields: SourceStatsRow.$Fields;
+      source: string;
+      total: number | bigint;
+      active: number | bigint | null;
+      linked: number | bigint | null;
+      share: number;
+      lastUpdate: gc.core.time | null;
+      asOf: gc.core.time | null;
+      constructor(source: string, total: number | bigint, active: number | bigint | null, linked: number | bigint | null, share: number, lastUpdate?: gc.core.time | null, asOf?: gc.core.time | null);
+      static createFrom(fields: {source: string, total: number | bigint, active?: number | bigint | null, linked?: number | bigint | null, share: number, lastUpdate?: gc.core.time | null, asOf?: gc.core.time | null}): SourceStatsRow;
+    }
+    namespace SourceStatsRow {
+      interface $Fields {
+        source: 0;
+        total: 1;
+        active: 2;
+        linked: 3;
+        share: 4;
+        lastUpdate: 5;
+        asOf: 6;
+      }
+    }
+
+    class RecordTabResult extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::RecordTabResult';
+      static readonly $fields: RecordTabResult.$Fields;
+      tab: string;
+      score: number | null;
+      constructor(tab: string, score?: number | null);
+      static createFrom(fields: {tab: string, score?: number | null}): RecordTabResult;
+    }
+    namespace RecordTabResult {
+      interface $Fields {
+        tab: 0;
+        score: 1;
+      }
+    }
+
+    class linkAllFullMatched$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::linkAllFullMatched$args';
+      static readonly $fields: linkAllFullMatched$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordIds: globalThis.Array<string>;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>}): linkAllFullMatched$args;
+    }
+    namespace linkAllFullMatched$args {
+      interface $Fields {
+        source: 0;
+        recordIds: 1;
+      }
+    }
+
+    class getReconciliationReport$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getReconciliationReport$args';
+      static readonly $fields: getReconciliationReport$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      city: string | null;
+      municipality: string | null;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null}): getReconciliationReport$args;
+    }
+    namespace getReconciliationReport$args {
+      interface $Fields {
+        source: 0;
+        city: 1;
+        municipality: 2;
+      }
+    }
+
+    class ComparisonViewData extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::ComparisonViewData';
+      static readonly $fields: ComparisonViewData.$Fields;
+      sourceRecord: gc.mengplaz.AddressFullRecordRef;
+      candidates: globalThis.Array<gc.privateApi.MatchedCandidateDetail>;
+      constructor(sourceRecord: gc.mengplaz.AddressFullRecordRef, candidates: globalThis.Array<gc.privateApi.MatchedCandidateDetail>);
+      static createFrom(fields: {sourceRecord: gc.mengplaz.AddressFullRecordRef, candidates: globalThis.Array<gc.privateApi.MatchedCandidateDetail>}): ComparisonViewData;
+    }
+    namespace ComparisonViewData {
+      interface $Fields {
+        sourceRecord: 0;
+        candidates: 1;
+      }
+    }
+
+    class goldenTextIndexStats$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::goldenTextIndexStats$args';
+    }
+
+    class restoreGraph$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::restoreGraph$args';
+    }
+
+    class updateCACLR$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::updateCACLR$args';
+    }
+
+    class mergePositionsToGolden$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::mergePositionsToGolden$args';
+    }
+
+    class linkRecords$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::linkRecords$args';
+      static readonly $fields: linkRecords$args.$Fields;
+      sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      params: gc.privateApi.LinkParameters | null;
+      constructor(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null);
+      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null}): linkRecords$args;
+    }
+    namespace linkRecords$args {
+      interface $Fields {
+        sourceRecord: 0;
+        candidateRecord: 1;
+        params: 2;
+      }
+    }
+
+    class GlobalQualityHistory extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::GlobalQualityHistory';
+      static readonly $fields: GlobalQualityHistory.$Fields;
+      current: number;
+      history: globalThis.Array<gc.privateApi.GlobalQualityEntry>;
+      constructor(current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>);
+      static createFrom(fields: {current: number, history: globalThis.Array<gc.privateApi.GlobalQualityEntry>}): GlobalQualityHistory;
+    }
+    namespace GlobalQualityHistory {
+      interface $Fields {
+        current: 0;
+        history: 1;
+      }
+    }
+
+    class LinkParameters extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::LinkParameters';
+      static readonly $fields: LinkParameters.$Fields;
+      addCityAlias: boolean;
+      addStreetAlias: boolean;
+      updateSimilarStreetMismatch: boolean | null;
+      constructor(addCityAlias: boolean, addStreetAlias: boolean, updateSimilarStreetMismatch?: boolean | null);
+      static createFrom(fields: {addCityAlias: boolean, addStreetAlias: boolean, updateSimilarStreetMismatch?: boolean | null}): LinkParameters;
+    }
+    namespace LinkParameters {
+      interface $Fields {
+        addCityAlias: 0;
+        addStreetAlias: 1;
+        updateSimilarStreetMismatch: 2;
+      }
+    }
+
+    class SourceCountSeries extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::SourceCountSeries';
+      static readonly $fields: SourceCountSeries.$Fields;
+      source: string;
+      points: globalThis.Array<gc.privateApi.SourceCountPoint>;
+      constructor(source: string, points: globalThis.Array<gc.privateApi.SourceCountPoint>);
+      static createFrom(fields: {source: string, points: globalThis.Array<gc.privateApi.SourceCountPoint>}): SourceCountSeries;
+    }
+    namespace SourceCountSeries {
+      interface $Fields {
+        source: 0;
+        points: 1;
+      }
+    }
+
+    class SourceStats extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::SourceStats';
+      static readonly $fields: SourceStats.$Fields;
+      rows: globalThis.Array<gc.privateApi.SourceStatsRow>;
+      series: globalThis.Array<gc.privateApi.SourceCountSeries>;
+      constructor(rows: globalThis.Array<gc.privateApi.SourceStatsRow>, series: globalThis.Array<gc.privateApi.SourceCountSeries>);
+      static createFrom(fields: {rows: globalThis.Array<gc.privateApi.SourceStatsRow>, series: globalThis.Array<gc.privateApi.SourceCountSeries>}): SourceStats;
+    }
+    namespace SourceStats {
+      interface $Fields {
+        rows: 0;
+        series: 1;
+      }
+    }
+
+    class sourceTextIndexStats$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::sourceTextIndexStats$args';
+    }
+
+    class unlinkRecord$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::unlinkRecord$args';
+      static readonly $fields: unlinkRecord$args.$Fields;
+      sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      constructor(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>);
+      static createFrom(fields: {sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>}): unlinkRecord$args;
+    }
+    namespace unlinkRecord$args {
+      interface $Fields {
+        sourceRecord: 0;
+      }
+    }
+
+    class buildSourceTextIndex$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::buildSourceTextIndex$args';
+      static readonly $fields: buildSourceTextIndex$args.$Fields;
+      source: string;
+      constructor(source: string);
+      static createFrom(fields: {source: string}): buildSourceTextIndex$args;
+    }
+    namespace buildSourceTextIndex$args {
+      interface $Fields {
+        source: 0;
+      }
+    }
+
+    class MatchedCandidateDetail extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::MatchedCandidateDetail';
+      static readonly $fields: MatchedCandidateDetail.$Fields;
+      ref: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      numberScore: number;
+      streetScore: number;
+      cityScore: number;
+      postcodeScore: number;
+      geoScore: number | null;
+      overallScore: number;
+      record: any;
+      constructor(ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, numberScore: number, streetScore: number, cityScore: number, postcodeScore: number, geoScore: number | null, overallScore: number, record: any);
+      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, numberScore: number, streetScore: number, cityScore: number, postcodeScore: number, geoScore?: number | null, overallScore: number, record: any}): MatchedCandidateDetail;
+    }
+    namespace MatchedCandidateDetail {
+      interface $Fields {
+        ref: 0;
+        numberScore: 1;
+        streetScore: 2;
+        cityScore: 3;
+        postcodeScore: 4;
+        geoScore: 5;
+        overallScore: 6;
+        record: 7;
+      }
+    }
+
+    class ReconciliationReportView extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::ReconciliationReportView';
+      static readonly $fields: ReconciliationReportView.$Fields;
+      date: gc.core.time;
+      linked: globalThis.Array<string>;
+      fullMatch: globalThis.Array<string>;
+      multipleMatch: globalThis.Array<string>;
+      partialMatch: globalThis.Array<gc.privateApi.ReconciliationReportMatchView>;
+      noMatch: globalThis.Array<string>;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      constructor(date: gc.core.time, linked: globalThis.Array<string>, fullMatch: globalThis.Array<string>, multipleMatch: globalThis.Array<string>, partialMatch: globalThis.Array<gc.privateApi.ReconciliationReportMatchView>, noMatch: globalThis.Array<string>, source: gc.core.node<gc.mengplaz.DataSource>);
+      static createFrom(fields: {date: gc.core.time, linked: globalThis.Array<string>, fullMatch: globalThis.Array<string>, multipleMatch: globalThis.Array<string>, partialMatch: globalThis.Array<gc.privateApi.ReconciliationReportMatchView>, noMatch: globalThis.Array<string>, source: gc.core.node<gc.mengplaz.DataSource>}): ReconciliationReportView;
+    }
+    namespace ReconciliationReportView {
+      interface $Fields {
+        date: 0;
+        linked: 1;
+        fullMatch: 2;
+        multipleMatch: 3;
+        partialMatch: 4;
+        noMatch: 5;
+        source: 6;
+      }
+    }
+
+    class getLinkedComparisonViewData$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getLinkedComparisonViewData$args';
+      static readonly $fields: getLinkedComparisonViewData$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordId: string;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getLinkedComparisonViewData$args;
+    }
+    namespace getLinkedComparisonViewData$args {
+      interface $Fields {
+        source: 0;
+        recordId: 1;
+      }
+    }
+
+    class reconcileAddresses$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::reconcileAddresses$args';
+      static readonly $fields: reconcileAddresses$args.$Fields;
+      source: string;
+      poiIds: globalThis.Array<string>;
+      params: gc.mengplaz.SearchParameters | null;
+      constructor(source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null);
+      static createFrom(fields: {source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null}): reconcileAddresses$args;
+    }
+    namespace reconcileAddresses$args {
+      interface $Fields {
+        source: 0;
+        poiIds: 1;
+        params: 2;
+      }
+    }
+
+    class GoldenRecordScore extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::GoldenRecordScore';
+      static readonly $fields: GoldenRecordScore.$Fields;
+      uid: string;
+      number: string;
+      street: string | null;
+      city: string | null;
+      postcode: string;
+      linkedCount: number | bigint;
+      quality: number;
+      constructor(uid: string, number: string, street: string | null, city: string | null, postcode: string, linkedCount: number | bigint, quality: number);
+      static createFrom(fields: {uid: string, number: string, street?: string | null, city?: string | null, postcode: string, linkedCount: number | bigint, quality: number}): GoldenRecordScore;
+    }
+    namespace GoldenRecordScore {
+      interface $Fields {
+        uid: 0;
+        number: 1;
+        street: 2;
+        city: 3;
+        postcode: 4;
+        linkedCount: 5;
+        quality: 6;
+      }
+    }
+
+    class backupGraph$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::backupGraph$args';
+    }
+
+    class getComparisonViewData$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getComparisonViewData$args';
+      static readonly $fields: getComparisonViewData$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordId: string;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getComparisonViewData$args;
+    }
+    namespace getComparisonViewData$args {
+      interface $Fields {
+        source: 0;
+        recordId: 1;
+      }
+    }
+
+    class unlockSource$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::unlockSource$args';
+      static readonly $fields: unlockSource$args.$Fields;
+      source: string;
+      constructor(source: string);
+      static createFrom(fields: {source: string}): unlockSource$args;
+    }
+    namespace unlockSource$args {
+      interface $Fields {
+        source: 0;
+      }
+    }
+
+    class getRecordTab$args extends gc.sdk.GCObject {
+      static readonly _type = 'privateApi::getRecordTab$args';
+      static readonly $fields: getRecordTab$args.$Fields;
+      source: gc.core.node<gc.mengplaz.DataSource>;
+      recordId: string;
+      constructor(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string);
+      static createFrom(fields: {source: gc.core.node<gc.mengplaz.DataSource>, recordId: string}): getRecordTab$args;
+    }
+    namespace getRecordTab$args {
+      interface $Fields {
+        source: 0;
+        recordId: 1;
+      }
+    }
+
+    const promoteRecord: ((sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, streetIdx: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const linkRecords: ((sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, candidateRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, params?: gc.privateApi.LinkParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const unlinkRecord: ((sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn(sourceRecord: gc.core.node<gc.mengplaz.AddressRecordProvider>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const linkAllFullMatched: ((source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordIds: globalThis.Array<string>, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    /**
+     * Batch links reconciled records to their best Golden candidate based on score rules.
+     * All scores are expressed on a 0-100 scale.
+     *  - links every unlinked record whose best candidate overall score is >= `globalScore`;
+     *  - each optional per-field score (`geoScore`, `cityScore`, `streetScore`, `numberScore`,
+     *    `postcodeScore`), when provided, adds a further constraint: the best candidate's matching
+     *    field score must be >= the given value. Pass null to ignore that field.
+     * `globalScore` cannot be lower than 80. Returns the number of records linked.
+     */
+    const batchLinkByScore: ((source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
+      spawn(source: gc.core.node<gc.mengplaz.DataSource>, globalScore: number, geoScore?: number | null, cityScore?: number | null, streetScore?: number | null, numberScore?: number | null, postcodeScore?: number | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
+    };
+    const mergePositionsToGolden: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const lockSource: ((source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn(source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const reconcile: ((source: string, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.mengplaz.ReconciliationReport | null>) & {
+      spawn(source: string, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.mengplaz.ReconciliationReport | null>>;
+    };
+    const reconcileAddresses: ((source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.mengplaz.ReconciliationReport | null>) & {
+      spawn(source: string, poiIds: globalThis.Array<string>, params?: gc.mengplaz.SearchParameters | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.mengplaz.ReconciliationReport | null>>;
+    };
+    const getReconciliationReport: ((source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.ReconciliationReportView | null>) & {
+      spawn(source: gc.core.node<gc.mengplaz.DataSource>, city?: string | null, municipality?: string | null, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.ReconciliationReportView | null>>;
+    };
+    const getRecordTab: ((source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.RecordTabResult>) & {
+      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.RecordTabResult>>;
+    };
+    const getSources: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<globalThis.Array<gc.privateApi.SourceRef>>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<globalThis.Array<gc.privateApi.SourceRef>>>;
+    };
+    const getComparisonViewData: ((source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.ComparisonViewData>) & {
+      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.ComparisonViewData>>;
+    };
+    const getLinkedComparisonViewData: ((source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.privateApi.ComparisonViewData>) & {
+      spawn(source: gc.core.node<gc.mengplaz.DataSource>, recordId: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.privateApi.ComparisonViewData>>;
+    };
+    /**
+     * Walks every golden POI; call periodically to extend the global quality history.
+     */
+    const computeGlobalQuality: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const unlockSource: ((source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn(source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const updateCACLR: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const updateBDA: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const updateOSM: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    const buildGoldenStreetIndex: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
+    };
+    const goldenStreetIndexStats: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.goldenStreetSearch.GoldenStreetIndexStats>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.goldenStreetSearch.GoldenStreetIndexStats>>;
+    };
+    const buildGoldenTextIndex: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
+    };
+    const goldenTextIndexStats: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<gc.goldenTextSearch.GoldenTextIndexStats>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<gc.goldenTextSearch.GoldenTextIndexStats>>;
+    };
+    const buildSourceTextIndexes: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
+    };
+    const buildSourceTextIndex: ((source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<number | bigint>) & {
+      spawn(source: string, $g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<number | bigint>>;
+    };
+    const sourceTextIndexStats: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<globalThis.Array<gc.sourceTextSearch.SourceTextIndexStats>>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<globalThis.Array<gc.sourceTextSearch.SourceTextIndexStats>>>;
+    };
+    const recomputeGoldenGeoScore: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    /**
+     * Dumps the whole graph to `files/backup/` (plus the golden dump in `files/dump/`).
+     */
+    const backupGraph: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
+    };
+    /**
+     * Restores the whole graph from `files/backup/`.
+     */
+    const restoreGraph: (($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal) => Promise<unknown>) & {
+      spawn($g?: gc.sdk.GreyCat, $signal?: globalThis.AbortSignal): Promise<gc.runtime.Task<unknown>>;
     };
   }
 
@@ -2335,40 +2324,6 @@ declare namespace gc {
       }
     }
 
-    class BdaSource extends gc.sdk.GCObject {
-      static readonly _type = 'bda::BdaSource';
-      static readonly $fields: BdaSource.$Fields;
-      reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>;
-      isReconciling: gc.core.node<boolean> | null;
-      lastUpdate: gc.core.time | null;
-      countHistory: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null;
-      constructor(reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling?: gc.core.node<boolean> | null, lastUpdate?: gc.core.time | null, countHistory?: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null);
-      static createFrom(fields: {reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling?: gc.core.node<boolean> | null, lastUpdate?: gc.core.time | null, countHistory?: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null}): BdaSource;
-    }
-    namespace BdaSource {
-      interface $Fields {
-        reconciliationReport: 0;
-        isReconciling: 1;
-        lastUpdate: 2;
-        countHistory: 3;
-      }
-    }
-
-    class BdaMunicipality extends gc.sdk.GCObject {
-      static readonly _type = 'bda::BdaMunicipality';
-      static readonly $fields: BdaMunicipality.$Fields;
-      name: string;
-      cities_by_name: gc.core.nodeIndex<string, gc.core.node<gc.bda.BdaCity>> | null;
-      constructor(name: string, cities_by_name?: gc.core.nodeIndex<string, gc.core.node<gc.bda.BdaCity>> | null);
-      static createFrom(fields: {name: string, cities_by_name?: gc.core.nodeIndex<string, gc.core.node<gc.bda.BdaCity>> | null}): BdaMunicipality;
-    }
-    namespace BdaMunicipality {
-      interface $Fields {
-        name: 0;
-        cities_by_name: 1;
-      }
-    }
-
     class BdaAddressFullRecord extends gc.sdk.GCObject {
       static readonly _type = 'bda::BdaAddressFullRecord';
       static readonly $fields: BdaAddressFullRecord.$Fields;
@@ -2401,6 +2356,40 @@ declare namespace gc {
         goldenRef: 9;
         deprecated: 10;
         lastSeenAt: 11;
+      }
+    }
+
+    class BdaSource extends gc.sdk.GCObject {
+      static readonly _type = 'bda::BdaSource';
+      static readonly $fields: BdaSource.$Fields;
+      reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>;
+      isReconciling: gc.core.node<boolean> | null;
+      lastUpdate: gc.core.time | null;
+      countHistory: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null;
+      constructor(reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling?: gc.core.node<boolean> | null, lastUpdate?: gc.core.time | null, countHistory?: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null);
+      static createFrom(fields: {reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>, isReconciling?: gc.core.node<boolean> | null, lastUpdate?: gc.core.time | null, countHistory?: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null}): BdaSource;
+    }
+    namespace BdaSource {
+      interface $Fields {
+        reconciliationReport: 0;
+        isReconciling: 1;
+        lastUpdate: 2;
+        countHistory: 3;
+      }
+    }
+
+    class BdaMunicipality extends gc.sdk.GCObject {
+      static readonly _type = 'bda::BdaMunicipality';
+      static readonly $fields: BdaMunicipality.$Fields;
+      name: string;
+      cities_by_name: gc.core.nodeIndex<string, gc.core.node<gc.bda.BdaCity>> | null;
+      constructor(name: string, cities_by_name?: gc.core.nodeIndex<string, gc.core.node<gc.bda.BdaCity>> | null);
+      static createFrom(fields: {name: string, cities_by_name?: gc.core.nodeIndex<string, gc.core.node<gc.bda.BdaCity>> | null}): BdaMunicipality;
+    }
+    namespace BdaMunicipality {
+      interface $Fields {
+        name: 0;
+        cities_by_name: 1;
       }
     }
 
@@ -2463,57 +2452,6 @@ declare namespace gc {
   }
 
   namespace caclr {
-    class CaclrAddressFullRecord extends gc.sdk.GCObject {
-      static readonly _type = 'caclr::CaclrAddressFullRecord';
-      static readonly $fields: CaclrAddressFullRecord.$Fields;
-      id: string;
-      number: number | bigint;
-      multipleCode: string;
-      postcode: string;
-      street: string | null;
-      streetAliases: globalThis.Array<gc.mengplaz.Alias> | null;
-      locality: string | null;
-      localityAliases: globalThis.Array<gc.mengplaz.Alias> | null;
-      commune: string | null;
-      canton: string | null;
-      constituency: string | null;
-      primaryLocation: gc.core.geo | null;
-      administrativeStatus: gc.caclr.CaclrAdminStatus;
-      validityStartDate: gc.core.time;
-      validityEndDate: gc.core.time | null;
-      lastUpdate: gc.core.time;
-      sourceName: string;
-      goldenRef: gc.core.node<gc.golden.GoldenAddress> | null;
-      deprecated: boolean;
-      lastSeenAt: gc.core.time | null;
-      constructor(id: string, number: number | bigint, multipleCode: string, postcode: string, street: string | null, streetAliases: globalThis.Array<gc.mengplaz.Alias> | null, locality: string | null, localityAliases: globalThis.Array<gc.mengplaz.Alias> | null, commune: string | null, canton: string | null, constituency: string | null, primaryLocation: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef: gc.core.node<gc.golden.GoldenAddress> | null, deprecated: boolean, lastSeenAt?: gc.core.time | null);
-      static createFrom(fields: {id: string, number: number | bigint, multipleCode: string, postcode: string, street?: string | null, streetAliases?: globalThis.Array<gc.mengplaz.Alias> | null, locality?: string | null, localityAliases?: globalThis.Array<gc.mengplaz.Alias> | null, commune?: string | null, canton?: string | null, constituency?: string | null, primaryLocation?: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate?: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenAddress> | null, deprecated: boolean, lastSeenAt?: gc.core.time | null}): CaclrAddressFullRecord;
-    }
-    namespace CaclrAddressFullRecord {
-      interface $Fields {
-        id: 0;
-        number: 1;
-        multipleCode: 2;
-        postcode: 3;
-        street: 4;
-        streetAliases: 5;
-        locality: 6;
-        localityAliases: 7;
-        commune: 8;
-        canton: 9;
-        constituency: 10;
-        primaryLocation: 11;
-        administrativeStatus: 12;
-        validityStartDate: 13;
-        validityEndDate: 14;
-        lastUpdate: 15;
-        sourceName: 16;
-        goldenRef: 17;
-        deprecated: 18;
-        lastSeenAt: 19;
-      }
-    }
-
     class CaclrEurostatsIds extends gc.sdk.GCObject {
       static readonly _type = 'caclr::CaclrEurostatsIds';
       static readonly $fields: CaclrEurostatsIds.$Fields;
@@ -2727,6 +2665,57 @@ declare namespace gc {
         validityEndDate: 12;
         lastUpdate: 13;
         street: 14;
+      }
+    }
+
+    class CaclrAddressFullRecord extends gc.sdk.GCObject {
+      static readonly _type = 'caclr::CaclrAddressFullRecord';
+      static readonly $fields: CaclrAddressFullRecord.$Fields;
+      id: string;
+      number: number | bigint;
+      multipleCode: string;
+      postcode: string;
+      street: string | null;
+      streetAliases: globalThis.Array<gc.mengplaz.Alias> | null;
+      locality: string | null;
+      localityAliases: globalThis.Array<gc.mengplaz.Alias> | null;
+      commune: string | null;
+      canton: string | null;
+      constituency: string | null;
+      primaryLocation: gc.core.geo | null;
+      administrativeStatus: gc.caclr.CaclrAdminStatus;
+      validityStartDate: gc.core.time;
+      validityEndDate: gc.core.time | null;
+      lastUpdate: gc.core.time;
+      sourceName: string;
+      goldenRef: gc.core.node<gc.golden.GoldenAddress> | null;
+      deprecated: boolean;
+      lastSeenAt: gc.core.time | null;
+      constructor(id: string, number: number | bigint, multipleCode: string, postcode: string, street: string | null, streetAliases: globalThis.Array<gc.mengplaz.Alias> | null, locality: string | null, localityAliases: globalThis.Array<gc.mengplaz.Alias> | null, commune: string | null, canton: string | null, constituency: string | null, primaryLocation: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef: gc.core.node<gc.golden.GoldenAddress> | null, deprecated: boolean, lastSeenAt?: gc.core.time | null);
+      static createFrom(fields: {id: string, number: number | bigint, multipleCode: string, postcode: string, street?: string | null, streetAliases?: globalThis.Array<gc.mengplaz.Alias> | null, locality?: string | null, localityAliases?: globalThis.Array<gc.mengplaz.Alias> | null, commune?: string | null, canton?: string | null, constituency?: string | null, primaryLocation?: gc.core.geo | null, administrativeStatus: gc.caclr.CaclrAdminStatus, validityStartDate: gc.core.time, validityEndDate?: gc.core.time | null, lastUpdate: gc.core.time, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenAddress> | null, deprecated: boolean, lastSeenAt?: gc.core.time | null}): CaclrAddressFullRecord;
+    }
+    namespace CaclrAddressFullRecord {
+      interface $Fields {
+        id: 0;
+        number: 1;
+        multipleCode: 2;
+        postcode: 3;
+        street: 4;
+        streetAliases: 5;
+        locality: 6;
+        localityAliases: 7;
+        commune: 8;
+        canton: 9;
+        constituency: 10;
+        primaryLocation: 11;
+        administrativeStatus: 12;
+        validityStartDate: 13;
+        validityEndDate: 14;
+        lastUpdate: 15;
+        sourceName: 16;
+        goldenRef: 17;
+        deprecated: 18;
+        lastSeenAt: 19;
       }
     }
 
@@ -3042,23 +3031,6 @@ declare namespace gc {
   }
 
   namespace mengplaz {
-    class DataSource extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::DataSource';
-      static readonly $fields: DataSource.$Fields;
-      reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>;
-      isReconciling: gc.core.node<boolean> | null;
-      lastUpdate: gc.core.time | null;
-      countHistory: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null;
-    }
-    namespace DataSource {
-      interface $Fields {
-        reconciliationReport: 0;
-        isReconciling: 1;
-        lastUpdate: 2;
-        countHistory: 3;
-      }
-    }
-
     class StreetRecord extends gc.sdk.GCObject {
       static readonly _type = 'mengplaz::StreetRecord';
       static readonly $fields: StreetRecord.$Fields;
@@ -3079,48 +3051,6 @@ declare namespace gc {
         city: 3;
         cityAliases: 4;
         sourceName: 5;
-      }
-    }
-
-    class AddressFullRecordRef extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::AddressFullRecordRef';
-      static readonly $fields: AddressFullRecordRef.$Fields;
-      ref: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      id: string;
-      record: any;
-      matchScore: number | null;
-      constructor(ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, id: string, record: any, matchScore?: number | null);
-      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, id: string, record: any, matchScore?: number | null}): AddressFullRecordRef;
-    }
-    namespace AddressFullRecordRef {
-      interface $Fields {
-        ref: 0;
-        id: 1;
-        record: 2;
-        matchScore: 3;
-      }
-    }
-
-    class ReconciliationCandidateScore extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::ReconciliationCandidateScore';
-      static readonly $fields: ReconciliationCandidateScore.$Fields;
-      cityScore: number;
-      streetScore: number;
-      numberScore: number;
-      postcodeScore: number;
-      geoScore: number | null;
-      overallScore: number;
-      constructor(cityScore: number, streetScore: number, numberScore: number, postcodeScore: number, geoScore: number | null, overallScore: number);
-      static createFrom(fields: {cityScore: number, streetScore: number, numberScore: number, postcodeScore: number, geoScore?: number | null, overallScore: number}): ReconciliationCandidateScore;
-    }
-    namespace ReconciliationCandidateScore {
-      interface $Fields {
-        cityScore: 0;
-        streetScore: 1;
-        numberScore: 2;
-        postcodeScore: 3;
-        geoScore: 4;
-        overallScore: 5;
       }
     }
 
@@ -3189,41 +3119,35 @@ declare namespace gc {
       static readonly _type = 'mengplaz::StreetRecordProvider';
     }
 
-    class AddressRecordProvider extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::AddressRecordProvider';
+    class ReconciliationReport extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::ReconciliationReport';
+      static readonly $fields: ReconciliationReport.$Fields;
+      date: gc.core.time;
+      linked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, gc.mengplaz.ReconciliationCandidate>;
+      unlinked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, globalThis.Array<gc.mengplaz.ReconciliationCandidate>>;
+      constructor(date: gc.core.time, linked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, gc.mengplaz.ReconciliationCandidate>, unlinked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, globalThis.Array<gc.mengplaz.ReconciliationCandidate>>);
+      static createFrom(fields: {date: gc.core.time, linked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, gc.mengplaz.ReconciliationCandidate>, unlinked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, globalThis.Array<gc.mengplaz.ReconciliationCandidate>>}): ReconciliationReport;
     }
-
-    class StreetRecordRef extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::StreetRecordRef';
-      static readonly $fields: StreetRecordRef.$Fields;
-      ref: gc.core.node<gc.mengplaz.StreetRecordProvider>;
-      id: string;
-      record: gc.mengplaz.StreetRecord;
-      score: number;
-      constructor(ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, id: string, record: gc.mengplaz.StreetRecord, score: number);
-      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, id: string, record: gc.mengplaz.StreetRecord, score: number}): StreetRecordRef;
-    }
-    namespace StreetRecordRef {
+    namespace ReconciliationReport {
       interface $Fields {
-        ref: 0;
-        id: 1;
-        record: 2;
-        score: 3;
+        date: 0;
+        linked: 1;
+        unlinked: 2;
       }
     }
 
-    class GeoParameters extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::GeoParameters';
-      static readonly $fields: GeoParameters.$Fields;
-      minDistance: number | bigint;
-      maxDistance: number | bigint;
-      constructor(minDistance: number | bigint, maxDistance: number | bigint);
-      static createFrom(fields: {minDistance: number | bigint, maxDistance: number | bigint}): GeoParameters;
+    class AddressRecordRef extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::AddressRecordRef';
+      static readonly $fields: AddressRecordRef.$Fields;
+      ref: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      record: gc.mengplaz.AddressRecord;
+      constructor(ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, record: gc.mengplaz.AddressRecord);
+      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, record: gc.mengplaz.AddressRecord}): AddressRecordRef;
     }
-    namespace GeoParameters {
+    namespace AddressRecordRef {
       interface $Fields {
-        minDistance: 0;
-        maxDistance: 1;
+        ref: 0;
+        record: 1;
       }
     }
 
@@ -3254,6 +3178,25 @@ declare namespace gc {
         geoParams: 7;
         deepSearch: 8;
       }
+    }
+
+    class GeoParameters extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::GeoParameters';
+      static readonly $fields: GeoParameters.$Fields;
+      minDistance: number | bigint;
+      maxDistance: number | bigint;
+      constructor(minDistance: number | bigint, maxDistance: number | bigint);
+      static createFrom(fields: {minDistance: number | bigint, maxDistance: number | bigint}): GeoParameters;
+    }
+    namespace GeoParameters {
+      interface $Fields {
+        minDistance: 0;
+        maxDistance: 1;
+      }
+    }
+
+    class AddressRecordProvider extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::AddressRecordProvider';
     }
 
     class Alias extends gc.sdk.GCObject {
@@ -3313,6 +3256,48 @@ declare namespace gc {
       type Field = "link"|"unlink"|"update";
     }
 
+    class StreetRecordRef extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::StreetRecordRef';
+      static readonly $fields: StreetRecordRef.$Fields;
+      ref: gc.core.node<gc.mengplaz.StreetRecordProvider>;
+      id: string;
+      record: gc.mengplaz.StreetRecord;
+      score: number;
+      constructor(ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, id: string, record: gc.mengplaz.StreetRecord, score: number);
+      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.StreetRecordProvider>, id: string, record: gc.mengplaz.StreetRecord, score: number}): StreetRecordRef;
+    }
+    namespace StreetRecordRef {
+      interface $Fields {
+        ref: 0;
+        id: 1;
+        record: 2;
+        score: 3;
+      }
+    }
+
+    class ReconciliationCandidateScore extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::ReconciliationCandidateScore';
+      static readonly $fields: ReconciliationCandidateScore.$Fields;
+      cityScore: number;
+      streetScore: number;
+      numberScore: number;
+      postcodeScore: number;
+      geoScore: number | null;
+      overallScore: number;
+      constructor(cityScore: number, streetScore: number, numberScore: number, postcodeScore: number, geoScore: number | null, overallScore: number);
+      static createFrom(fields: {cityScore: number, streetScore: number, numberScore: number, postcodeScore: number, geoScore?: number | null, overallScore: number}): ReconciliationCandidateScore;
+    }
+    namespace ReconciliationCandidateScore {
+      interface $Fields {
+        cityScore: 0;
+        streetScore: 1;
+        numberScore: 2;
+        postcodeScore: 3;
+        geoScore: 4;
+        overallScore: 5;
+      }
+    }
+
     class AddressRecord extends gc.sdk.GCObject {
       static readonly _type = 'mengplaz::AddressRecord';
       static readonly $fields: AddressRecord.$Fields;
@@ -3350,23 +3335,6 @@ declare namespace gc {
       }
     }
 
-    class ReconciliationReport extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::ReconciliationReport';
-      static readonly $fields: ReconciliationReport.$Fields;
-      date: gc.core.time;
-      linked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, gc.mengplaz.ReconciliationCandidate>;
-      unlinked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, globalThis.Array<gc.mengplaz.ReconciliationCandidate>>;
-      constructor(date: gc.core.time, linked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, gc.mengplaz.ReconciliationCandidate>, unlinked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, globalThis.Array<gc.mengplaz.ReconciliationCandidate>>);
-      static createFrom(fields: {date: gc.core.time, linked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, gc.mengplaz.ReconciliationCandidate>, unlinked: gc.core.nodeIndex<gc.core.node<gc.mengplaz.AddressRecordProvider>, globalThis.Array<gc.mengplaz.ReconciliationCandidate>>}): ReconciliationReport;
-    }
-    namespace ReconciliationReport {
-      interface $Fields {
-        date: 0;
-        linked: 1;
-        unlinked: 2;
-      }
-    }
-
     class SourceCountSnapshot extends gc.sdk.GCObject {
       static readonly _type = 'mengplaz::SourceCountSnapshot';
       static readonly $fields: SourceCountSnapshot.$Fields;
@@ -3381,6 +3349,25 @@ declare namespace gc {
         total: 0;
         active: 1;
         linked: 2;
+      }
+    }
+
+    class AddressFullRecordRef extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::AddressFullRecordRef';
+      static readonly $fields: AddressFullRecordRef.$Fields;
+      ref: gc.core.node<gc.mengplaz.AddressRecordProvider>;
+      id: string;
+      record: any;
+      matchScore: number | null;
+      constructor(ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, id: string, record: any, matchScore?: number | null);
+      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, id: string, record: any, matchScore?: number | null}): AddressFullRecordRef;
+    }
+    namespace AddressFullRecordRef {
+      interface $Fields {
+        ref: 0;
+        id: 1;
+        record: 2;
+        matchScore: 3;
       }
     }
 
@@ -3420,21 +3407,6 @@ declare namespace gc {
       }
     }
 
-    class AddressRecordRef extends gc.sdk.GCObject {
-      static readonly _type = 'mengplaz::AddressRecordRef';
-      static readonly $fields: AddressRecordRef.$Fields;
-      ref: gc.core.node<gc.mengplaz.AddressRecordProvider>;
-      record: gc.mengplaz.AddressRecord;
-      constructor(ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, record: gc.mengplaz.AddressRecord);
-      static createFrom(fields: {ref: gc.core.node<gc.mengplaz.AddressRecordProvider>, record: gc.mengplaz.AddressRecord}): AddressRecordRef;
-    }
-    namespace AddressRecordRef {
-      interface $Fields {
-        ref: 0;
-        record: 1;
-      }
-    }
-
     class SearchRequest extends gc.sdk.GCObject {
       static readonly _type = 'mengplaz::SearchRequest';
       static readonly $fields: SearchRequest.$Fields;
@@ -3462,6 +3434,23 @@ declare namespace gc {
       interface $Fields {
         score: 0;
         elem: 1;
+      }
+    }
+
+    class DataSource extends gc.sdk.GCObject {
+      static readonly _type = 'mengplaz::DataSource';
+      static readonly $fields: DataSource.$Fields;
+      reconciliationReport: gc.core.node<gc.mengplaz.ReconciliationReport>;
+      isReconciling: gc.core.node<boolean> | null;
+      lastUpdate: gc.core.time | null;
+      countHistory: gc.core.nodeTime<gc.mengplaz.SourceCountSnapshot> | null;
+    }
+    namespace DataSource {
+      interface $Fields {
+        reconciliationReport: 0;
+        isReconciling: 1;
+        lastUpdate: 2;
+        countHistory: 3;
       }
     }
 
@@ -3523,6 +3512,41 @@ declare namespace gc {
       }
     }
 
+    class OsmAddressFullRecord extends gc.sdk.GCObject {
+      static readonly _type = 'osm::OsmAddressFullRecord';
+      static readonly $fields: OsmAddressFullRecord.$Fields;
+      id: string;
+      number: string;
+      postcode: string;
+      street: string;
+      locality: string;
+      primaryLocation: gc.core.geo | null;
+      sourceName: string;
+      goldenRef: gc.core.node<gc.golden.GoldenAddress> | null;
+      id_caclr: string | null;
+      kind: string | null;
+      deprecated: boolean;
+      lastSeenAt: gc.core.time | null;
+      constructor(id: string, number: string, postcode: string, street: string, locality: string, primaryLocation: gc.core.geo | null, sourceName: string, goldenRef: gc.core.node<gc.golden.GoldenAddress> | null, id_caclr: string | null, kind: string | null, deprecated: boolean, lastSeenAt?: gc.core.time | null);
+      static createFrom(fields: {id: string, number: string, postcode: string, street: string, locality: string, primaryLocation?: gc.core.geo | null, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenAddress> | null, id_caclr?: string | null, kind?: string | null, deprecated: boolean, lastSeenAt?: gc.core.time | null}): OsmAddressFullRecord;
+    }
+    namespace OsmAddressFullRecord {
+      interface $Fields {
+        id: 0;
+        number: 1;
+        postcode: 2;
+        street: 3;
+        locality: 4;
+        primaryLocation: 5;
+        sourceName: 6;
+        goldenRef: 7;
+        id_caclr: 8;
+        kind: 9;
+        deprecated: 10;
+        lastSeenAt: 11;
+      }
+    }
+
     class OsmStreet extends gc.sdk.GCObject {
       static readonly _type = 'osm::OsmStreet';
       static readonly $fields: OsmStreet.$Fields;
@@ -3578,41 +3602,6 @@ declare namespace gc {
         building: 11;
         kind: 12;
         streetRef: 13;
-      }
-    }
-
-    class OsmAddressFullRecord extends gc.sdk.GCObject {
-      static readonly _type = 'osm::OsmAddressFullRecord';
-      static readonly $fields: OsmAddressFullRecord.$Fields;
-      id: string;
-      number: string;
-      postcode: string;
-      street: string;
-      locality: string;
-      primaryLocation: gc.core.geo | null;
-      sourceName: string;
-      goldenRef: gc.core.node<gc.golden.GoldenAddress> | null;
-      id_caclr: string | null;
-      kind: string | null;
-      deprecated: boolean;
-      lastSeenAt: gc.core.time | null;
-      constructor(id: string, number: string, postcode: string, street: string, locality: string, primaryLocation: gc.core.geo | null, sourceName: string, goldenRef: gc.core.node<gc.golden.GoldenAddress> | null, id_caclr: string | null, kind: string | null, deprecated: boolean, lastSeenAt?: gc.core.time | null);
-      static createFrom(fields: {id: string, number: string, postcode: string, street: string, locality: string, primaryLocation?: gc.core.geo | null, sourceName: string, goldenRef?: gc.core.node<gc.golden.GoldenAddress> | null, id_caclr?: string | null, kind?: string | null, deprecated: boolean, lastSeenAt?: gc.core.time | null}): OsmAddressFullRecord;
-    }
-    namespace OsmAddressFullRecord {
-      interface $Fields {
-        id: 0;
-        number: 1;
-        postcode: 2;
-        street: 3;
-        locality: 4;
-        primaryLocation: 5;
-        sourceName: 6;
-        goldenRef: 7;
-        id_caclr: 8;
-        kind: 9;
-        deprecated: 10;
-        lastSeenAt: 11;
       }
     }
 
@@ -3745,10 +3734,6 @@ declare namespace gc {
   }
 
   namespace goldenTextSearch {
-    class GoldenTextSearch extends gc.sdk.GCObject {
-      static readonly _type = 'goldenTextSearch::GoldenTextSearch';
-    }
-
     class GoldenTextIndexStats extends gc.sdk.GCObject {
       static readonly _type = 'goldenTextSearch::GoldenTextIndexStats';
       static readonly $fields: GoldenTextIndexStats.$Fields;
@@ -3768,6 +3753,10 @@ declare namespace gc {
         avgLen: 3;
         dirty: 4;
       }
+    }
+
+    class GoldenTextSearch extends gc.sdk.GCObject {
+      static readonly _type = 'goldenTextSearch::GoldenTextSearch';
     }
 
   }
@@ -3802,16 +3791,16 @@ declare namespace gc {
 
   }
 
-  namespace goldenServices {
-    class GoldenServices extends gc.sdk.GCObject {
-      static readonly _type = 'goldenServices::GoldenServices';
+  namespace updateService {
+    class UpdateService extends gc.sdk.GCObject {
+      static readonly _type = 'updateService::UpdateService';
     }
 
   }
 
-  namespace updateService {
-    class UpdateService extends gc.sdk.GCObject {
-      static readonly _type = 'updateService::UpdateService';
+  namespace goldenServices {
+    class GoldenServices extends gc.sdk.GCObject {
+      static readonly _type = 'goldenServices::GoldenServices';
     }
 
   }
@@ -3835,40 +3824,8 @@ declare namespace gc {
   }
 
   namespace http {
-    class HttpReader<T = any> extends gc.sdk.GCObject {
-      static readonly _type = 'http::HttpReader';
-    }
-
-    class FileSink extends gc.sdk.GCObject {
-      static readonly _type = 'http::FileSink';
-      static readonly $fields: FileSink.$Fields;
-      path: string;
-      append: boolean | null;
-      constructor(path: string, append?: boolean | null);
-      static createFrom(fields: {path: string, append?: boolean | null}): FileSink;
-    }
-    namespace FileSink {
-      interface $Fields {
-        path: 0;
-        append: 1;
-      }
-    }
-
-    class FileBody extends gc.sdk.GCObject {
-      static readonly _type = 'http::FileBody';
-      static readonly $fields: FileBody.$Fields;
-      path: string;
-      offset: number | bigint | null;
-      size: number | bigint | null;
-      constructor(path: string, offset?: number | bigint | null, size?: number | bigint | null);
-      static createFrom(fields: {path: string, offset?: number | bigint | null, size?: number | bigint | null}): FileBody;
-    }
-    namespace FileBody {
-      interface $Fields {
-        path: 0;
-        offset: 1;
-        size: 2;
-      }
+    class Http<T = any> extends gc.sdk.GCObject {
+      static readonly _type = 'http::Http';
     }
 
     class HttpRequest extends gc.sdk.GCObject {
@@ -3919,6 +3876,23 @@ declare namespace gc {
       type Field = "GET"|"HEAD"|"POST"|"PUT"|"DELETE"|"CONNECT"|"OPTIONS"|"TRACE"|"PATCH";
     }
 
+    class FileBody extends gc.sdk.GCObject {
+      static readonly _type = 'http::FileBody';
+      static readonly $fields: FileBody.$Fields;
+      path: string;
+      offset: number | bigint | null;
+      size: number | bigint | null;
+      constructor(path: string, offset?: number | bigint | null, size?: number | bigint | null);
+      static createFrom(fields: {path: string, offset?: number | bigint | null, size?: number | bigint | null}): FileBody;
+    }
+    namespace FileBody {
+      interface $Fields {
+        path: 0;
+        offset: 1;
+        size: 2;
+      }
+    }
+
     class HttpResponse<T = any> extends gc.sdk.GCObject {
       static readonly _type = 'http::HttpResponse';
       static readonly $fields: HttpResponse.$Fields;
@@ -3938,13 +3912,32 @@ declare namespace gc {
       }
     }
 
-    class Http<T = any> extends gc.sdk.GCObject {
-      static readonly _type = 'http::Http';
+    class HttpReader<T = any> extends gc.sdk.GCObject {
+      static readonly _type = 'http::HttpReader';
+    }
+
+    class FileSink extends gc.sdk.GCObject {
+      static readonly _type = 'http::FileSink';
+      static readonly $fields: FileSink.$Fields;
+      path: string;
+      append: boolean | null;
+      constructor(path: string, append?: boolean | null);
+      static createFrom(fields: {path: string, append?: boolean | null}): FileSink;
+    }
+    namespace FileSink {
+      interface $Fields {
+        path: 0;
+        append: 1;
+      }
     }
 
   }
 
   namespace bm25_engine {
+    class BM25Engine extends gc.sdk.GCObject {
+      static readonly _type = 'bm25_engine::BM25Engine';
+    }
+
     class BM25Result extends gc.sdk.GCObject {
       static readonly _type = 'bm25_engine::BM25Result';
       static readonly $fields: BM25Result.$Fields;
@@ -3962,19 +3955,15 @@ declare namespace gc {
       }
     }
 
-    class BM25Engine extends gc.sdk.GCObject {
-      static readonly _type = 'bm25_engine::BM25Engine';
-    }
-
   }
 
   namespace boolean_engine {
-    class BooleanAccel extends gc.sdk.GCObject {
-      static readonly _type = 'boolean_engine::BooleanAccel';
-    }
-
     class BooleanEngine extends gc.sdk.GCObject {
       static readonly _type = 'boolean_engine::BooleanEngine';
+    }
+
+    class BooleanAccel extends gc.sdk.GCObject {
+      static readonly _type = 'boolean_engine::BooleanAccel';
     }
 
   }
@@ -3989,21 +3978,6 @@ declare namespace gc {
   namespace fuzzy_engine {
     class FuzzyEngine extends gc.sdk.GCObject {
       static readonly _type = 'fuzzy_engine::FuzzyEngine';
-    }
-
-    class TrigramCandidate extends gc.sdk.GCObject {
-      static readonly _type = 'fuzzy_engine::TrigramCandidate';
-      static readonly $fields: TrigramCandidate.$Fields;
-      overlap: number | bigint;
-      ord: number | bigint;
-      constructor(overlap: number | bigint, ord: number | bigint);
-      static createFrom(fields: {overlap: number | bigint, ord: number | bigint}): TrigramCandidate;
-    }
-    namespace TrigramCandidate {
-      interface $Fields {
-        overlap: 0;
-        ord: 1;
-      }
     }
 
     class FuzzyScoreResult extends gc.sdk.GCObject {
@@ -4021,21 +3995,38 @@ declare namespace gc {
       }
     }
 
+    class TrigramCandidate extends gc.sdk.GCObject {
+      static readonly _type = 'fuzzy_engine::TrigramCandidate';
+      static readonly $fields: TrigramCandidate.$Fields;
+      overlap: number | bigint;
+      ord: number | bigint;
+      constructor(overlap: number | bigint, ord: number | bigint);
+      static createFrom(fields: {overlap: number | bigint, ord: number | bigint}): TrigramCandidate;
+    }
+    namespace TrigramCandidate {
+      interface $Fields {
+        overlap: 0;
+        ord: 1;
+      }
+    }
+
   }
 
   namespace percolate_engine {
-    class PercolateIndex extends gc.sdk.GCObject {
-      static readonly _type = 'percolate_engine::PercolateIndex';
-      static readonly $fields: PercolateIndex.$Fields;
-      config: gc.text_index_types.TextIndexConfig;
-      queries: gc.core.nodeIndex<string, gc.core.node<gc.percolate_engine.PercolatedQuery>> | null;
-      constructor(config: gc.text_index_types.TextIndexConfig, queries?: gc.core.nodeIndex<string, gc.core.node<gc.percolate_engine.PercolatedQuery>> | null);
-      static createFrom(fields: {config: gc.text_index_types.TextIndexConfig, queries?: gc.core.nodeIndex<string, gc.core.node<gc.percolate_engine.PercolatedQuery>> | null}): PercolateIndex;
+    class PercolateBooleanPlan extends gc.sdk.GCObject {
+      static readonly _type = 'percolate_engine::PercolateBooleanPlan';
+      static readonly $fields: PercolateBooleanPlan.$Fields;
+      terms: globalThis.Array<string>;
+      excludeTerms: globalThis.Array<string>;
+      requiresAll: boolean;
+      constructor(terms: globalThis.Array<string>, excludeTerms: globalThis.Array<string>, requiresAll: boolean);
+      static createFrom(fields: {terms: globalThis.Array<string>, excludeTerms: globalThis.Array<string>, requiresAll: boolean}): PercolateBooleanPlan;
     }
-    namespace PercolateIndex {
+    namespace PercolateBooleanPlan {
       interface $Fields {
-        config: 0;
-        queries: 1;
+        terms: 0;
+        excludeTerms: 1;
+        requiresAll: 2;
       }
     }
 
@@ -4068,37 +4059,39 @@ declare namespace gc {
       }
     }
 
-    class PercolateBooleanPlan extends gc.sdk.GCObject {
-      static readonly _type = 'percolate_engine::PercolateBooleanPlan';
-      static readonly $fields: PercolateBooleanPlan.$Fields;
-      terms: globalThis.Array<string>;
-      excludeTerms: globalThis.Array<string>;
-      requiresAll: boolean;
-      constructor(terms: globalThis.Array<string>, excludeTerms: globalThis.Array<string>, requiresAll: boolean);
-      static createFrom(fields: {terms: globalThis.Array<string>, excludeTerms: globalThis.Array<string>, requiresAll: boolean}): PercolateBooleanPlan;
+    class PercolateIndex extends gc.sdk.GCObject {
+      static readonly _type = 'percolate_engine::PercolateIndex';
+      static readonly $fields: PercolateIndex.$Fields;
+      config: gc.text_index_types.TextIndexConfig;
+      queries: gc.core.nodeIndex<string, gc.core.node<gc.percolate_engine.PercolatedQuery>> | null;
+      constructor(config: gc.text_index_types.TextIndexConfig, queries?: gc.core.nodeIndex<string, gc.core.node<gc.percolate_engine.PercolatedQuery>> | null);
+      static createFrom(fields: {config: gc.text_index_types.TextIndexConfig, queries?: gc.core.nodeIndex<string, gc.core.node<gc.percolate_engine.PercolatedQuery>> | null}): PercolateIndex;
     }
-    namespace PercolateBooleanPlan {
+    namespace PercolateIndex {
       interface $Fields {
-        terms: 0;
-        excludeTerms: 1;
-        requiresAll: 2;
+        config: 0;
+        queries: 1;
       }
     }
 
   }
 
   namespace phonetic_engine {
-    class PhoneticEngine extends gc.sdk.GCObject {
-      static readonly _type = 'phonetic_engine::PhoneticEngine';
-    }
-
     class PhoneticCodec extends gc.sdk.GCObject {
       static readonly _type = 'phonetic_engine::PhoneticCodec';
+    }
+
+    class PhoneticEngine extends gc.sdk.GCObject {
+      static readonly _type = 'phonetic_engine::PhoneticEngine';
     }
 
   }
 
   namespace phrase_engine {
+    class PhraseEngine extends gc.sdk.GCObject {
+      static readonly _type = 'phrase_engine::PhraseEngine';
+    }
+
     class PhraseCandidate extends gc.sdk.GCObject {
       static readonly _type = 'phrase_engine::PhraseCandidate';
       static readonly $fields: PhraseCandidate.$Fields;
@@ -4112,10 +4105,6 @@ declare namespace gc {
         docId: 0;
         prelimScore: 1;
       }
-    }
-
-    class PhraseEngine extends gc.sdk.GCObject {
-      static readonly _type = 'phrase_engine::PhraseEngine';
     }
 
     class PhraseAccel extends gc.sdk.GCObject {
@@ -4161,38 +4150,17 @@ declare namespace gc {
   }
 
   namespace span_engine {
-    class SpanEngine extends gc.sdk.GCObject {
-      static readonly _type = 'span_engine::SpanEngine';
-    }
-
     class SpanAccel extends gc.sdk.GCObject {
       static readonly _type = 'span_engine::SpanAccel';
+    }
+
+    class SpanEngine extends gc.sdk.GCObject {
+      static readonly _type = 'span_engine::SpanEngine';
     }
 
   }
 
   namespace suggest_engine {
-    class SuggestEngine extends gc.sdk.GCObject {
-      static readonly _type = 'suggest_engine::SuggestEngine';
-    }
-
-    class DidYouMeanResult extends gc.sdk.GCObject {
-      static readonly _type = 'suggest_engine::DidYouMeanResult';
-      static readonly $fields: DidYouMeanResult.$Fields;
-      originalQuery: string;
-      correctedQuery: string | null;
-      corrections: globalThis.Array<string>;
-      constructor(originalQuery: string, correctedQuery: string | null, corrections: globalThis.Array<string>);
-      static createFrom(fields: {originalQuery: string, correctedQuery?: string | null, corrections: globalThis.Array<string>}): DidYouMeanResult;
-    }
-    namespace DidYouMeanResult {
-      interface $Fields {
-        originalQuery: 0;
-        correctedQuery: 1;
-        corrections: 2;
-      }
-    }
-
     class Suggestion extends gc.sdk.GCObject {
       static readonly _type = 'suggest_engine::Suggestion';
       static readonly $fields: Suggestion.$Fields;
@@ -4237,6 +4205,27 @@ declare namespace gc {
       }
     }
 
+    class SuggestEngine extends gc.sdk.GCObject {
+      static readonly _type = 'suggest_engine::SuggestEngine';
+    }
+
+    class DidYouMeanResult extends gc.sdk.GCObject {
+      static readonly _type = 'suggest_engine::DidYouMeanResult';
+      static readonly $fields: DidYouMeanResult.$Fields;
+      originalQuery: string;
+      correctedQuery: string | null;
+      corrections: globalThis.Array<string>;
+      constructor(originalQuery: string, correctedQuery: string | null, corrections: globalThis.Array<string>);
+      static createFrom(fields: {originalQuery: string, correctedQuery?: string | null, corrections: globalThis.Array<string>}): DidYouMeanResult;
+    }
+    namespace DidYouMeanResult {
+      interface $Fields {
+        originalQuery: 0;
+        correctedQuery: 1;
+        corrections: 2;
+      }
+    }
+
   }
 
   namespace wildcard_engine {
@@ -4247,6 +4236,84 @@ declare namespace gc {
   }
 
   namespace document {
+    class Section extends gc.sdk.GCObject {
+      static readonly _type = 'document::Section';
+      static readonly $fields: Section.$Fields;
+      title: string;
+      position: number | bigint;
+      sentences: gc.core.nodeList<gc.document.Sentence>;
+      sectionType: gc.document.SectionType;
+      constructor(title: string, position: number | bigint, sentences: gc.core.nodeList<gc.document.Sentence>, sectionType: gc.document.SectionType);
+      static createFrom(fields: {title: string, position: number | bigint, sentences: gc.core.nodeList<gc.document.Sentence>, sectionType: gc.document.SectionType}): Section;
+    }
+    namespace Section {
+      interface $Fields {
+        title: 0;
+        position: 1;
+        sentences: 2;
+        sectionType: 3;
+      }
+    }
+
+    class SectionType extends gc.sdk.GCEnum {
+      static readonly _type = 'document::SectionType';
+      static readonly $fields: SectionType[];
+      key: SectionType.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: SectionType.Field);
+      static paragraph: SectionType;
+      static heading: SectionType;
+      static table: SectionType;
+      static code: SectionType;
+      static list: SectionType;
+      static blockquote: SectionType;
+      static horizontalRule: SectionType;
+    }
+    namespace SectionType  {
+      type Field = "paragraph"|"heading"|"table"|"code"|"list"|"blockquote"|"horizontalRule";
+    }
+
+    class Document extends gc.sdk.GCObject {
+      static readonly _type = 'document::Document';
+      static readonly $fields: Document.$Fields;
+      name: string;
+      path: string;
+      format: string | null;
+      documentType: string | null;
+      wordCount: number | bigint | null;
+      charCount: number | bigint | null;
+      fileSize: number | bigint | null;
+      sections: gc.core.nodeList<gc.document.Section>;
+      constructor(name: string, path: string, format: string | null, documentType: string | null, wordCount: number | bigint | null, charCount: number | bigint | null, fileSize: number | bigint | null, sections: gc.core.nodeList<gc.document.Section>);
+      static createFrom(fields: {name: string, path: string, format?: string | null, documentType?: string | null, wordCount?: number | bigint | null, charCount?: number | bigint | null, fileSize?: number | bigint | null, sections: gc.core.nodeList<gc.document.Section>}): Document;
+    }
+    namespace Document {
+      interface $Fields {
+        name: 0;
+        path: 1;
+        format: 2;
+        documentType: 3;
+        wordCount: 4;
+        charCount: 5;
+        fileSize: 6;
+        sections: 7;
+      }
+    }
+
+    class Sentence extends gc.sdk.GCObject {
+      static readonly _type = 'document::Sentence';
+      static readonly $fields: Sentence.$Fields;
+      text: string;
+      position: number | bigint;
+      constructor(text: string, position: number | bigint);
+      static createFrom(fields: {text: string, position: number | bigint}): Sentence;
+    }
+    namespace Sentence {
+      interface $Fields {
+        text: 0;
+        position: 1;
+      }
+    }
+
     class DocumentStats extends gc.sdk.GCObject {
       static readonly _type = 'document::DocumentStats';
       static readonly $fields: DocumentStats.$Fields;
@@ -4278,116 +4345,38 @@ declare namespace gc {
       }
     }
 
-    class Sentence extends gc.sdk.GCObject {
-      static readonly _type = 'document::Sentence';
-      static readonly $fields: Sentence.$Fields;
-      text: string;
-      position: number | bigint;
-      constructor(text: string, position: number | bigint);
-      static createFrom(fields: {text: string, position: number | bigint}): Sentence;
-    }
-    namespace Sentence {
-      interface $Fields {
-        text: 0;
-        position: 1;
-      }
-    }
-
-    class Document extends gc.sdk.GCObject {
-      static readonly _type = 'document::Document';
-      static readonly $fields: Document.$Fields;
-      name: string;
-      path: string;
-      format: string | null;
-      documentType: string | null;
-      wordCount: number | bigint | null;
-      charCount: number | bigint | null;
-      fileSize: number | bigint | null;
-      sections: gc.core.nodeList<gc.document.Section>;
-      constructor(name: string, path: string, format: string | null, documentType: string | null, wordCount: number | bigint | null, charCount: number | bigint | null, fileSize: number | bigint | null, sections: gc.core.nodeList<gc.document.Section>);
-      static createFrom(fields: {name: string, path: string, format?: string | null, documentType?: string | null, wordCount?: number | bigint | null, charCount?: number | bigint | null, fileSize?: number | bigint | null, sections: gc.core.nodeList<gc.document.Section>}): Document;
-    }
-    namespace Document {
-      interface $Fields {
-        name: 0;
-        path: 1;
-        format: 2;
-        documentType: 3;
-        wordCount: 4;
-        charCount: 5;
-        fileSize: 6;
-        sections: 7;
-      }
-    }
-
-    class SectionType extends gc.sdk.GCEnum {
-      static readonly _type = 'document::SectionType';
-      static readonly $fields: SectionType[];
-      key: SectionType.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: SectionType.Field);
-      static paragraph: SectionType;
-      static heading: SectionType;
-      static table: SectionType;
-      static code: SectionType;
-      static list: SectionType;
-      static blockquote: SectionType;
-      static horizontalRule: SectionType;
-    }
-    namespace SectionType  {
-      type Field = "paragraph"|"heading"|"table"|"code"|"list"|"blockquote"|"horizontalRule";
-    }
-
-    class Section extends gc.sdk.GCObject {
-      static readonly _type = 'document::Section';
-      static readonly $fields: Section.$Fields;
-      title: string;
-      position: number | bigint;
-      sentences: gc.core.nodeList<gc.document.Sentence>;
-      sectionType: gc.document.SectionType;
-      constructor(title: string, position: number | bigint, sentences: gc.core.nodeList<gc.document.Sentence>, sectionType: gc.document.SectionType);
-      static createFrom(fields: {title: string, position: number | bigint, sentences: gc.core.nodeList<gc.document.Sentence>, sectionType: gc.document.SectionType}): Section;
-    }
-    namespace Section {
-      interface $Fields {
-        title: 0;
-        position: 1;
-        sentences: 2;
-        sectionType: 3;
-      }
-    }
-
   }
 
   namespace facet_types {
-    class MetricType extends gc.sdk.GCEnum {
-      static readonly _type = 'facet_types::MetricType';
-      static readonly $fields: MetricType[];
-      key: MetricType.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: MetricType.Field);
-      static sum: MetricType;
-      static avg: MetricType;
-      static min: MetricType;
-      static max: MetricType;
-      static cardinality: MetricType;
+    class HistogramResult extends gc.sdk.GCObject {
+      static readonly _type = 'facet_types::HistogramResult';
+      static readonly $fields: HistogramResult.$Fields;
+      f: gc.core.field | null;
+      fieldName: string;
+      buckets: globalThis.Array<gc.facet_types.HistogramBucket>;
+      constructor(f: gc.core.field | null, fieldName: string, buckets: globalThis.Array<gc.facet_types.HistogramBucket>);
+      static createFrom(fields: {f?: gc.core.field | null, fieldName: string, buckets: globalThis.Array<gc.facet_types.HistogramBucket>}): HistogramResult;
     }
-    namespace MetricType  {
-      type Field = "sum"|"avg"|"min"|"max"|"cardinality";
+    namespace HistogramResult {
+      interface $Fields {
+        f: 0;
+        fieldName: 1;
+        buckets: 2;
+      }
     }
 
-    class HistogramBucket extends gc.sdk.GCObject {
-      static readonly _type = 'facet_types::HistogramBucket';
-      static readonly $fields: HistogramBucket.$Fields;
-      from: number;
-      to: number;
+    class TermCount extends gc.sdk.GCObject {
+      static readonly _type = 'facet_types::TermCount';
+      static readonly $fields: TermCount.$Fields;
+      value: string;
       count: number | bigint;
-      constructor(from: number, to: number, count: number | bigint);
-      static createFrom(fields: {from: number, to: number, count: number | bigint}): HistogramBucket;
+      constructor(value: string, count: number | bigint);
+      static createFrom(fields: {value: string, count: number | bigint}): TermCount;
     }
-    namespace HistogramBucket {
+    namespace TermCount {
       interface $Fields {
-        from: 0;
-        to: 1;
-        count: 2;
+        value: 0;
+        count: 1;
       }
     }
 
@@ -4406,57 +4395,6 @@ declare namespace gc {
       }
     }
 
-    class AdvancedFacetedResult extends gc.sdk.GCObject {
-      static readonly _type = 'facet_types::AdvancedFacetedResult';
-      static readonly $fields: AdvancedFacetedResult.$Fields;
-      results: globalThis.Array<gc.text_index_types.TextResult>;
-      termFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.TermCount>>;
-      numericFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.NumericBucketCount>>;
-      constructor(results: globalThis.Array<gc.text_index_types.TextResult>, termFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.TermCount>>, numericFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.NumericBucketCount>>);
-      static createFrom(fields: {results: globalThis.Array<gc.text_index_types.TextResult>, termFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.TermCount>>, numericFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.NumericBucketCount>>}): AdvancedFacetedResult;
-    }
-    namespace AdvancedFacetedResult {
-      interface $Fields {
-        results: 0;
-        termFacets: 1;
-        numericFacets: 2;
-      }
-    }
-
-    class NumericRangeBucket extends gc.sdk.GCObject {
-      static readonly _type = 'facet_types::NumericRangeBucket';
-      static readonly $fields: NumericRangeBucket.$Fields;
-      label: string;
-      from: number | null;
-      to: number | null;
-      constructor(label: string, from?: number | null, to?: number | null);
-      static createFrom(fields: {label: string, from?: number | null, to?: number | null}): NumericRangeBucket;
-    }
-    namespace NumericRangeBucket {
-      interface $Fields {
-        label: 0;
-        from: 1;
-        to: 2;
-      }
-    }
-
-    class HistogramResult extends gc.sdk.GCObject {
-      static readonly _type = 'facet_types::HistogramResult';
-      static readonly $fields: HistogramResult.$Fields;
-      f: gc.core.field | null;
-      fieldName: string;
-      buckets: globalThis.Array<gc.facet_types.HistogramBucket>;
-      constructor(f: gc.core.field | null, fieldName: string, buckets: globalThis.Array<gc.facet_types.HistogramBucket>);
-      static createFrom(fields: {f?: gc.core.field | null, fieldName: string, buckets: globalThis.Array<gc.facet_types.HistogramBucket>}): HistogramResult;
-    }
-    namespace HistogramResult {
-      interface $Fields {
-        f: 0;
-        fieldName: 1;
-        buckets: 2;
-      }
-    }
-
     class FacetType extends gc.sdk.GCEnum {
       static readonly _type = 'facet_types::FacetType';
       static readonly $fields: FacetType[];
@@ -4467,6 +4405,40 @@ declare namespace gc {
     }
     namespace FacetType  {
       type Field = "term"|"numericRange";
+    }
+
+    class MetricResult extends gc.sdk.GCObject {
+      static readonly _type = 'facet_types::MetricResult';
+      static readonly $fields: MetricResult.$Fields;
+      f: gc.core.field | null;
+      fieldName: string;
+      metric: gc.facet_types.MetricType;
+      value: number;
+      constructor(f: gc.core.field | null, fieldName: string, metric: gc.facet_types.MetricType, value: number);
+      static createFrom(fields: {f?: gc.core.field | null, fieldName: string, metric: gc.facet_types.MetricType, value: number}): MetricResult;
+    }
+    namespace MetricResult {
+      interface $Fields {
+        f: 0;
+        fieldName: 1;
+        metric: 2;
+        value: 3;
+      }
+    }
+
+    class MetricType extends gc.sdk.GCEnum {
+      static readonly _type = 'facet_types::MetricType';
+      static readonly $fields: MetricType[];
+      key: MetricType.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: MetricType.Field);
+      static sum: MetricType;
+      static avg: MetricType;
+      static min: MetricType;
+      static max: MetricType;
+      static cardinality: MetricType;
+    }
+    namespace MetricType  {
+      type Field = "sum"|"avg"|"min"|"max"|"cardinality";
     }
 
     class MetricAggregation extends gc.sdk.GCObject {
@@ -4503,6 +4475,40 @@ declare namespace gc {
       }
     }
 
+    class NumericRangeBucket extends gc.sdk.GCObject {
+      static readonly _type = 'facet_types::NumericRangeBucket';
+      static readonly $fields: NumericRangeBucket.$Fields;
+      label: string;
+      from: number | null;
+      to: number | null;
+      constructor(label: string, from?: number | null, to?: number | null);
+      static createFrom(fields: {label: string, from?: number | null, to?: number | null}): NumericRangeBucket;
+    }
+    namespace NumericRangeBucket {
+      interface $Fields {
+        label: 0;
+        from: 1;
+        to: 2;
+      }
+    }
+
+    class AdvancedFacetedResult extends gc.sdk.GCObject {
+      static readonly _type = 'facet_types::AdvancedFacetedResult';
+      static readonly $fields: AdvancedFacetedResult.$Fields;
+      results: globalThis.Array<gc.text_index_types.TextResult>;
+      termFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.TermCount>>;
+      numericFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.NumericBucketCount>>;
+      constructor(results: globalThis.Array<gc.text_index_types.TextResult>, termFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.TermCount>>, numericFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.NumericBucketCount>>);
+      static createFrom(fields: {results: globalThis.Array<gc.text_index_types.TextResult>, termFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.TermCount>>, numericFacets: globalThis.Map<string, globalThis.Array<gc.facet_types.NumericBucketCount>>}): AdvancedFacetedResult;
+    }
+    namespace AdvancedFacetedResult {
+      interface $Fields {
+        results: 0;
+        termFacets: 1;
+        numericFacets: 2;
+      }
+    }
+
     class HistogramAggregation extends gc.sdk.GCObject {
       static readonly _type = 'facet_types::HistogramAggregation';
       static readonly $fields: HistogramAggregation.$Fields;
@@ -4521,25 +4527,6 @@ declare namespace gc {
         interval: 2;
         minValue: 3;
         maxValue: 4;
-      }
-    }
-
-    class MetricResult extends gc.sdk.GCObject {
-      static readonly _type = 'facet_types::MetricResult';
-      static readonly $fields: MetricResult.$Fields;
-      f: gc.core.field | null;
-      fieldName: string;
-      metric: gc.facet_types.MetricType;
-      value: number;
-      constructor(f: gc.core.field | null, fieldName: string, metric: gc.facet_types.MetricType, value: number);
-      static createFrom(fields: {f?: gc.core.field | null, fieldName: string, metric: gc.facet_types.MetricType, value: number}): MetricResult;
-    }
-    namespace MetricResult {
-      interface $Fields {
-        f: 0;
-        fieldName: 1;
-        metric: 2;
-        value: 3;
       }
     }
 
@@ -4564,6 +4551,23 @@ declare namespace gc {
       }
     }
 
+    class HistogramBucket extends gc.sdk.GCObject {
+      static readonly _type = 'facet_types::HistogramBucket';
+      static readonly $fields: HistogramBucket.$Fields;
+      from: number;
+      to: number;
+      count: number | bigint;
+      constructor(from: number, to: number, count: number | bigint);
+      static createFrom(fields: {from: number, to: number, count: number | bigint}): HistogramBucket;
+    }
+    namespace HistogramBucket {
+      interface $Fields {
+        from: 0;
+        to: 1;
+        count: 2;
+      }
+    }
+
     class AggregationEngine extends gc.sdk.GCObject {
       static readonly _type = 'facet_types::AggregationEngine';
     }
@@ -4579,21 +4583,6 @@ declare namespace gc {
     namespace NumericBucketCount {
       interface $Fields {
         label: 0;
-        count: 1;
-      }
-    }
-
-    class TermCount extends gc.sdk.GCObject {
-      static readonly _type = 'facet_types::TermCount';
-      static readonly $fields: TermCount.$Fields;
-      value: string;
-      count: number | bigint;
-      constructor(value: string, count: number | bigint);
-      static createFrom(fields: {value: string, count: number | bigint}): TermCount;
-    }
-    namespace TermCount {
-      interface $Fields {
-        value: 0;
         count: 1;
       }
     }
@@ -4678,6 +4667,21 @@ declare namespace gc {
   }
 
   namespace text_index_types {
+    class TermScorePair extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TermScorePair';
+      static readonly $fields: TermScorePair.$Fields;
+      ordinal: number | bigint;
+      score: number;
+      constructor(ordinal: number | bigint, score: number);
+      static createFrom(fields: {ordinal: number | bigint, score: number}): TermScorePair;
+    }
+    namespace TermScorePair {
+      interface $Fields {
+        ordinal: 0;
+        score: 1;
+      }
+    }
+
     class IndexEntry extends gc.sdk.GCObject {
       static readonly _type = 'text_index_types::IndexEntry';
       static readonly $fields: IndexEntry.$Fields;
@@ -4715,51 +4719,59 @@ declare namespace gc {
       }
     }
 
-    class RRFOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::RRFOptions';
-      static readonly $fields: RRFOptions.$Fields;
-      k: number | bigint | null;
-      topRankBonus: boolean | null;
-      topBonus: number | null;
-      nearTopBonus: number | null;
-      nearTopCutoff: number | bigint | null;
-      constructor(k?: number | bigint | null, topRankBonus?: boolean | null, topBonus?: number | null, nearTopBonus?: number | null, nearTopCutoff?: number | bigint | null);
-      static createFrom(fields: {k?: number | bigint | null, topRankBonus?: boolean | null, topBonus?: number | null, nearTopBonus?: number | null, nearTopCutoff?: number | bigint | null}): RRFOptions;
+    class PhoneticPostings extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::PhoneticPostings';
+      static readonly $fields: PhoneticPostings.$Fields;
+      terms: globalThis.Array<number | bigint>;
+      constructor(terms: globalThis.Array<number | bigint>);
+      static createFrom(fields: {terms: globalThis.Array<number | bigint>}): PhoneticPostings;
     }
-    namespace RRFOptions {
+    namespace PhoneticPostings {
       interface $Fields {
-        k: 0;
-        topRankBonus: 1;
-        topBonus: 2;
-        nearTopBonus: 3;
-        nearTopCutoff: 4;
+        terms: 0;
       }
     }
 
-    class Term extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::Term';
-      static readonly $fields: Term.$Fields;
-      text: gc.core.node<string>;
-      totalCount: number | bigint | null;
+    class BM25Variant extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::BM25Variant';
+      static readonly $fields: BM25Variant[];
+      key: BM25Variant.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: BM25Variant.Field);
+      static lucene: BM25Variant;
+      static plus: BM25Variant;
+      static bm25l: BM25Variant;
+      static atire: BM25Variant;
+      static robertson: BM25Variant;
     }
-    namespace Term {
+    namespace BM25Variant  {
+      type Field = "lucene"|"plus"|"bm25l"|"atire"|"robertson";
+    }
+
+    class TermBoost extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TermBoost';
+      static readonly $fields: TermBoost.$Fields;
+      term: string;
+      boost: number;
+      constructor(term: string, boost: number);
+      static createFrom(fields: {term: string, boost: number}): TermBoost;
+    }
+    namespace TermBoost {
       interface $Fields {
-        text: 0;
-        totalCount: 1;
+        term: 0;
+        boost: 1;
       }
     }
 
-    class MoreLikeThisOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::MoreLikeThisOptions';
-      static readonly $fields: MoreLikeThisOptions.$Fields;
-      maxQueryTerms: number | bigint | null;
-      constructor(maxQueryTerms?: number | bigint | null);
-      static createFrom(fields: {maxQueryTerms?: number | bigint | null}): MoreLikeThisOptions;
+    class FusionMethod extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::FusionMethod';
+      static readonly $fields: FusionMethod[];
+      key: FusionMethod.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: FusionMethod.Field);
+      static rrf: FusionMethod;
+      static linear: FusionMethod;
     }
-    namespace MoreLikeThisOptions {
-      interface $Fields {
-        maxQueryTerms: 0;
-      }
+    namespace FusionMethod  {
+      type Field = "rrf"|"linear";
     }
 
     class PhraseOptions extends gc.sdk.GCObject {
@@ -4775,35 +4787,37 @@ declare namespace gc {
       }
     }
 
-    class FieldModifier extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::FieldModifier';
-      static readonly $fields: FieldModifier[];
-      key: FieldModifier.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: FieldModifier.Field);
-      static none: FieldModifier;
-      static log: FieldModifier;
-      static log1p: FieldModifier;
-      static sqrt: FieldModifier;
-      static square: FieldModifier;
+    class Snippet extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::Snippet';
+      static readonly $fields: Snippet.$Fields;
+      text: string;
+      highlighted: string;
+      fragments: globalThis.Array<string> | null;
+      constructor(text: string, highlighted: string, fragments?: globalThis.Array<string> | null);
+      static createFrom(fields: {text: string, highlighted: string, fragments?: globalThis.Array<string> | null}): Snippet;
     }
-    namespace FieldModifier  {
-      type Field = "none"|"log"|"log1p"|"sqrt"|"square";
+    namespace Snippet {
+      interface $Fields {
+        text: 0;
+        highlighted: 1;
+        fragments: 2;
+      }
     }
 
-    class SnippetOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::SnippetOptions';
-      static readonly $fields: SnippetOptions.$Fields;
-      maxLength: number | bigint | null;
-      numFragments: number | bigint | null;
-      fragmentSize: number | bigint | null;
-      constructor(maxLength?: number | bigint | null, numFragments?: number | bigint | null, fragmentSize?: number | bigint | null);
-      static createFrom(fields: {maxLength?: number | bigint | null, numFragments?: number | bigint | null, fragmentSize?: number | bigint | null}): SnippetOptions;
+    class DFROptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::DFROptions';
+      static readonly $fields: DFROptions.$Fields;
+      basicModel: gc.dfr_engine.DFRBasicModel | null;
+      afterEffect: gc.dfr_engine.DFRAfterEffect | null;
+      normalization: gc.dfr_engine.DFRNormalization | null;
+      constructor(basicModel?: gc.dfr_engine.DFRBasicModel | null, afterEffect?: gc.dfr_engine.DFRAfterEffect | null, normalization?: gc.dfr_engine.DFRNormalization | null);
+      static createFrom(fields: {basicModel?: gc.dfr_engine.DFRBasicModel | null, afterEffect?: gc.dfr_engine.DFRAfterEffect | null, normalization?: gc.dfr_engine.DFRNormalization | null}): DFROptions;
     }
-    namespace SnippetOptions {
+    namespace DFROptions {
       interface $Fields {
-        maxLength: 0;
-        numFragments: 1;
-        fragmentSize: 2;
+        basicModel: 0;
+        afterEffect: 1;
+        normalization: 2;
       }
     }
 
@@ -4850,16 +4864,41 @@ declare namespace gc {
       type Field = "ar"|"bg"|"ca"|"cs"|"da"|"de"|"el"|"en"|"es"|"fa"|"fi"|"fr"|"gu"|"he"|"hi"|"hu"|"id"|"it"|"ja"|"ko"|"ms"|"nl"|"no"|"pl"|"pt"|"ro"|"ru"|"sk"|"sv"|"tr"|"uk"|"vi"|"zh";
     }
 
-    class TrigramPostings extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TrigramPostings';
-      static readonly $fields: TrigramPostings.$Fields;
-      terms: globalThis.Array<number | bigint>;
-      constructor(terms: globalThis.Array<number | bigint>);
-      static createFrom(fields: {terms: globalThis.Array<number | bigint>}): TrigramPostings;
+    class ChunkingOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::ChunkingOptions';
+      static readonly $fields: ChunkingOptions.$Fields;
+      strategy: gc.text_index_types.ChunkStrategy | null;
+      size: number | bigint | null;
+      overlap: number | bigint | null;
+      constructor(strategy?: gc.text_index_types.ChunkStrategy | null, size?: number | bigint | null, overlap?: number | bigint | null);
+      static createFrom(fields: {strategy?: gc.text_index_types.ChunkStrategy | null, size?: number | bigint | null, overlap?: number | bigint | null}): ChunkingOptions;
     }
-    namespace TrigramPostings {
+    namespace ChunkingOptions {
       interface $Fields {
-        terms: 0;
+        strategy: 0;
+        size: 1;
+        overlap: 2;
+      }
+    }
+
+    class TermExplanation extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TermExplanation';
+      static readonly $fields: TermExplanation.$Fields;
+      term: string;
+      tf: number;
+      idf: number;
+      tfNorm: number;
+      score: number;
+      constructor(term: string, tf: number, idf: number, tfNorm: number, score: number);
+      static createFrom(fields: {term: string, tf: number, idf: number, tfNorm: number, score: number}): TermExplanation;
+    }
+    namespace TermExplanation {
+      interface $Fields {
+        term: 0;
+        tf: 1;
+        idf: 2;
+        tfNorm: 3;
+        score: 4;
       }
     }
 
@@ -4878,92 +4917,118 @@ declare namespace gc {
       }
     }
 
-    class DiversifyOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::DiversifyOptions';
-      static readonly $fields: DiversifyOptions.$Fields;
-      enabled: boolean | null;
-      lambda: number | null;
-      constructor(enabled?: boolean | null, lambda?: number | null);
-      static createFrom(fields: {enabled?: boolean | null, lambda?: number | null}): DiversifyOptions;
+    class LMDirichletOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::LMDirichletOptions';
+      static readonly $fields: LMDirichletOptions.$Fields;
+      mu: number | null;
+      constructor(mu?: number | null);
+      static createFrom(fields: {mu?: number | null}): LMDirichletOptions;
     }
-    namespace DiversifyOptions {
+    namespace LMDirichletOptions {
+      interface $Fields {
+        mu: 0;
+      }
+    }
+
+    class FieldModifier extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::FieldModifier';
+      static readonly $fields: FieldModifier[];
+      key: FieldModifier.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: FieldModifier.Field);
+      static none: FieldModifier;
+      static log: FieldModifier;
+      static log1p: FieldModifier;
+      static sqrt: FieldModifier;
+      static square: FieldModifier;
+    }
+    namespace FieldModifier  {
+      type Field = "none"|"log"|"log1p"|"sqrt"|"square";
+    }
+
+    class TokenizationOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TokenizationOptions';
+      static readonly $fields: TokenizationOptions.$Fields;
+      separators: globalThis.Array<string> | null;
+      minTermLength: number | bigint | null;
+      maxTermLength: number | bigint | null;
+      filterNumericTerms: boolean | null;
+      caseFold: boolean | null;
+      stripPunctuation: boolean | null;
+      stemming: boolean | null;
+      charMap: globalThis.Map<string, string> | null;
+      useDefaultCharMap: boolean | null;
+      normOptions: gc.text_index_types.NormOptions | null;
+      constructor(separators?: globalThis.Array<string> | null, minTermLength?: number | bigint | null, maxTermLength?: number | bigint | null, filterNumericTerms?: boolean | null, caseFold?: boolean | null, stripPunctuation?: boolean | null, stemming?: boolean | null, charMap?: globalThis.Map<string, string> | null, useDefaultCharMap?: boolean | null, normOptions?: gc.text_index_types.NormOptions | null);
+      static createFrom(fields: {separators?: globalThis.Array<string> | null, minTermLength?: number | bigint | null, maxTermLength?: number | bigint | null, filterNumericTerms?: boolean | null, caseFold?: boolean | null, stripPunctuation?: boolean | null, stemming?: boolean | null, charMap?: globalThis.Map<string, string> | null, useDefaultCharMap?: boolean | null, normOptions?: gc.text_index_types.NormOptions | null}): TokenizationOptions;
+    }
+    namespace TokenizationOptions {
+      interface $Fields {
+        separators: 0;
+        minTermLength: 1;
+        maxTermLength: 2;
+        filterNumericTerms: 3;
+        caseFold: 4;
+        stripPunctuation: 5;
+        stemming: 6;
+        charMap: 7;
+        useDefaultCharMap: 8;
+        normOptions: 9;
+      }
+    }
+
+    class FieldConfig extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::FieldConfig';
+      static readonly $fields: FieldConfig.$Fields;
+      f: gc.core.field | null;
+      fieldName: string | null;
+      weight: number;
+      fieldB: number | null;
+      constructor(f: gc.core.field | null, fieldName: string | null, weight: number, fieldB?: number | null);
+      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, weight: number, fieldB?: number | null}): FieldConfig;
+    }
+    namespace FieldConfig {
+      interface $Fields {
+        f: 0;
+        fieldName: 1;
+        weight: 2;
+        fieldB: 3;
+      }
+    }
+
+    class ShortCircuitOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::ShortCircuitOptions';
+      static readonly $fields: ShortCircuitOptions.$Fields;
+      enabled: boolean | null;
+      minScore: number | null;
+      minGap: number | null;
+      constructor(enabled?: boolean | null, minScore?: number | null, minGap?: number | null);
+      static createFrom(fields: {enabled?: boolean | null, minScore?: number | null, minGap?: number | null}): ShortCircuitOptions;
+    }
+    namespace ShortCircuitOptions {
       interface $Fields {
         enabled: 0;
-        lambda: 1;
+        minScore: 1;
+        minGap: 2;
       }
     }
 
-    class SearchCursor extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::SearchCursor';
-      static readonly $fields: SearchCursor.$Fields;
-      score: number;
-      id: number | bigint;
-      constructor(score: number, id: number | bigint);
-      static createFrom(fields: {score: number, id: number | bigint}): SearchCursor;
+    class RangeFilter extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::RangeFilter';
+      static readonly $fields: RangeFilter.$Fields;
+      f: gc.core.field | null;
+      fieldName: string | null;
+      from: number | null;
+      to: number | null;
+      constructor(f?: gc.core.field | null, fieldName?: string | null, from?: number | null, to?: number | null);
+      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, from?: number | null, to?: number | null}): RangeFilter;
     }
-    namespace SearchCursor {
+    namespace RangeFilter {
       interface $Fields {
-        score: 0;
-        id: 1;
+        f: 0;
+        fieldName: 1;
+        from: 2;
+        to: 3;
       }
-    }
-
-    class BM25Options extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::BM25Options';
-      static readonly $fields: BM25Options.$Fields;
-      k1: number | null;
-      b: number | null;
-      variant: gc.text_index_types.BM25Variant | null;
-      delta: number | null;
-      constructor(k1?: number | null, b?: number | null, variant?: gc.text_index_types.BM25Variant | null, delta?: number | null);
-      static createFrom(fields: {k1?: number | null, b?: number | null, variant?: gc.text_index_types.BM25Variant | null, delta?: number | null}): BM25Options;
-    }
-    namespace BM25Options {
-      interface $Fields {
-        k1: 0;
-        b: 1;
-        variant: 2;
-        delta: 3;
-      }
-    }
-
-    class ScoreExplanation extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::ScoreExplanation';
-      static readonly $fields: ScoreExplanation.$Fields;
-      totalScore: number;
-      terms: globalThis.Array<gc.text_index_types.TermExplanation>;
-      variant: gc.text_index_types.BM25Variant;
-      k1: number;
-      b: number;
-      docLen: number | bigint;
-      avgDocLen: number;
-      constructor(totalScore: number, terms: globalThis.Array<gc.text_index_types.TermExplanation>, variant: gc.text_index_types.BM25Variant, k1: number, b: number, docLen: number | bigint, avgDocLen: number);
-      static createFrom(fields: {totalScore: number, terms: globalThis.Array<gc.text_index_types.TermExplanation>, variant: gc.text_index_types.BM25Variant, k1: number, b: number, docLen: number | bigint, avgDocLen: number}): ScoreExplanation;
-    }
-    namespace ScoreExplanation {
-      interface $Fields {
-        totalScore: 0;
-        terms: 1;
-        variant: 2;
-        k1: 3;
-        b: 4;
-        docLen: 5;
-        avgDocLen: 6;
-      }
-    }
-
-    class SpanOperator extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::SpanOperator';
-      static readonly $fields: SpanOperator[];
-      key: SpanOperator.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: SpanOperator.Field);
-      static NEAR: SpanOperator;
-      static ONEAR: SpanOperator;
-      static FIRST: SpanOperator;
-      static TERM: SpanOperator;
-    }
-    namespace SpanOperator  {
-      type Field = "NEAR"|"ONEAR"|"FIRST"|"TERM";
     }
 
     class SearchMode extends gc.sdk.GCEnum {
@@ -4991,76 +5056,6 @@ declare namespace gc {
       type Field = "hybrid"|"bm25"|"semantic"|"exact"|"fuzzy"|"boolean"|"proximity"|"phrase"|"prefix"|"wildcard"|"span"|"dfr"|"lm_dirichlet"|"phonetic"|"quorum";
     }
 
-    class TermExplanation extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TermExplanation';
-      static readonly $fields: TermExplanation.$Fields;
-      term: string;
-      tf: number;
-      idf: number;
-      tfNorm: number;
-      score: number;
-      constructor(term: string, tf: number, idf: number, tfNorm: number, score: number);
-      static createFrom(fields: {term: string, tf: number, idf: number, tfNorm: number, score: number}): TermExplanation;
-    }
-    namespace TermExplanation {
-      interface $Fields {
-        term: 0;
-        tf: 1;
-        idf: 2;
-        tfNorm: 3;
-        score: 4;
-      }
-    }
-
-    class Snippet extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::Snippet';
-      static readonly $fields: Snippet.$Fields;
-      text: string;
-      highlighted: string;
-      fragments: globalThis.Array<string> | null;
-      constructor(text: string, highlighted: string, fragments?: globalThis.Array<string> | null);
-      static createFrom(fields: {text: string, highlighted: string, fragments?: globalThis.Array<string> | null}): Snippet;
-    }
-    namespace Snippet {
-      interface $Fields {
-        text: 0;
-        highlighted: 1;
-        fragments: 2;
-      }
-    }
-
-    class EdgeNgramOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::EdgeNgramOptions';
-      static readonly $fields: EdgeNgramOptions.$Fields;
-      enabled: boolean | null;
-      indexAsTerms: boolean | null;
-      min: number | bigint | null;
-      max: number | bigint | null;
-      constructor(enabled?: boolean | null, indexAsTerms?: boolean | null, min?: number | bigint | null, max?: number | bigint | null);
-      static createFrom(fields: {enabled?: boolean | null, indexAsTerms?: boolean | null, min?: number | bigint | null, max?: number | bigint | null}): EdgeNgramOptions;
-    }
-    namespace EdgeNgramOptions {
-      interface $Fields {
-        enabled: 0;
-        indexAsTerms: 1;
-        min: 2;
-        max: 3;
-      }
-    }
-
-    class LMDirichletOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::LMDirichletOptions';
-      static readonly $fields: LMDirichletOptions.$Fields;
-      mu: number | null;
-      constructor(mu?: number | null);
-      static createFrom(fields: {mu?: number | null}): LMDirichletOptions;
-    }
-    namespace LMDirichletOptions {
-      interface $Fields {
-        mu: 0;
-      }
-    }
-
     class TextIndexStats extends gc.sdk.GCObject {
       static readonly _type = 'text_index_types::TextIndexStats';
       static readonly $fields: TextIndexStats.$Fields;
@@ -5076,176 +5071,6 @@ declare namespace gc {
         totalTerms: 1;
         avgTokenCount: 2;
       }
-    }
-
-    class IndexChunk extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::IndexChunk';
-      static readonly $fields: IndexChunk.$Fields;
-      content: gc.core.node<string>;
-      parentId: number | bigint;
-      vector: gc.core.node<gc.core.Tensor> | null;
-      tokenCount: number | bigint;
-      position: number | bigint;
-      constructor(content: gc.core.node<string>, parentId: number | bigint, vector: gc.core.node<gc.core.Tensor> | null, tokenCount: number | bigint, position: number | bigint);
-      static createFrom(fields: {content: gc.core.node<string>, parentId: number | bigint, vector?: gc.core.node<gc.core.Tensor> | null, tokenCount: number | bigint, position: number | bigint}): IndexChunk;
-    }
-    namespace IndexChunk {
-      interface $Fields {
-        content: 0;
-        parentId: 1;
-        vector: 2;
-        tokenCount: 3;
-        position: 4;
-      }
-    }
-
-    class ShortCircuitOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::ShortCircuitOptions';
-      static readonly $fields: ShortCircuitOptions.$Fields;
-      enabled: boolean | null;
-      minScore: number | null;
-      minGap: number | null;
-      constructor(enabled?: boolean | null, minScore?: number | null, minGap?: number | null);
-      static createFrom(fields: {enabled?: boolean | null, minScore?: number | null, minGap?: number | null}): ShortCircuitOptions;
-    }
-    namespace ShortCircuitOptions {
-      interface $Fields {
-        enabled: 0;
-        minScore: 1;
-        minGap: 2;
-      }
-    }
-
-    class ChunkingOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::ChunkingOptions';
-      static readonly $fields: ChunkingOptions.$Fields;
-      strategy: gc.text_index_types.ChunkStrategy | null;
-      size: number | bigint | null;
-      overlap: number | bigint | null;
-      constructor(strategy?: gc.text_index_types.ChunkStrategy | null, size?: number | bigint | null, overlap?: number | bigint | null);
-      static createFrom(fields: {strategy?: gc.text_index_types.ChunkStrategy | null, size?: number | bigint | null, overlap?: number | bigint | null}): ChunkingOptions;
-    }
-    namespace ChunkingOptions {
-      interface $Fields {
-        strategy: 0;
-        size: 1;
-        overlap: 2;
-      }
-    }
-
-    class FieldRef extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::FieldRef';
-    }
-
-    class FuzzyOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::FuzzyOptions';
-      static readonly $fields: FuzzyOptions.$Fields;
-      maxEdits: number | bigint | null;
-      mode: gc.text_index_types.FuzzyMode | null;
-      maxTextLength: number | bigint | null;
-      constructor(maxEdits?: number | bigint | null, mode?: gc.text_index_types.FuzzyMode | null, maxTextLength?: number | bigint | null);
-      static createFrom(fields: {maxEdits?: number | bigint | null, mode?: gc.text_index_types.FuzzyMode | null, maxTextLength?: number | bigint | null}): FuzzyOptions;
-    }
-    namespace FuzzyOptions {
-      interface $Fields {
-        maxEdits: 0;
-        mode: 1;
-        maxTextLength: 2;
-      }
-    }
-
-    class TermScorePair extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TermScorePair';
-      static readonly $fields: TermScorePair.$Fields;
-      ordinal: number | bigint;
-      score: number;
-      constructor(ordinal: number | bigint, score: number);
-      static createFrom(fields: {ordinal: number | bigint, score: number}): TermScorePair;
-    }
-    namespace TermScorePair {
-      interface $Fields {
-        ordinal: 0;
-        score: 1;
-      }
-    }
-
-    class FieldConfig extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::FieldConfig';
-      static readonly $fields: FieldConfig.$Fields;
-      f: gc.core.field | null;
-      fieldName: string | null;
-      weight: number;
-      fieldB: number | null;
-      constructor(f: gc.core.field | null, fieldName: string | null, weight: number, fieldB?: number | null);
-      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, weight: number, fieldB?: number | null}): FieldConfig;
-    }
-    namespace FieldConfig {
-      interface $Fields {
-        f: 0;
-        fieldName: 1;
-        weight: 2;
-        fieldB: 3;
-      }
-    }
-
-    class FusionOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::FusionOptions';
-      static readonly $fields: FusionOptions.$Fields;
-      method: gc.text_index_types.FusionMethod | null;
-      normalization: gc.text_index_types.Normalization | null;
-      weights: globalThis.Map<gc.text_index_types.SearchMode, number> | null;
-      rrf: gc.text_index_types.RRFOptions | null;
-      constructor(method?: gc.text_index_types.FusionMethod | null, normalization?: gc.text_index_types.Normalization | null, weights?: globalThis.Map<gc.text_index_types.SearchMode, number> | null, rrf?: gc.text_index_types.RRFOptions | null);
-      static createFrom(fields: {method?: gc.text_index_types.FusionMethod | null, normalization?: gc.text_index_types.Normalization | null, weights?: globalThis.Map<gc.text_index_types.SearchMode, number> | null, rrf?: gc.text_index_types.RRFOptions | null}): FusionOptions;
-    }
-    namespace FusionOptions {
-      interface $Fields {
-        method: 0;
-        normalization: 1;
-        weights: 2;
-        rrf: 3;
-      }
-    }
-
-    class BM25Variant extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::BM25Variant';
-      static readonly $fields: BM25Variant[];
-      key: BM25Variant.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: BM25Variant.Field);
-      static lucene: BM25Variant;
-      static plus: BM25Variant;
-      static bm25l: BM25Variant;
-      static atire: BM25Variant;
-      static robertson: BM25Variant;
-    }
-    namespace BM25Variant  {
-      type Field = "lucene"|"plus"|"bm25l"|"atire"|"robertson";
-    }
-
-    class Normalization extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::Normalization';
-      static readonly $fields: Normalization[];
-      key: Normalization.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: Normalization.Field);
-      static minmax: Normalization;
-      static zscore: Normalization;
-    }
-    namespace Normalization  {
-      type Field = "minmax"|"zscore";
-    }
-
-    class StopWordMode extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::StopWordMode';
-      static readonly $fields: StopWordMode[];
-      key: StopWordMode.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: StopWordMode.Field);
-      static none: StopWordMode;
-      static auto: StopWordMode;
-      static default: StopWordMode;
-      static custom: StopWordMode;
-    }
-    namespace StopWordMode  {
-      type Field = "none"|"auto"|"default"|"custom";
     }
 
     class TextIndexConfig extends gc.sdk.GCObject {
@@ -5313,51 +5138,56 @@ declare namespace gc {
       }
     }
 
-    class RangeFilter extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::RangeFilter';
-      static readonly $fields: RangeFilter.$Fields;
-      f: gc.core.field | null;
-      fieldName: string | null;
-      from: number | null;
-      to: number | null;
-      constructor(f?: gc.core.field | null, fieldName?: string | null, from?: number | null, to?: number | null);
-      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, from?: number | null, to?: number | null}): RangeFilter;
+    class EdgeNgramOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::EdgeNgramOptions';
+      static readonly $fields: EdgeNgramOptions.$Fields;
+      enabled: boolean | null;
+      indexAsTerms: boolean | null;
+      min: number | bigint | null;
+      max: number | bigint | null;
+      constructor(enabled?: boolean | null, indexAsTerms?: boolean | null, min?: number | bigint | null, max?: number | bigint | null);
+      static createFrom(fields: {enabled?: boolean | null, indexAsTerms?: boolean | null, min?: number | bigint | null, max?: number | bigint | null}): EdgeNgramOptions;
     }
-    namespace RangeFilter {
+    namespace EdgeNgramOptions {
       interface $Fields {
-        f: 0;
-        fieldName: 1;
-        from: 2;
-        to: 3;
+        enabled: 0;
+        indexAsTerms: 1;
+        min: 2;
+        max: 3;
       }
     }
 
-    class ProximityOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::ProximityOptions';
-      static readonly $fields: ProximityOptions.$Fields;
-      distance: number | bigint | null;
-      constructor(distance?: number | bigint | null);
-      static createFrom(fields: {distance?: number | bigint | null}): ProximityOptions;
-    }
-    namespace ProximityOptions {
-      interface $Fields {
-        distance: 0;
-      }
+    class FieldRef extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::FieldRef';
     }
 
-    class ChunkStrategy extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::ChunkStrategy';
-      static readonly $fields: ChunkStrategy[];
-      key: ChunkStrategy.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: ChunkStrategy.Field);
-      static none: ChunkStrategy;
-      static fixed: ChunkStrategy;
-      static sentence: ChunkStrategy;
-      static paragraph: ChunkStrategy;
-      static recursive: ChunkStrategy;
+    class StopWordMode extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::StopWordMode';
+      static readonly $fields: StopWordMode[];
+      key: StopWordMode.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: StopWordMode.Field);
+      static none: StopWordMode;
+      static auto: StopWordMode;
+      static default: StopWordMode;
+      static custom: StopWordMode;
     }
-    namespace ChunkStrategy  {
-      type Field = "none"|"fixed"|"sentence"|"paragraph"|"recursive";
+    namespace StopWordMode  {
+      type Field = "none"|"auto"|"default"|"custom";
+    }
+
+    class DiversifyOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::DiversifyOptions';
+      static readonly $fields: DiversifyOptions.$Fields;
+      enabled: boolean | null;
+      lambda: number | null;
+      constructor(enabled?: boolean | null, lambda?: number | null);
+      static createFrom(fields: {enabled?: boolean | null, lambda?: number | null}): DiversifyOptions;
+    }
+    namespace DiversifyOptions {
+      interface $Fields {
+        enabled: 0;
+        lambda: 1;
+      }
     }
 
     class TrieNode extends gc.sdk.GCObject {
@@ -5377,191 +5207,70 @@ declare namespace gc {
       }
     }
 
-    class StopWordOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::StopWordOptions';
-      static readonly $fields: StopWordOptions.$Fields;
-      mode: gc.text_index_types.StopWordMode | null;
-      language: gc.text_index_types.TextSearchLanguage | null;
-      custom: globalThis.Array<string> | null;
-      autoThreshold: number | null;
-      constructor(mode?: gc.text_index_types.StopWordMode | null, language?: gc.text_index_types.TextSearchLanguage | null, custom?: globalThis.Array<string> | null, autoThreshold?: number | null);
-      static createFrom(fields: {mode?: gc.text_index_types.StopWordMode | null, language?: gc.text_index_types.TextSearchLanguage | null, custom?: globalThis.Array<string> | null, autoThreshold?: number | null}): StopWordOptions;
+    class SpanOperator extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::SpanOperator';
+      static readonly $fields: SpanOperator[];
+      key: SpanOperator.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: SpanOperator.Field);
+      static NEAR: SpanOperator;
+      static ONEAR: SpanOperator;
+      static FIRST: SpanOperator;
+      static TERM: SpanOperator;
     }
-    namespace StopWordOptions {
+    namespace SpanOperator  {
+      type Field = "NEAR"|"ONEAR"|"FIRST"|"TERM";
+    }
+
+    class IndexChunk extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::IndexChunk';
+      static readonly $fields: IndexChunk.$Fields;
+      content: gc.core.node<string>;
+      parentId: number | bigint;
+      vector: gc.core.node<gc.core.Tensor> | null;
+      tokenCount: number | bigint;
+      position: number | bigint;
+      constructor(content: gc.core.node<string>, parentId: number | bigint, vector: gc.core.node<gc.core.Tensor> | null, tokenCount: number | bigint, position: number | bigint);
+      static createFrom(fields: {content: gc.core.node<string>, parentId: number | bigint, vector?: gc.core.node<gc.core.Tensor> | null, tokenCount: number | bigint, position: number | bigint}): IndexChunk;
+    }
+    namespace IndexChunk {
       interface $Fields {
-        mode: 0;
-        language: 1;
-        custom: 2;
-        autoThreshold: 3;
+        content: 0;
+        parentId: 1;
+        vector: 2;
+        tokenCount: 3;
+        position: 4;
       }
     }
 
-    class NormalizedTerm extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::NormalizedTerm';
-      static readonly $fields: NormalizedTerm.$Fields;
+    class TypoOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TypoOptions';
+      static readonly $fields: TypoOptions.$Fields;
+      enabled: boolean | null;
+      minWordLength: number | bigint | null;
+      maxEdits1: number | bigint | null;
+      maxEdits2: number | bigint | null;
+      constructor(enabled?: boolean | null, minWordLength?: number | bigint | null, maxEdits1?: number | bigint | null, maxEdits2?: number | bigint | null);
+      static createFrom(fields: {enabled?: boolean | null, minWordLength?: number | bigint | null, maxEdits1?: number | bigint | null, maxEdits2?: number | bigint | null}): TypoOptions;
+    }
+    namespace TypoOptions {
+      interface $Fields {
+        enabled: 0;
+        minWordLength: 1;
+        maxEdits1: 2;
+        maxEdits2: 3;
+      }
+    }
+
+    class Term extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::Term';
+      static readonly $fields: Term.$Fields;
       text: gc.core.node<string>;
       totalCount: number | bigint | null;
-      ordinal: number | bigint;
-      originalForm: string | null;
-      isPrefix: boolean | null;
-      idf: number | null;
-      maxTermScore: number | null;
-      postingDocs: globalThis.Array<number | bigint> | null;
-      postingTFs: globalThis.Array<number | bigint> | null;
-      postingFieldnormIds: globalThis.Array<number | bigint> | null;
-      postingBlockMaxScores: globalThis.Array<number> | null;
-      constructor(text: gc.core.node<string>, totalCount: number | bigint | null, ordinal: number | bigint, originalForm?: string | null, isPrefix?: boolean | null, idf?: number | null, maxTermScore?: number | null, postingDocs?: globalThis.Array<number | bigint> | null, postingTFs?: globalThis.Array<number | bigint> | null, postingFieldnormIds?: globalThis.Array<number | bigint> | null, postingBlockMaxScores?: globalThis.Array<number> | null);
-      static createFrom(fields: {text: gc.core.node<string>, totalCount?: number | bigint | null, ordinal: number | bigint, originalForm?: string | null, isPrefix?: boolean | null, idf?: number | null, maxTermScore?: number | null, postingDocs?: globalThis.Array<number | bigint> | null, postingTFs?: globalThis.Array<number | bigint> | null, postingFieldnormIds?: globalThis.Array<number | bigint> | null, postingBlockMaxScores?: globalThis.Array<number> | null}): NormalizedTerm;
     }
-    namespace NormalizedTerm {
+    namespace Term {
       interface $Fields {
         text: 0;
         totalCount: 1;
-        ordinal: 2;
-        originalForm: 3;
-        isPrefix: 4;
-        idf: 5;
-        maxTermScore: 6;
-        postingDocs: 7;
-        postingTFs: 8;
-        postingFieldnormIds: 9;
-        postingBlockMaxScores: 10;
-      }
-    }
-
-    class ScoreMode extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::ScoreMode';
-      static readonly $fields: ScoreMode[];
-      key: ScoreMode.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: ScoreMode.Field);
-      static multiply: ScoreMode;
-      static sum: ScoreMode;
-      static avg: ScoreMode;
-      static max: ScoreMode;
-      static min: ScoreMode;
-    }
-    namespace ScoreMode  {
-      type Field = "multiply"|"sum"|"avg"|"max"|"min";
-    }
-
-    class TermBoost extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TermBoost';
-      static readonly $fields: TermBoost.$Fields;
-      term: string;
-      boost: number;
-      constructor(term: string, boost: number);
-      static createFrom(fields: {term: string, boost: number}): TermBoost;
-    }
-    namespace TermBoost {
-      interface $Fields {
-        term: 0;
-        boost: 1;
-      }
-    }
-
-    class TextEntry extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TextEntry';
-      static readonly $fields: TextEntry.$Fields;
-      key: string;
-      value: any | null;
-      externalId: string | null;
-      vector: gc.core.Tensor | null;
-      constructor(key: string, value?: any | null, externalId?: string | null, vector?: gc.core.Tensor | null);
-      static createFrom(fields: {key: string, value?: any | null, externalId?: string | null, vector?: gc.core.Tensor | null}): TextEntry;
-    }
-    namespace TextEntry {
-      interface $Fields {
-        key: 0;
-        value: 1;
-        externalId: 2;
-        vector: 3;
-      }
-    }
-
-    class TokenizationOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TokenizationOptions';
-      static readonly $fields: TokenizationOptions.$Fields;
-      separators: globalThis.Array<string> | null;
-      minTermLength: number | bigint | null;
-      maxTermLength: number | bigint | null;
-      filterNumericTerms: boolean | null;
-      caseFold: boolean | null;
-      stripPunctuation: boolean | null;
-      stemming: boolean | null;
-      charMap: globalThis.Map<string, string> | null;
-      useDefaultCharMap: boolean | null;
-      normOptions: gc.text_index_types.NormOptions | null;
-      constructor(separators?: globalThis.Array<string> | null, minTermLength?: number | bigint | null, maxTermLength?: number | bigint | null, filterNumericTerms?: boolean | null, caseFold?: boolean | null, stripPunctuation?: boolean | null, stemming?: boolean | null, charMap?: globalThis.Map<string, string> | null, useDefaultCharMap?: boolean | null, normOptions?: gc.text_index_types.NormOptions | null);
-      static createFrom(fields: {separators?: globalThis.Array<string> | null, minTermLength?: number | bigint | null, maxTermLength?: number | bigint | null, filterNumericTerms?: boolean | null, caseFold?: boolean | null, stripPunctuation?: boolean | null, stemming?: boolean | null, charMap?: globalThis.Map<string, string> | null, useDefaultCharMap?: boolean | null, normOptions?: gc.text_index_types.NormOptions | null}): TokenizationOptions;
-    }
-    namespace TokenizationOptions {
-      interface $Fields {
-        separators: 0;
-        minTermLength: 1;
-        maxTermLength: 2;
-        filterNumericTerms: 3;
-        caseFold: 4;
-        stripPunctuation: 5;
-        stemming: 6;
-        charMap: 7;
-        useDefaultCharMap: 8;
-        normOptions: 9;
-      }
-    }
-
-    class FusionMethod extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::FusionMethod';
-      static readonly $fields: FusionMethod[];
-      key: FusionMethod.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: FusionMethod.Field);
-      static rrf: FusionMethod;
-      static linear: FusionMethod;
-    }
-    namespace FusionMethod  {
-      type Field = "rrf"|"linear";
-    }
-
-    class FuzzyMode extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::FuzzyMode';
-      static readonly $fields: FuzzyMode[];
-      key: FuzzyMode.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: FuzzyMode.Field);
-      static key: FuzzyMode;
-      static term: FuzzyMode;
-    }
-    namespace FuzzyMode  {
-      type Field = "key"|"term";
-    }
-
-    class PhoneticPostings extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::PhoneticPostings';
-      static readonly $fields: PhoneticPostings.$Fields;
-      terms: globalThis.Array<number | bigint>;
-      constructor(terms: globalThis.Array<number | bigint>);
-      static createFrom(fields: {terms: globalThis.Array<number | bigint>}): PhoneticPostings;
-    }
-    namespace PhoneticPostings {
-      interface $Fields {
-        terms: 0;
-      }
-    }
-
-    class TermFilter extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TermFilter';
-      static readonly $fields: TermFilter.$Fields;
-      f: gc.core.field | null;
-      fieldName: string | null;
-      values: globalThis.Array<string>;
-      exclude: boolean | null;
-      constructor(f: gc.core.field | null, fieldName: string | null, values: globalThis.Array<string>, exclude?: boolean | null);
-      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, values: globalThis.Array<string>, exclude?: boolean | null}): TermFilter;
-    }
-    namespace TermFilter {
-      interface $Fields {
-        f: 0;
-        fieldName: 1;
-        values: 2;
-        exclude: 3;
       }
     }
 
@@ -5596,6 +5305,241 @@ declare namespace gc {
         maxRepeat: 9;
         rejoinHyphenatedWords: 10;
       }
+    }
+
+    class StopWordOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::StopWordOptions';
+      static readonly $fields: StopWordOptions.$Fields;
+      mode: gc.text_index_types.StopWordMode | null;
+      language: gc.text_index_types.TextSearchLanguage | null;
+      custom: globalThis.Array<string> | null;
+      autoThreshold: number | null;
+      constructor(mode?: gc.text_index_types.StopWordMode | null, language?: gc.text_index_types.TextSearchLanguage | null, custom?: globalThis.Array<string> | null, autoThreshold?: number | null);
+      static createFrom(fields: {mode?: gc.text_index_types.StopWordMode | null, language?: gc.text_index_types.TextSearchLanguage | null, custom?: globalThis.Array<string> | null, autoThreshold?: number | null}): StopWordOptions;
+    }
+    namespace StopWordOptions {
+      interface $Fields {
+        mode: 0;
+        language: 1;
+        custom: 2;
+        autoThreshold: 3;
+      }
+    }
+
+    class TermFilter extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TermFilter';
+      static readonly $fields: TermFilter.$Fields;
+      f: gc.core.field | null;
+      fieldName: string | null;
+      values: globalThis.Array<string>;
+      exclude: boolean | null;
+      constructor(f: gc.core.field | null, fieldName: string | null, values: globalThis.Array<string>, exclude?: boolean | null);
+      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, values: globalThis.Array<string>, exclude?: boolean | null}): TermFilter;
+    }
+    namespace TermFilter {
+      interface $Fields {
+        f: 0;
+        fieldName: 1;
+        values: 2;
+        exclude: 3;
+      }
+    }
+
+    class BM25Options extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::BM25Options';
+      static readonly $fields: BM25Options.$Fields;
+      k1: number | null;
+      b: number | null;
+      variant: gc.text_index_types.BM25Variant | null;
+      delta: number | null;
+      constructor(k1?: number | null, b?: number | null, variant?: gc.text_index_types.BM25Variant | null, delta?: number | null);
+      static createFrom(fields: {k1?: number | null, b?: number | null, variant?: gc.text_index_types.BM25Variant | null, delta?: number | null}): BM25Options;
+    }
+    namespace BM25Options {
+      interface $Fields {
+        k1: 0;
+        b: 1;
+        variant: 2;
+        delta: 3;
+      }
+    }
+
+    class SnippetOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::SnippetOptions';
+      static readonly $fields: SnippetOptions.$Fields;
+      maxLength: number | bigint | null;
+      numFragments: number | bigint | null;
+      fragmentSize: number | bigint | null;
+      constructor(maxLength?: number | bigint | null, numFragments?: number | bigint | null, fragmentSize?: number | bigint | null);
+      static createFrom(fields: {maxLength?: number | bigint | null, numFragments?: number | bigint | null, fragmentSize?: number | bigint | null}): SnippetOptions;
+    }
+    namespace SnippetOptions {
+      interface $Fields {
+        maxLength: 0;
+        numFragments: 1;
+        fragmentSize: 2;
+      }
+    }
+
+    class SortClause extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::SortClause';
+      static readonly $fields: SortClause.$Fields;
+      f: gc.core.field | null;
+      fieldName: string | null;
+      order: gc.core.SortOrder;
+      constructor(f: gc.core.field | null, fieldName: string | null, order: gc.core.SortOrder);
+      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, order: gc.core.SortOrder}): SortClause;
+    }
+    namespace SortClause {
+      interface $Fields {
+        f: 0;
+        fieldName: 1;
+        order: 2;
+      }
+    }
+
+    class FuzzyOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::FuzzyOptions';
+      static readonly $fields: FuzzyOptions.$Fields;
+      maxEdits: number | bigint | null;
+      mode: gc.text_index_types.FuzzyMode | null;
+      maxTextLength: number | bigint | null;
+      constructor(maxEdits?: number | bigint | null, mode?: gc.text_index_types.FuzzyMode | null, maxTextLength?: number | bigint | null);
+      static createFrom(fields: {maxEdits?: number | bigint | null, mode?: gc.text_index_types.FuzzyMode | null, maxTextLength?: number | bigint | null}): FuzzyOptions;
+    }
+    namespace FuzzyOptions {
+      interface $Fields {
+        maxEdits: 0;
+        mode: 1;
+        maxTextLength: 2;
+      }
+    }
+
+    class SearchCursor extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::SearchCursor';
+      static readonly $fields: SearchCursor.$Fields;
+      score: number;
+      id: number | bigint;
+      constructor(score: number, id: number | bigint);
+      static createFrom(fields: {score: number, id: number | bigint}): SearchCursor;
+    }
+    namespace SearchCursor {
+      interface $Fields {
+        score: 0;
+        id: 1;
+      }
+    }
+
+    class ProximityOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::ProximityOptions';
+      static readonly $fields: ProximityOptions.$Fields;
+      distance: number | bigint | null;
+      constructor(distance?: number | bigint | null);
+      static createFrom(fields: {distance?: number | bigint | null}): ProximityOptions;
+    }
+    namespace ProximityOptions {
+      interface $Fields {
+        distance: 0;
+      }
+    }
+
+    class FuzzyMode extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::FuzzyMode';
+      static readonly $fields: FuzzyMode[];
+      key: FuzzyMode.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: FuzzyMode.Field);
+      static key: FuzzyMode;
+      static term: FuzzyMode;
+    }
+    namespace FuzzyMode  {
+      type Field = "key"|"term";
+    }
+
+    class TextEntry extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TextEntry';
+      static readonly $fields: TextEntry.$Fields;
+      key: string;
+      value: any | null;
+      externalId: string | null;
+      vector: gc.core.Tensor | null;
+      constructor(key: string, value?: any | null, externalId?: string | null, vector?: gc.core.Tensor | null);
+      static createFrom(fields: {key: string, value?: any | null, externalId?: string | null, vector?: gc.core.Tensor | null}): TextEntry;
+    }
+    namespace TextEntry {
+      interface $Fields {
+        key: 0;
+        value: 1;
+        externalId: 2;
+        vector: 3;
+      }
+    }
+
+    class ChunkStrategy extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::ChunkStrategy';
+      static readonly $fields: ChunkStrategy[];
+      key: ChunkStrategy.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: ChunkStrategy.Field);
+      static none: ChunkStrategy;
+      static fixed: ChunkStrategy;
+      static sentence: ChunkStrategy;
+      static paragraph: ChunkStrategy;
+      static recursive: ChunkStrategy;
+    }
+    namespace ChunkStrategy  {
+      type Field = "none"|"fixed"|"sentence"|"paragraph"|"recursive";
+    }
+
+    class MoreLikeThisOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::MoreLikeThisOptions';
+      static readonly $fields: MoreLikeThisOptions.$Fields;
+      maxQueryTerms: number | bigint | null;
+      constructor(maxQueryTerms?: number | bigint | null);
+      static createFrom(fields: {maxQueryTerms?: number | bigint | null}): MoreLikeThisOptions;
+    }
+    namespace MoreLikeThisOptions {
+      interface $Fields {
+        maxQueryTerms: 0;
+      }
+    }
+
+    class Normalization extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::Normalization';
+      static readonly $fields: Normalization[];
+      key: Normalization.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: Normalization.Field);
+      static minmax: Normalization;
+      static zscore: Normalization;
+    }
+    namespace Normalization  {
+      type Field = "minmax"|"zscore";
+    }
+
+    class TrigramPostings extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::TrigramPostings';
+      static readonly $fields: TrigramPostings.$Fields;
+      terms: globalThis.Array<number | bigint>;
+      constructor(terms: globalThis.Array<number | bigint>);
+      static createFrom(fields: {terms: globalThis.Array<number | bigint>}): TrigramPostings;
+    }
+    namespace TrigramPostings {
+      interface $Fields {
+        terms: 0;
+      }
+    }
+
+    class ScoreMode extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::ScoreMode';
+      static readonly $fields: ScoreMode[];
+      key: ScoreMode.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: ScoreMode.Field);
+      static multiply: ScoreMode;
+      static sum: ScoreMode;
+      static avg: ScoreMode;
+      static max: ScoreMode;
+      static min: ScoreMode;
+    }
+    namespace ScoreMode  {
+      type Field = "multiply"|"sum"|"avg"|"max"|"min";
     }
 
     class BoostMode extends gc.sdk.GCEnum {
@@ -5636,6 +5580,76 @@ declare namespace gc {
       }
     }
 
+    class NormalizedTerm extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::NormalizedTerm';
+      static readonly $fields: NormalizedTerm.$Fields;
+      text: gc.core.node<string>;
+      totalCount: number | bigint | null;
+      ordinal: number | bigint;
+      originalForm: string | null;
+      isPrefix: boolean | null;
+      idf: number | null;
+      maxTermScore: number | null;
+      postingDocs: globalThis.Array<number | bigint> | null;
+      postingTFs: globalThis.Array<number | bigint> | null;
+      postingFieldnormIds: globalThis.Array<number | bigint> | null;
+      postingBlockMaxScores: globalThis.Array<number> | null;
+      constructor(text: gc.core.node<string>, totalCount: number | bigint | null, ordinal: number | bigint, originalForm?: string | null, isPrefix?: boolean | null, idf?: number | null, maxTermScore?: number | null, postingDocs?: globalThis.Array<number | bigint> | null, postingTFs?: globalThis.Array<number | bigint> | null, postingFieldnormIds?: globalThis.Array<number | bigint> | null, postingBlockMaxScores?: globalThis.Array<number> | null);
+      static createFrom(fields: {text: gc.core.node<string>, totalCount?: number | bigint | null, ordinal: number | bigint, originalForm?: string | null, isPrefix?: boolean | null, idf?: number | null, maxTermScore?: number | null, postingDocs?: globalThis.Array<number | bigint> | null, postingTFs?: globalThis.Array<number | bigint> | null, postingFieldnormIds?: globalThis.Array<number | bigint> | null, postingBlockMaxScores?: globalThis.Array<number> | null}): NormalizedTerm;
+    }
+    namespace NormalizedTerm {
+      interface $Fields {
+        text: 0;
+        totalCount: 1;
+        ordinal: 2;
+        originalForm: 3;
+        isPrefix: 4;
+        idf: 5;
+        maxTermScore: 6;
+        postingDocs: 7;
+        postingTFs: 8;
+        postingFieldnormIds: 9;
+        postingBlockMaxScores: 10;
+      }
+    }
+
+    class ScoreExplanation extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::ScoreExplanation';
+      static readonly $fields: ScoreExplanation.$Fields;
+      totalScore: number;
+      terms: globalThis.Array<gc.text_index_types.TermExplanation>;
+      variant: gc.text_index_types.BM25Variant;
+      k1: number;
+      b: number;
+      docLen: number | bigint;
+      avgDocLen: number;
+      constructor(totalScore: number, terms: globalThis.Array<gc.text_index_types.TermExplanation>, variant: gc.text_index_types.BM25Variant, k1: number, b: number, docLen: number | bigint, avgDocLen: number);
+      static createFrom(fields: {totalScore: number, terms: globalThis.Array<gc.text_index_types.TermExplanation>, variant: gc.text_index_types.BM25Variant, k1: number, b: number, docLen: number | bigint, avgDocLen: number}): ScoreExplanation;
+    }
+    namespace ScoreExplanation {
+      interface $Fields {
+        totalScore: 0;
+        terms: 1;
+        variant: 2;
+        k1: 3;
+        b: 4;
+        docLen: 5;
+        avgDocLen: 6;
+      }
+    }
+
+    class PercolateMode extends gc.sdk.GCEnum {
+      static readonly _type = 'text_index_types::PercolateMode';
+      static readonly $fields: PercolateMode[];
+      key: PercolateMode.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: PercolateMode.Field);
+      static bm25: PercolateMode;
+      static boolean: PercolateMode;
+    }
+    namespace PercolateMode  {
+      type Field = "bm25"|"boolean";
+    }
+
     class CurationRule extends gc.sdk.GCObject {
       static readonly _type = 'text_index_types::CurationRule';
       static readonly $fields: CurationRule.$Fields;
@@ -5655,69 +5669,44 @@ declare namespace gc {
       }
     }
 
-    class DFROptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::DFROptions';
-      static readonly $fields: DFROptions.$Fields;
-      basicModel: gc.dfr_engine.DFRBasicModel | null;
-      afterEffect: gc.dfr_engine.DFRAfterEffect | null;
-      normalization: gc.dfr_engine.DFRNormalization | null;
-      constructor(basicModel?: gc.dfr_engine.DFRBasicModel | null, afterEffect?: gc.dfr_engine.DFRAfterEffect | null, normalization?: gc.dfr_engine.DFRNormalization | null);
-      static createFrom(fields: {basicModel?: gc.dfr_engine.DFRBasicModel | null, afterEffect?: gc.dfr_engine.DFRAfterEffect | null, normalization?: gc.dfr_engine.DFRNormalization | null}): DFROptions;
+    class FusionOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::FusionOptions';
+      static readonly $fields: FusionOptions.$Fields;
+      method: gc.text_index_types.FusionMethod | null;
+      normalization: gc.text_index_types.Normalization | null;
+      weights: globalThis.Map<gc.text_index_types.SearchMode, number> | null;
+      rrf: gc.text_index_types.RRFOptions | null;
+      constructor(method?: gc.text_index_types.FusionMethod | null, normalization?: gc.text_index_types.Normalization | null, weights?: globalThis.Map<gc.text_index_types.SearchMode, number> | null, rrf?: gc.text_index_types.RRFOptions | null);
+      static createFrom(fields: {method?: gc.text_index_types.FusionMethod | null, normalization?: gc.text_index_types.Normalization | null, weights?: globalThis.Map<gc.text_index_types.SearchMode, number> | null, rrf?: gc.text_index_types.RRFOptions | null}): FusionOptions;
     }
-    namespace DFROptions {
+    namespace FusionOptions {
       interface $Fields {
-        basicModel: 0;
-        afterEffect: 1;
-        normalization: 2;
+        method: 0;
+        normalization: 1;
+        weights: 2;
+        rrf: 3;
       }
     }
 
-    class SortClause extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::SortClause';
-      static readonly $fields: SortClause.$Fields;
-      f: gc.core.field | null;
-      fieldName: string | null;
-      order: gc.core.SortOrder;
-      constructor(f: gc.core.field | null, fieldName: string | null, order: gc.core.SortOrder);
-      static createFrom(fields: {f?: gc.core.field | null, fieldName?: string | null, order: gc.core.SortOrder}): SortClause;
+    class RRFOptions extends gc.sdk.GCObject {
+      static readonly _type = 'text_index_types::RRFOptions';
+      static readonly $fields: RRFOptions.$Fields;
+      k: number | bigint | null;
+      topRankBonus: boolean | null;
+      topBonus: number | null;
+      nearTopBonus: number | null;
+      nearTopCutoff: number | bigint | null;
+      constructor(k?: number | bigint | null, topRankBonus?: boolean | null, topBonus?: number | null, nearTopBonus?: number | null, nearTopCutoff?: number | bigint | null);
+      static createFrom(fields: {k?: number | bigint | null, topRankBonus?: boolean | null, topBonus?: number | null, nearTopBonus?: number | null, nearTopCutoff?: number | bigint | null}): RRFOptions;
     }
-    namespace SortClause {
+    namespace RRFOptions {
       interface $Fields {
-        f: 0;
-        fieldName: 1;
-        order: 2;
+        k: 0;
+        topRankBonus: 1;
+        topBonus: 2;
+        nearTopBonus: 3;
+        nearTopCutoff: 4;
       }
-    }
-
-    class TypoOptions extends gc.sdk.GCObject {
-      static readonly _type = 'text_index_types::TypoOptions';
-      static readonly $fields: TypoOptions.$Fields;
-      enabled: boolean | null;
-      minWordLength: number | bigint | null;
-      maxEdits1: number | bigint | null;
-      maxEdits2: number | bigint | null;
-      constructor(enabled?: boolean | null, minWordLength?: number | bigint | null, maxEdits1?: number | bigint | null, maxEdits2?: number | bigint | null);
-      static createFrom(fields: {enabled?: boolean | null, minWordLength?: number | bigint | null, maxEdits1?: number | bigint | null, maxEdits2?: number | bigint | null}): TypoOptions;
-    }
-    namespace TypoOptions {
-      interface $Fields {
-        enabled: 0;
-        minWordLength: 1;
-        maxEdits1: 2;
-        maxEdits2: 3;
-      }
-    }
-
-    class PercolateMode extends gc.sdk.GCEnum {
-      static readonly _type = 'text_index_types::PercolateMode';
-      static readonly $fields: PercolateMode[];
-      key: PercolateMode.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: PercolateMode.Field);
-      static bm25: PercolateMode;
-      static boolean: PercolateMode;
-    }
-    namespace PercolateMode  {
-      type Field = "bm25"|"boolean";
     }
 
     class SearchOptions extends gc.sdk.GCObject {
@@ -5790,6 +5779,10 @@ declare namespace gc {
       type Field = "AND"|"OR"|"NOT"|"WEAKAND";
     }
 
+    class BooleanParser extends gc.sdk.GCObject {
+      static readonly _type = 'boolean_parser::BooleanParser';
+    }
+
     class ParseResult extends gc.sdk.GCObject {
       static readonly _type = 'boolean_parser::ParseResult';
       static readonly $fields: ParseResult.$Fields;
@@ -5826,10 +5819,6 @@ declare namespace gc {
         weakAndThreshold: 4;
         children: 5;
       }
-    }
-
-    class BooleanParser extends gc.sdk.GCObject {
-      static readonly _type = 'boolean_parser::BooleanParser';
     }
 
   }
@@ -5877,10 +5866,6 @@ declare namespace gc {
   }
 
   namespace text_chunker {
-    class TextChunker extends gc.sdk.GCObject {
-      static readonly _type = 'text_chunker::TextChunker';
-    }
-
     class ChunkInfo extends gc.sdk.GCObject {
       static readonly _type = 'text_chunker::ChunkInfo';
       static readonly $fields: ChunkInfo.$Fields;
@@ -5898,6 +5883,10 @@ declare namespace gc {
         startChar: 2;
         endChar: 3;
       }
+    }
+
+    class TextChunker extends gc.sdk.GCObject {
+      static readonly _type = 'text_chunker::TextChunker';
     }
 
   }
@@ -5955,6 +5944,10 @@ declare namespace gc {
       }
     }
 
+    class TextTokenizer extends gc.sdk.GCObject {
+      static readonly _type = 'text_tokenizer::TextTokenizer';
+    }
+
     class TermFrequency extends gc.sdk.GCObject {
       static readonly _type = 'text_tokenizer::TermFrequency';
       static readonly $fields: TermFrequency.$Fields;
@@ -5976,17 +5969,9 @@ declare namespace gc {
       static readonly _type = 'text_tokenizer::TokenizerAccel';
     }
 
-    class TextTokenizer extends gc.sdk.GCObject {
-      static readonly _type = 'text_tokenizer::TextTokenizer';
-    }
-
   }
 
   namespace dfr_engine {
-    class DFRScorer extends gc.sdk.GCObject {
-      static readonly _type = 'dfr_engine::DFRScorer';
-    }
-
     class DFREngine extends gc.sdk.GCObject {
       static readonly _type = 'dfr_engine::DFREngine';
     }
@@ -6019,18 +6004,6 @@ declare namespace gc {
       type Field = "H1"|"H2"|"H3"|"Z";
     }
 
-    class DFRAfterEffect extends gc.sdk.GCEnum {
-      static readonly _type = 'dfr_engine::DFRAfterEffect';
-      static readonly $fields: DFRAfterEffect[];
-      key: DFRAfterEffect.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: DFRAfterEffect.Field);
-      static Laplace: DFRAfterEffect;
-      static Bernoulli: DFRAfterEffect;
-    }
-    namespace DFRAfterEffect  {
-      type Field = "Laplace"|"Bernoulli";
-    }
-
     class DFRAccum extends gc.sdk.GCObject {
       static readonly _type = 'dfr_engine::DFRAccum';
       static readonly $fields: DFRAccum.$Fields;
@@ -6046,9 +6019,61 @@ declare namespace gc {
       }
     }
 
+    class DFRAfterEffect extends gc.sdk.GCEnum {
+      static readonly _type = 'dfr_engine::DFRAfterEffect';
+      static readonly $fields: DFRAfterEffect[];
+      key: DFRAfterEffect.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: DFRAfterEffect.Field);
+      static Laplace: DFRAfterEffect;
+      static Bernoulli: DFRAfterEffect;
+    }
+    namespace DFRAfterEffect  {
+      type Field = "Laplace"|"Bernoulli";
+    }
+
+    class DFRScorer extends gc.sdk.GCObject {
+      static readonly _type = 'dfr_engine::DFRScorer';
+    }
+
   }
 
   namespace function_score {
+    class FunctionScoreEngine extends gc.sdk.GCObject {
+      static readonly _type = 'function_score::FunctionScoreEngine';
+    }
+
+    class FunctionScoreConfig extends gc.sdk.GCObject {
+      static readonly _type = 'function_score::FunctionScoreConfig';
+      static readonly $fields: FunctionScoreConfig.$Fields;
+      decayFunctions: globalThis.Array<gc.function_score.DecayFunction> | null;
+      fieldValueFactors: globalThis.Array<gc.function_score.FieldValueFactor> | null;
+      scoreMode: gc.text_index_types.ScoreMode | null;
+      boostMode: gc.text_index_types.BoostMode | null;
+      constructor(decayFunctions?: globalThis.Array<gc.function_score.DecayFunction> | null, fieldValueFactors?: globalThis.Array<gc.function_score.FieldValueFactor> | null, scoreMode?: gc.text_index_types.ScoreMode | null, boostMode?: gc.text_index_types.BoostMode | null);
+      static createFrom(fields: {decayFunctions?: globalThis.Array<gc.function_score.DecayFunction> | null, fieldValueFactors?: globalThis.Array<gc.function_score.FieldValueFactor> | null, scoreMode?: gc.text_index_types.ScoreMode | null, boostMode?: gc.text_index_types.BoostMode | null}): FunctionScoreConfig;
+    }
+    namespace FunctionScoreConfig {
+      interface $Fields {
+        decayFunctions: 0;
+        fieldValueFactors: 1;
+        scoreMode: 2;
+        boostMode: 3;
+      }
+    }
+
+    class DecayType extends gc.sdk.GCEnum {
+      static readonly _type = 'function_score::DecayType';
+      static readonly $fields: DecayType[];
+      key: DecayType.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: DecayType.Field);
+      static gaussian: DecayType;
+      static linear: DecayType;
+      static exponential: DecayType;
+    }
+    namespace DecayType  {
+      type Field = "gaussian"|"linear"|"exponential";
+    }
+
     class DecayFunction extends gc.sdk.GCObject {
       static readonly _type = 'function_score::DecayFunction';
       static readonly $fields: DecayFunction.$Fields;
@@ -6074,23 +6099,6 @@ declare namespace gc {
       }
     }
 
-    class DecayType extends gc.sdk.GCEnum {
-      static readonly _type = 'function_score::DecayType';
-      static readonly $fields: DecayType[];
-      key: DecayType.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: DecayType.Field);
-      static gaussian: DecayType;
-      static linear: DecayType;
-      static exponential: DecayType;
-    }
-    namespace DecayType  {
-      type Field = "gaussian"|"linear"|"exponential";
-    }
-
-    class FunctionScoreAccel extends gc.sdk.GCObject {
-      static readonly _type = 'function_score::FunctionScoreAccel';
-    }
-
     class FieldValueFactor extends gc.sdk.GCObject {
       static readonly _type = 'function_score::FieldValueFactor';
       static readonly $fields: FieldValueFactor.$Fields;
@@ -6112,49 +6120,13 @@ declare namespace gc {
       }
     }
 
-    class FunctionScoreEngine extends gc.sdk.GCObject {
-      static readonly _type = 'function_score::FunctionScoreEngine';
-    }
-
-    class FunctionScoreConfig extends gc.sdk.GCObject {
-      static readonly _type = 'function_score::FunctionScoreConfig';
-      static readonly $fields: FunctionScoreConfig.$Fields;
-      decayFunctions: globalThis.Array<gc.function_score.DecayFunction> | null;
-      fieldValueFactors: globalThis.Array<gc.function_score.FieldValueFactor> | null;
-      scoreMode: gc.text_index_types.ScoreMode | null;
-      boostMode: gc.text_index_types.BoostMode | null;
-      constructor(decayFunctions?: globalThis.Array<gc.function_score.DecayFunction> | null, fieldValueFactors?: globalThis.Array<gc.function_score.FieldValueFactor> | null, scoreMode?: gc.text_index_types.ScoreMode | null, boostMode?: gc.text_index_types.BoostMode | null);
-      static createFrom(fields: {decayFunctions?: globalThis.Array<gc.function_score.DecayFunction> | null, fieldValueFactors?: globalThis.Array<gc.function_score.FieldValueFactor> | null, scoreMode?: gc.text_index_types.ScoreMode | null, boostMode?: gc.text_index_types.BoostMode | null}): FunctionScoreConfig;
-    }
-    namespace FunctionScoreConfig {
-      interface $Fields {
-        decayFunctions: 0;
-        fieldValueFactors: 1;
-        scoreMode: 2;
-        boostMode: 3;
-      }
+    class FunctionScoreAccel extends gc.sdk.GCObject {
+      static readonly _type = 'function_score::FunctionScoreAccel';
     }
 
   }
 
   namespace fusion {
-    class FusionAccum extends gc.sdk.GCObject {
-      static readonly _type = 'fusion::FusionAccum';
-      static readonly $fields: FusionAccum.$Fields;
-      score: number;
-      terms: globalThis.Array<string>;
-      termLookup: globalThis.Map<string, boolean> | null;
-      constructor(score: number, terms: globalThis.Array<string>, termLookup?: globalThis.Map<string, boolean> | null);
-      static createFrom(fields: {score: number, terms: globalThis.Array<string>, termLookup?: globalThis.Map<string, boolean> | null}): FusionAccum;
-    }
-    namespace FusionAccum {
-      interface $Fields {
-        score: 0;
-        terms: 1;
-        termLookup: 2;
-      }
-    }
-
     class FederatedSearch extends gc.sdk.GCObject {
       static readonly _type = 'fusion::FederatedSearch';
     }
@@ -6174,6 +6146,23 @@ declare namespace gc {
       }
     }
 
+    class FusionAccum extends gc.sdk.GCObject {
+      static readonly _type = 'fusion::FusionAccum';
+      static readonly $fields: FusionAccum.$Fields;
+      score: number;
+      terms: globalThis.Array<string>;
+      termLookup: globalThis.Map<string, boolean> | null;
+      constructor(score: number, terms: globalThis.Array<string>, termLookup?: globalThis.Map<string, boolean> | null);
+      static createFrom(fields: {score: number, terms: globalThis.Array<string>, termLookup?: globalThis.Map<string, boolean> | null}): FusionAccum;
+    }
+    namespace FusionAccum {
+      interface $Fields {
+        score: 0;
+        terms: 1;
+        termLookup: 2;
+      }
+    }
+
     class Fusion extends gc.sdk.GCObject {
       static readonly _type = 'fusion::Fusion';
     }
@@ -6181,6 +6170,10 @@ declare namespace gc {
   }
 
   namespace lm_dirichlet_engine {
+    class LMDirichletEngine extends gc.sdk.GCObject {
+      static readonly _type = 'lm_dirichlet_engine::LMDirichletEngine';
+    }
+
     class LMDAccum extends gc.sdk.GCObject {
       static readonly _type = 'lm_dirichlet_engine::LMDAccum';
       static readonly $fields: LMDAccum.$Fields;
@@ -6194,10 +6187,6 @@ declare namespace gc {
         score: 0;
         terms: 1;
       }
-    }
-
-    class LMDirichletEngine extends gc.sdk.GCObject {
-      static readonly _type = 'lm_dirichlet_engine::LMDirichletEngine';
     }
 
     class LMDirichletAccel extends gc.sdk.GCObject {
@@ -6214,22 +6203,6 @@ declare namespace gc {
   }
 
   namespace ranking_rules {
-    class RankingRule extends gc.sdk.GCEnum {
-      static readonly _type = 'ranking_rules::RankingRule';
-      static readonly $fields: RankingRule[];
-      key: RankingRule.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: RankingRule.Field);
-      static words: RankingRule;
-      static typo: RankingRule;
-      static proximity: RankingRule;
-      static attribute: RankingRule;
-      static sort: RankingRule;
-      static exactness: RankingRule;
-    }
-    namespace RankingRule  {
-      type Field = "words"|"typo"|"proximity"|"attribute"|"sort"|"exactness";
-    }
-
     class RankingRulesEngine extends gc.sdk.GCObject {
       static readonly _type = 'ranking_rules::RankingRulesEngine';
     }
@@ -6263,6 +6236,22 @@ declare namespace gc {
         isExactMatch: 8;
         sortValue: 9;
       }
+    }
+
+    class RankingRule extends gc.sdk.GCEnum {
+      static readonly _type = 'ranking_rules::RankingRule';
+      static readonly $fields: RankingRule[];
+      key: RankingRule.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: RankingRule.Field);
+      static words: RankingRule;
+      static typo: RankingRule;
+      static proximity: RankingRule;
+      static attribute: RankingRule;
+      static sort: RankingRule;
+      static exactness: RankingRule;
+    }
+    namespace RankingRule  {
+      type Field = "words"|"typo"|"proximity"|"attribute"|"sort"|"exactness";
     }
 
   }
@@ -6322,25 +6311,6 @@ declare namespace gc {
   }
 
   namespace snippet {
-    class SnippetExtractor extends gc.sdk.GCObject {
-      static readonly _type = 'snippet::SnippetExtractor';
-    }
-
-    class WindowResult extends gc.sdk.GCObject {
-      static readonly _type = 'snippet::WindowResult';
-      static readonly $fields: WindowResult.$Fields;
-      startWord: number | bigint;
-      endWord: number | bigint;
-      constructor(startWord: number | bigint, endWord: number | bigint);
-      static createFrom(fields: {startWord: number | bigint, endWord: number | bigint}): WindowResult;
-    }
-    namespace WindowResult {
-      interface $Fields {
-        startWord: 0;
-        endWord: 1;
-      }
-    }
-
     class SnippetFragment extends gc.sdk.GCObject {
       static readonly _type = 'snippet::SnippetFragment';
       static readonly $fields: SnippetFragment.$Fields;
@@ -6360,6 +6330,25 @@ declare namespace gc {
       }
     }
 
+    class SnippetExtractor extends gc.sdk.GCObject {
+      static readonly _type = 'snippet::SnippetExtractor';
+    }
+
+    class WindowResult extends gc.sdk.GCObject {
+      static readonly _type = 'snippet::WindowResult';
+      static readonly $fields: WindowResult.$Fields;
+      startWord: number | bigint;
+      endWord: number | bigint;
+      constructor(startWord: number | bigint, endWord: number | bigint);
+      static createFrom(fields: {startWord: number | bigint, endWord: number | bigint}): WindowResult;
+    }
+    namespace WindowResult {
+      interface $Fields {
+        startWord: 0;
+        endWord: 1;
+      }
+    }
+
   }
 
   namespace stop_words {
@@ -6370,42 +6359,6 @@ declare namespace gc {
   }
 
   namespace address_index {
-    class AddressDoc extends gc.sdk.GCObject {
-      static readonly _type = 'address_index::AddressDoc';
-      static readonly $fields: AddressDoc.$Fields;
-      payload: any | null;
-      street: string;
-      cityText: string;
-      postalCodeText: string;
-      houseNumberText: string | null;
-      country: string | null;
-      constructor(payload: any | null, street: string, cityText: string, postalCodeText: string, houseNumberText?: string | null, country?: string | null);
-      static createFrom(fields: {payload?: any | null, street: string, cityText: string, postalCodeText: string, houseNumberText?: string | null, country?: string | null}): AddressDoc;
-    }
-    namespace AddressDoc {
-      interface $Fields {
-        payload: 0;
-        street: 1;
-        cityText: 2;
-        postalCodeText: 3;
-        houseNumberText: 4;
-        country: 5;
-      }
-    }
-
-    class AddressMatchLevel extends gc.sdk.GCEnum {
-      static readonly _type = 'address_index::AddressMatchLevel';
-      static readonly $fields: AddressMatchLevel[];
-      key: AddressMatchLevel.Field;
-      constructor(type: gc.sdk.AbiType, offset: number, key: AddressMatchLevel.Field);
-      static address: AddressMatchLevel;
-      static street: AddressMatchLevel;
-      static area: AddressMatchLevel;
-    }
-    namespace AddressMatchLevel  {
-      type Field = "address"|"street"|"area";
-    }
-
     class AddressSearchHit extends gc.sdk.GCObject {
       static readonly _type = 'address_index::AddressSearchHit';
       static readonly $fields: AddressSearchHit.$Fields;
@@ -6438,6 +6391,42 @@ declare namespace gc {
       }
     }
 
+    class AddressMatchLevel extends gc.sdk.GCEnum {
+      static readonly _type = 'address_index::AddressMatchLevel';
+      static readonly $fields: AddressMatchLevel[];
+      key: AddressMatchLevel.Field;
+      constructor(type: gc.sdk.AbiType, offset: number, key: AddressMatchLevel.Field);
+      static address: AddressMatchLevel;
+      static street: AddressMatchLevel;
+      static area: AddressMatchLevel;
+    }
+    namespace AddressMatchLevel  {
+      type Field = "address"|"street"|"area";
+    }
+
+    class AddressDoc extends gc.sdk.GCObject {
+      static readonly _type = 'address_index::AddressDoc';
+      static readonly $fields: AddressDoc.$Fields;
+      payload: any | null;
+      street: string;
+      cityText: string;
+      postalCodeText: string;
+      houseNumberText: string | null;
+      country: string | null;
+      constructor(payload: any | null, street: string, cityText: string, postalCodeText: string, houseNumberText?: string | null, country?: string | null);
+      static createFrom(fields: {payload?: any | null, street: string, cityText: string, postalCodeText: string, houseNumberText?: string | null, country?: string | null}): AddressDoc;
+    }
+    namespace AddressDoc {
+      interface $Fields {
+        payload: 0;
+        street: 1;
+        cityText: 2;
+        postalCodeText: 3;
+        houseNumberText: 4;
+        country: 5;
+      }
+    }
+
     class AddressComponents extends gc.sdk.GCObject {
       static readonly _type = 'address_index::AddressComponents';
       static readonly $fields: AddressComponents.$Fields;
@@ -6460,53 +6449,6 @@ declare namespace gc {
   }
 
   namespace postal {
-    class PostalExpandOptions extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalExpandOptions';
-      static readonly $fields: PostalExpandOptions.$Fields;
-      languages: globalThis.Array<string> | null;
-      constructor(languages?: globalThis.Array<string> | null);
-      static createFrom(fields: {languages?: globalThis.Array<string> | null}): PostalExpandOptions;
-    }
-    namespace PostalExpandOptions {
-      interface $Fields {
-        languages: 0;
-      }
-    }
-
-    class PostalComponent extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalComponent';
-      static readonly $fields: PostalComponent.$Fields;
-      label: string;
-      value: string;
-      constructor(label: string, value: string);
-      static createFrom(fields: {label: string, value: string}): PostalComponent;
-    }
-    namespace PostalComponent {
-      interface $Fields {
-        label: 0;
-        value: 1;
-      }
-    }
-
-    class PostalAddress extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalAddress';
-    }
-
-    class PostalOptions extends gc.sdk.GCObject {
-      static readonly _type = 'postal::PostalOptions';
-      static readonly $fields: PostalOptions.$Fields;
-      language: string | null;
-      country: string | null;
-      constructor(language?: string | null, country?: string | null);
-      static createFrom(fields: {language?: string | null, country?: string | null}): PostalOptions;
-    }
-    namespace PostalOptions {
-      interface $Fields {
-        language: 0;
-        country: 1;
-      }
-    }
-
     class PostalParsedAddress extends gc.sdk.GCObject {
       static readonly _type = 'postal::PostalParsedAddress';
       static readonly $fields: PostalParsedAddress.$Fields;
@@ -6556,15 +6498,63 @@ declare namespace gc {
       }
     }
 
+    class PostalComponent extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalComponent';
+      static readonly $fields: PostalComponent.$Fields;
+      label: string;
+      value: string;
+      constructor(label: string, value: string);
+      static createFrom(fields: {label: string, value: string}): PostalComponent;
+    }
+    namespace PostalComponent {
+      interface $Fields {
+        label: 0;
+        value: 1;
+      }
+    }
+
+    class PostalExpandOptions extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalExpandOptions';
+      static readonly $fields: PostalExpandOptions.$Fields;
+      languages: globalThis.Array<string> | null;
+      constructor(languages?: globalThis.Array<string> | null);
+      static createFrom(fields: {languages?: globalThis.Array<string> | null}): PostalExpandOptions;
+    }
+    namespace PostalExpandOptions {
+      interface $Fields {
+        languages: 0;
+      }
+    }
+
+    class PostalOptions extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalOptions';
+      static readonly $fields: PostalOptions.$Fields;
+      language: string | null;
+      country: string | null;
+      constructor(language?: string | null, country?: string | null);
+      static createFrom(fields: {language?: string | null, country?: string | null}): PostalOptions;
+    }
+    namespace PostalOptions {
+      interface $Fields {
+        language: 0;
+        country: 1;
+      }
+    }
+
+    class PostalAddress extends gc.sdk.GCObject {
+      static readonly _type = 'postal::PostalAddress';
+    }
+
   }
 
   interface $TypesMap {
     'core::Array<caclrLoader::CaclrResponseCantonItem>': 0,
-    'core::Array<mengplaz::AddressFullRecordRef>': 0,
-    'core::NodeInfo<core::time>': 0,
-    'core::Array<core::geo>': 0,
-    'core::Table<util::GaussianProfileSlot?>': 0,
+    'core::Array<api::LinkedRecordDetails<bda::BdaAddressFullRecord>>': 0,
+    'core::Tuple<core::time,core::any?>': 0,
+    'core::Array<core::String>': 0,
+    'core::Array<util::Quantizer>': 0,
     'core::SearchResult<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
+    'core::Map<core::node<mengplaz::AddressRecordProvider>,core::node<mengplaz::AddressRecordProvider>>': 0,
     'core::Map<core::int,bm25_engine::BM25Result>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrCanton>>': 0,
     'core::Map<core::String,core::any?>': 0,
@@ -6574,68 +6564,69 @@ declare namespace gc {
     'core::Chars': 0,
     'core::nodeIndex<core::String,core::Array<core::node<caclr::CaclrStreet>>>': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenAddress>>': 0,
-    'core::Array<core::SearchResult<core::geo,core::any?>>': 0,
+    'core::Array<core::NodeInfo<core::geo>>': 0,
     'core::nodeList$sample$args': 0,
     'core::nodeIndex<core::String,core::node<osm::OsmAddress>>': 0,
+    'core::Array<runtime::McpRole>': 0,
     'core::Array<boolean_parser::BooleanQuery>': 0,
     'core::nodeIndexBucket<core::String,core::node<mengplaz::AddressRecordProvider>>': 0,
     'core::Array<core::Array<core::String>>': 0,
     'core::Array<bm25_engine::BM25Result>': 0,
-    'core::Array<privateApi::SourceRef>': 0,
     'core::Array<text_index_types::TextEntry>': 0,
-    'core::Array<core::int?>': 0,
     'core::Array<core::SearchResult<core::node<mengplaz::AddressRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>>': 0,
-    'core::Map<core::String,runtime::HeaderObject>': 0,
+    'core::Map<core::String,runtime::SchemaObject>': 0,
     'core::SearchResult<core::String,core::node<text_index_types::TrigramPostings>>': 0,
     'core::Array<fusion::FusionInput>': 0,
-    'core::Array<api::LinkedRecordDetails<caclr::CaclrAddressFullRecord>>': 0,
-    'core::SearchResult<core::String,core::Array<core::node<bda::BdaCity>>>': 0,
-    'core::Tuple<core::String,core::String?>': 0,
+    'core::Tuple<core::int,core::int>': 0,
     'core::Map<core::String,core::Array<facet_types::TermCount>>': 0,
+    'core::SearchResult<core::String,core::Array<core::node<bda::BdaCity>>>': 0,
     'core::Array<core::Map<core::String,core::bool>>': 0,
     'core::SearchResult<core::Tensor,core::node<text_index_types::IndexChunk>>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<golden::GoldenStreet>>>': 0,
+    'core::Array<privateApi::SourceRef>': 0,
     'core::Map<core::int,lm_dirichlet_engine::LMDAccum>': 0,
     'core::Array<core::node<bda::BdaCity>>': 0,
     'core::node<text_index_types::IndexEntry>': 0,
     'core::node<core::VectorIndex<core::node<text_index_types::IndexChunk>>>': 0,
     'core::SearchResult<core::String,core::node<caclr::CaclrConstituency>>': 0,
     'core::nodeGeo$sample$args': 0,
-    'core::Tuple<core::int,core::int>': 0,
+    'core::Array<runtime::WorkerUsage>': 0,
     'core::Array<core::SearchResult<core::node<core::Tensor>,core::node<text_index_types::IndexChunk>>>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<bda::BdaStreet>>>': 0,
     'core::Error': 0,
-    'core::Map<core::node<osm::OsmAddress>,core::node<golden::GoldenAddress>>': 0,
+    'core::Map<core::node<mengplaz::DataSource>,core::Array<core::float>>': 0,
+    'core::Array<privateApi::MatchedCandidateDetail>': 0,
     'core::nodeTime$sample$args': 0,
+    'core::Array<privateApi::SourceCountPoint>': 0,
     'core::Array<core::SearchResult<core::String,core::node<bda::BdaCity>>>': 0,
     'core::Array<core::node<caclr::CaclrAddress>>': 0,
     'core::SearchResult<core::String,core::int>': 0,
-    'core::Array<core::Tuple<core::int,core::int>>': 0,
-    'core::Array<core::nodeList>': 0,
+    'core::Array<runtime::ZoneUsage>': 0,
+    'core::Array<core::SearchResult>': 0,
     'core::Map<core::int,core::Map<core::int,core::bool>>': 0,
     'core::SearchResult<core::node<mengplaz::AddressRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
     'core::Array<mengplaz::SearchResult>': 0,
     'core::nodeIndexBucket<core::String,core::node<caclr::CaclrCanton>>': 0,
-    'core::Array<core::node?>': 0,
+    'core::NodeInfo<core::time>': 0,
     'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrStreet>>>': 0,
     'core::null': 0,
-    'core::Map<core::String,core::int>': 0,
+    'core::Array<runtime::McpTask>': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenStreet>>': 0,
     'core::node': 0,
     'core::nodeIndex<core::String,core::node<percolate_engine::PercolatedQuery>>': 0,
     'core::Array<text_index_types::TermScorePair>': 0,
-    'core::Array<io::CsvColumnStatistics>': 0,
+    'core::Map<core::String,core::int>': 0,
     'core::Array<core::node<golden::GoldenStreet>>': 0,
-    'core::Array<core::bool>': 0,
-    'core::Tuple<core::int,core::any?>': 0,
-    'core::Array<util::Quantizer>': 0,
+    'core::Array<core::Tuple<core::String,core::String?>>': 0,
+    'core::Array<core::NodeInfo>': 0,
+    'core::Table<core::Tuple<core::time,core::any?>>': 0,
     'core::nodeIndexBucket<core::node<core::Tensor>,core::node<text_index_types::IndexEntry>>': 0,
     'core::Array<facet_types::HistogramBucket>': 0,
-    'core::Array<runtime::DayOfWeek>': 0,
+    'core::Array<runtime::Frame>': 0,
     'core::SearchResult<core::String,core::node<text_index_types::IndexEntry>>': 0,
     'core::Array<text_index_types::SortClause>': 0,
     'core::nodeList<core::node<text_index_types::IndexChunk>>': 0,
-    'core::Array<mengplaz::ReconciliationCandidate>': 0,
+    'core::Array<api::GoldenIndex>': 0,
     'core::Array<mengplaz::SourceCountSnapshot>': 0,
     'core::node<text_index_types::TrigramPostings>': 0,
     'core::VectorVertex': 0,
@@ -6643,35 +6634,36 @@ declare namespace gc {
     'core::TensorType': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<osm::OsmStreet>>>': 0,
     'core::Array<facet_types::NumericBucketCount>': 0,
+    'core::Array<mengplaz::ReconciliationCandidate>': 0,
     'core::node<core::bool>': 0,
     'core::Array<caclrLoader::CaclrResponseStreetItem>': 0,
-    'core::Array<core::GeoBox>': 0,
+    'core::Array<core::char>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrMunicipality>>': 0,
     'core::Map<core::int,core::float>': 0,
     'core::nodeTime': 0,
     'core::Array<core::node<mengplaz::ReconciliationReport>>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<bda::BdaCity>>>': 0,
     'core::Array<core::any?>': 0,
-    'core::Map<core::node<mengplaz::AddressRecordProvider>,core::node<mengplaz::AddressRecordProvider>>': 0,
     'core::node<address_index::AddressIndex<core::String>?>': 0,
     'core::nodeIndexBucket<core::String,core::node<golden::GoldenAddress>>': 0,
-    'core::Array<sourceTextSearch::SourceTextIndexStats>': 0,
+    'core::Array<core::node<mengplaz::AddressRecordProvider>>': 0,
     'core::Array<snippet::SnippetFragment>': 0,
     'core::Map<core::String,core::geo>': 0,
-    'core::Array<runtime::McpRole>': 0,
+    'core::Array<runtime::McpResource>': 0,
     'core::Tuple<core::int,core::node<golden::GoldenAddress>>': 0,
-    'core::Array<api::GeoJSONFeature>': 0,
     'core::Map<core::String,core::Array<facet_types::NumericBucketCount>>': 0,
+    'core::Array<api::AddressFeatures>': 0,
     'core::nodeIndexBucket<core::String,core::node<text_index_types::TrigramPostings>>': 0,
     'core::nodeList<core::node<bda::BdaAddress>>': 0,
     'core::Tensor': 0,
-    'core::Array<runtime::Frame>': 0,
+    'core::Array<runtime::Identity>': 0,
     'core::nodeIndex<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
     'core::any': 0,
     'core::FloatPrecision': 0,
     'core::Map<core::char,core::String>': 0,
     'core::Array<runtime::RuntimeUsage>': 0,
     'core::node<text_index::TextIndex<core::String>?>': 0,
+    'core::Array<io::S3Bucket>': 0,
     'core::node<core::Map<core::char,core::String>?>': 0,
     'core::Array<core::Array<facet_types::TermCount>>': 0,
     'core::GeoBox': 0,
@@ -6680,7 +6672,6 @@ declare namespace gc {
     'core::nodeIndexBucket<core::String,core::node<address_index::AddressIndex<core::String>?>>': 0,
     'core::CalendarUnit': 0,
     'core::Map<core::String,core::bool>': 0,
-    'core::Array<api::LinkedRecordDetails<osm::OsmAddressFullRecord>>': 0,
     'core::nodeGeo<core::node<osm::OsmAddress>>$search$args': 0,
     'core::node<mengplaz::StreetRecordProvider>': 0,
     'core::SearchResult': 0,
@@ -6693,28 +6684,29 @@ declare namespace gc {
     'core::Array<fuzzy_engine::TrigramCandidate>': 0,
     'core::Tuple<core::int,core::node<text_index_types::IndexEntry>>': 0,
     'core::TimeZone': 0,
-    'core::Array<privateApi::GlobalQualityEntry>': 0,
+    'core::Array<privateApi::GoldenRecordScore>': 0,
     'core::nodeIndex<core::String,core::node<text_index_types::PhoneticPostings>>': 0,
     'core::Map<core::String,core::float>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrCity>>': 0,
-    'core::Map<core::String,core::String>': 0,
+    'core::Array<io::CsvColumnStatistics>': 0,
     'core::DurationUnit': 0,
     'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrConstituency>>>': 0,
     'core::Array<text_index_types::FieldConfig>': 0,
-    'core::Array<core::int>': 0,
+    'core::Array<core::SearchResult<core::Tensor,core::any?>>': 0,
     'core::Map<core::int,quorum_engine::QuorumAccum>': 0,
-    'core::Array<runtime::McpResource>': 0,
+    'core::Array<runtime::McpPromptArgument>': 0,
+    'core::node<mengplaz::ReconciliationCandidateScore>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<caclr::CaclrCity>>>': 0,
     'core::nodeIndex<core::String,core::Array<core::node<caclr::CaclrCity>>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrAddress>>>': 0,
-    'core::Array<runtime::McpPrompt>': 0,
+    'core::Array<runtime::McpTool>': 0,
     'core::nodeIndex<core::String,core::node<bda::BdaAddress>>': 0,
     'core::nodeIndexBucket<core::String,core::node<caclr::CaclrCity>>': 0,
-    'core::Array<io::S3Bucket>': 0,
+    'core::Map<core::String,core::String>': 0,
     'core::Map<core::int,core::node<text_index_types::TrieNode>>': 0,
     'core::Map<core::int,core::bool>': 0,
     'core::Map<core::String,text_tokenizer::TermFrequency>': 0,
-    'core::node<mengplaz::ReconciliationCandidateScore>': 0,
+    'core::Array<mengplaz::StreetRecordRef>': 0,
     'core::Array<core::SearchResult<core::String,core::node<bda::BdaStreet>>>': 0,
     'core::Map': 0,
     'core::MathConstants': 0,
@@ -6723,7 +6715,7 @@ declare namespace gc {
     'core::float': 0,
     'core::Tuple<core::int,core::node<bda::BdaStreet>>': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenConstituency>>': 0,
-    'core::Array<io::File>': 0,
+    'core::Map<core::any,core::int>': 0,
     'core::Tuple<core::time,runtime::RuntimeUsage>': 0,
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenCanton>>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<mengplaz::DataSource>>>': 0,
@@ -6739,12 +6731,12 @@ declare namespace gc {
     'core::Array<core::Map<core::String,core::any>>': 0,
     'core::Array<function_score::DecayFunction>': 0,
     'core::SearchResult<core::String,core::node<osm::OsmStreet>>': 0,
-    'core::Array<core::String>': 0,
-    'core::Array<core::any>': 0,
-    'core::Map<core::String,runtime::SchemaObject>': 0,
+    'core::Array<core::TableColumnMapping>': 0,
+    'core::Map<core::String,runtime::ResponseObject>': 0,
+    'core::Array<core::ErrorFrame>': 0,
     'core::node<caclr::CaclrToken?>': 0,
     'core::SearchResult<core::geo,core::node<osm::OsmPartialAddress>>': 0,
-    'core::Array<api::DeprecatedCountRow>': 0,
+    'core::Array<sourceTextSearch::SourceTextIndexStats>': 0,
     'core::Array<lm_dirichlet_engine::LMDAccum>': 0,
     'core::nodeGeo$search$args': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenCanton>>': 0,
@@ -6757,9 +6749,8 @@ declare namespace gc {
     'core::Array<core::Array>': 0,
     'core::Map<core::String,core::Map<core::String,core::int>>': 0,
     'core::Array<text_index_types::TermFilter>': 0,
-    'core::node<mengplaz::DataSource>': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenCity>>': 0,
-    'core::Map<core::String,runtime::ResponseObject>': 0,
+    'core::Array<runtime::DateTuple>': 0,
     'core::Array<backupExporter::BkGoldenQualityDTO>': 0,
     'core::Array<text_index_types::TermExplanation>': 0,
     'core::nodeIndexBucket<core::String,core::node<golden::GoldenCity>>': 0,
@@ -6772,10 +6763,10 @@ declare namespace gc {
     'core::Array<facet_types::HistogramResult>': 0,
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenStreet>>>': 0,
     'core::nodeIndexBucket<core::String,core::node<bda::BdaCity>>': 0,
-    'core::Tuple<core::geo,core::any?>': 0,
+    'core::Array<core::geo>': 0,
     'core::node<golden::GoldenCity>': 0,
     'core::node<golden::GoldenCanton>': 0,
-    'core::Array<runtime::ZoneUsage>': 0,
+    'core::nodeTime<runtime::RuntimeUsage>': 0,
     'core::nodeGeo<core::node<bda::BdaAddress>>$search$args': 0,
     'core::nodeIndexBucket<core::String,core::int>': 0,
     'core::nodeIndexBucket<core::String,core::node<osm::OsmStreet>>': 0,
@@ -6786,9 +6777,8 @@ declare namespace gc {
     'core::node<caclr::CaclrMunicipality>': 0,
     'core::Array<text_tokenizer::TokenInfo>': 0,
     'core::SearchResult<core::String,core::node<address_index::AddressIndex<core::String>?>>': 0,
-    'core::Map<core::node<golden::GoldenStreet>,mengplaz::Match<core::node<golden::GoldenStreet>>>': 0,
     'core::Map<core::node<text_index_types::NormalizedTerm>,core::bool>': 0,
-    'core::Array<core::char>': 0,
+    'core::Array<core::any>': 0,
     'core::node<bda::BdaAddress>': 0,
     'core::Array<core::node<bda::BdaStreet>>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<golden::GoldenCity>>>': 0,
@@ -6796,20 +6786,21 @@ declare namespace gc {
     'core::GeoCircle': 0,
     'core::Array<phrase_engine::PhraseCandidate>': 0,
     'core::Array<text_index_types::CurationRule>': 0,
-    'core::Table<core::Tuple<core::time,core::any?>>': 0,
+    'core::Array<io::S3Object>': 0,
     'core::nodeIndex<core::node<mengplaz::AddressRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
-    'core::Array<core::ErrorFrame>': 0,
+    'core::Array<core::int>': 0,
     'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrMunicipality>>>': 0,
     'core::nodeIndexBucket<core::String,core::node<osm::OsmAddress>>': 0,
-    'core::Array<core::node<core::VectorVertex>?>': 0,
+    'core::Array<core::float>': 0,
     'core::Tuple<core::int,core::node<bda::BdaAddress>>': 0,
-    'core::Array<core::TableColumnMapping>': 0,
-    'core::node<core::Tensor>': 0,
+    'core::Array<core::node<core::VectorVertex>?>': 0,
+    'core::NodeInfo<core::int>': 0,
     'core::Array<core::node<golden::GoldenCity>>': 0,
     'core::Array<core::node<text_index_types::NormalizedTerm>>': 0,
     'core::node<core::String>': 0,
+    'core::Array<core::int?>': 0,
     'core::SearchResult<core::String,core::node<bda::BdaAddress>>': 0,
-    'core::node<core::VectorVertex>': 0,
+    'core::node<core::Tensor>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrConstituency>>': 0,
     'core::SearchResult<core::node<core::Tensor>,core::any?>': 0,
     'core::char': 0,
@@ -6821,14 +6812,15 @@ declare namespace gc {
     'core::SearchResult<core::String,core::Array<core::node<bda::BdaStreet>>>': 0,
     'core::nodeList<core::node<text_index_types::IndexEntry>>': 0,
     'core::node<osm::OsmCity>': 0,
-    'core::Array<api::LinkedRecordDetails<bda::BdaAddressFullRecord>>': 0,
+    'core::Array<privateApi::SourceStatsRow>': 0,
     'core::Array': 0,
     'core::Array<ranking_rules::RankingRule>': 0,
     'core::nodeIndexBucket<core::node<core::Tensor>,core::any?>': 0,
     'core::Array<core::SearchResult<core::String,core::node<core::String>>>': 0,
+    'core::Array<runtime::McpContentBlock>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrStreet>>': 0,
     'core::Date': 0,
-    'core::Array<core::nodeGeo>': 0,
+    'core::Array<core::GeoBox>': 0,
     'core::node<bda::BdaStreet>': 0,
     'core::SearchResult<core::geo,core::node<bda::BdaAddress>>': 0,
     'core::nodeIndexBucket<core::String,core::node<golden::GoldenConstituency>>': 0,
@@ -6840,28 +6832,27 @@ declare namespace gc {
     'core::nodeIndexBucket<core::String,core::node<text_index_types::IndexEntry>>': 0,
     'core::nodeIndexBucket<core::String,core::node<caclr::CaclrStreet>>': 0,
     'core::node<osm::OsmStreet>': 0,
-    'core::Array<runtime::IdentityGrant>': 0,
+    'core::Array<core::bool>': 0,
     'core::TensorDistance': 0,
     'core::SearchResult<core::String,core::node<caclr::CaclrCity>>': 0,
     'core::SearchResult<core::String,core::node<bda::BdaCity>>': 0,
-    'core::Array<runtime::McpTask>': 0,
     'core::Array<core::SearchResult<core::String,core::node<bda::BdaMunicipality>>>': 0,
     'core::Array<core::Array<text_index_types::TextResult>>': 0,
     'core::Array<core::SearchResult<core::Tensor,core::node<text_index_types::IndexEntry>>>': 0,
-    'core::geo': 0,
     'core::Array<runtime::HeaderObject>': 0,
+    'core::geo': 0,
     'core::Array<core::SearchResult<core::String,core::Array<core::node<caclr::CaclrStreet>>>>': 0,
     'core::SearchResult<core::String,core::node<mengplaz::DataSource>>': 0,
     'core::nodeTime$info$args': 0,
     'core::Array<core::SearchResult<core::String,core::Array<core::node<bda::BdaCity>>>>': 0,
-    'core::Array<runtime::PeriodicTask>': 0,
-    'core::ErrorCode': 0,
+    'core::Array<runtime::Variable>': 0,
+    'core::Array<core::node<bda::BdaAddress>>': 0,
     'core::Array<backupExporter::BkManifestEntryDTO>': 0,
+    'core::ErrorCode': 0,
     'core::nodeIndex$search_closest$args': 0,
     'core::nodeTimeCursor': 0,
     'core::SearchResult<core::String,core::node<text_index_types::PhoneticPostings>>': 0,
     'core::nodeIndexBucket<core::node<mengplaz::AddressRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
-    'core::Array<mengplaz::Match<core::node<golden::GoldenCity>>>': 0,
     'core::node<text_index_types::NormalizedTerm>': 0,
     'core::SearchResult<core::String,core::node<golden::GoldenCanton>>': 0,
     'core::nodeIndex<core::node<core::Tensor>,core::node<text_index_types::IndexChunk>>': 0,
@@ -6869,71 +6860,71 @@ declare namespace gc {
     'core::nodeGeo<core::node<golden::GoldenAddress>>': 0,
     'core::Array<suggest_engine::Suggestion>': 0,
     'core::SearchResult<core::geo,core::node<osm::OsmAddress>>': 0,
+    'core::Map<core::node<osm::OsmAddress>,core::node<golden::GoldenAddress>>': 0,
     'core::SearchResult<core::geo,core::node<golden::GoldenAddress>>': 0,
-    'core::nodeTime<runtime::RuntimeUsage>': 0,
+    'core::Array<runtime::Role>': 0,
     'core::Array<core::SearchResult<core::String,core::Array<core::node<golden::GoldenStreet>>>>': 0,
-    'core::Map<core::node<mengplaz::AddressRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
+    'core::Array<mengplaz::AddressFullRecordRef>': 0,
     'core::Array<core::SearchResult<core::String,core::Array<core::node<caclr::CaclrCity>>>>': 0,
+    'core::Array<privateApi::GlobalQualityEntry>': 0,
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenAddress>>>': 0,
     'core::Tuple<core::geo,core::node<osm::OsmPartialAddress>>': 0,
     'core::SortOrder': 0,
-    'core::Array<runtime::McpTool>': 0,
+    'core::Map<core::String,core::any>': 0,
     'core::nodeGeo<core::node<golden::GoldenAddress>>$search$args': 0,
     'core::nodeGeo<core::node<osm::OsmPartialAddress>>$search$args': 0,
-    'core::Array<runtime::Variable>': 0,
+    'core::Array<runtime::IdentityGrant>': 0,
+    'core::Array<mengplaz::AddressRecord>': 0,
     'core::SearchResult<core::String,core::node<golden::GoldenCity>>': 0,
-    'core::Array<core::SearchResult<core::Tensor,core::any?>>': 0,
     'core::Array<core::node<text_index_types::TrieNode>>': 0,
+    'core::node<core::VectorVertex>': 0,
     'core::nodeTime<core::float>': 0,
     'core::Array<facet_types::MetricAggregation>': 0,
-    'core::Array<runtime::Identity>': 0,
+    'core::Array<runtime::Task?>': 0,
     'core::node$resolve_all$args': 0,
     'core::SearchResult<core::String,core::Array<core::node<golden::GoldenStreet>>>': 0,
-    'core::SearchResult<core::Tensor,core::any?>': 0,
+    'core::nodeIndex<core::node<core::Tensor>,core::any?>': 0,
     'core::nodeIndex<core::String,core::node<bda::BdaCity>>': 0,
     'core::nodeList<core::node<bda::BdaStreet>>': 0,
-    'core::Array<privateApi::SourceCountSeries>': 0,
     'core::Array<core::SearchResult<core::node<core::Tensor>,core::any?>>': 0,
     'core::Array<core::Map<core::int,core::bool>>': 0,
-    'core::Array<runtime::Permission>': 0,
-    'core::Array<privateApi::MatchedCandidateDetail>': 0,
+    'core::SearchResult<core::geo,core::any?>': 0,
     'core::Array<core::Map<core::String,core::any?>>': 0,
+    'core::node<golden::GoldenAddress>': 0,
+    'core::Map<core::node<mengplaz::AddressRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
     'core::GeoPoly': 0,
     'core::node<core::Map<core::char,core::bool>?>': 0,
-    'core::Array<privateApi::SourceCountPoint>': 0,
     'core::nodeIndexBucket<core::String,core::node<golden::GoldenMunicipality>>': 0,
     'core::node<caclr::CaclrCanton>': 0,
-    'core::Array<core::field>': 0,
     'core::SearchResult<core::node<core::Tensor>,core::node<text_index_types::IndexEntry>>': 0,
     'core::node<text_index_types::IndexChunk>': 0,
     'core::nodeList<core::node<osm::OsmPartialAddress>>': 0,
-    'core::Array<mengplaz::StreetRecordRef>': 0,
     'core::Map<core::char,core::bool>': 0,
     'core::nodeList<core::node<text_index_types::NormalizedTerm>>': 0,
-    'core::nodeIndex<core::node<core::Tensor>,core::any?>': 0,
+    'core::Array<core::NodeInfo<core::int>>': 0,
     'core::SamplingMode': 0,
     'core::SearchResult<core::String,core::node<golden::GoldenConstituency>>': 0,
     'core::Array<facet_types::MetricResult>': 0,
     'core::Tuple<core::geo,core::node<golden::GoldenAddress>>': 0,
     'core::Array<core::SearchResult<core::geo,core::node<osm::OsmAddress>>>': 0,
     'core::nodeIndex<core::node<core::Tensor>,core::node<text_index_types::IndexEntry>>': 0,
-    'core::nodeTime<mengplaz::SourceCountSnapshot>': 0,
     'core::Array<caclrLoader::CaclrResponseBuildingItem>': 0,
-    'core::Array<privateApi::ReconciliationReportMatchView>': 0,
+    'core::nodeTime<mengplaz::SourceCountSnapshot>': 0,
     'core::Tuple<core::time,mengplaz::QualityEvent>': 0,
-    'core::NodeInfo<core::int>': 0,
+    'core::Tuple<core::int,core::any?>': 0,
     'core::nodeGeo<core::node<osm::OsmPartialAddress>>': 0,
     'core::Map<text_index_types::SearchMode,core::float>': 0,
-    'core::Array<runtime::Job>': 0,
+    'core::Array<runtime::Permission>': 0,
     'core::Array<facet_types::FacetRequest>': 0,
+    'core::Array<privateApi::ReconciliationReportMatchView>': 0,
     'core::SearchResult<core::String,core::node<osm::OsmAddress>>': 0,
     'core::nodeList': 0,
-    'core::Array<runtime::McpContentBlock>': 0,
+    'core::Array<runtime::McpPrompt>': 0,
     'core::nodeIndex<core::String,core::node<mengplaz::DataSource>>': 0,
     'core::nodeIndexBucket<core::String,core::node<caclr::CaclrMunicipality>>': 0,
     'core::Array<quorum_engine::QuorumAccum>': 0,
     'core::int': 0,
-    'core::Tuple<core::time,core::any?>': 0,
+    'core::Array<core::type>': 0,
     'core::node<percolate_engine::PercolatedQuery>': 0,
     'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrCity>>>': 0,
     'core::Array<facet_types::HistogramAggregation>': 0,
@@ -6944,22 +6935,18 @@ declare namespace gc {
     'core::duration': 0,
     'core::Array<core::SearchResult<core::Tensor,core::node<text_index_types::IndexChunk>>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenCity>>>': 0,
-    'core::Array<core::node<bda::BdaAddress>>': 0,
     'core::nodeIndexBucket<core::node<mengplaz::AddressRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
-    'core::Array<core::NodeInfo<core::geo>>': 0,
+    'core::Array<core::nodeGeo>': 0,
     'core::Array<text_index_types::TextResult>': 0,
     'core::Array<core::SearchResult<core::geo,core::node<bda::BdaAddress>>>': 0,
-    'core::Array<core::NodeInfo<core::time>>': 0,
-    'core::Array<core::NodeInfo>': 0,
+    'core::Array<core::nodeTime>': 0,
+    'core::Array<core::node?>': 0,
     'core::nodeIndex': 0,
     'core::SearchResult<core::String,core::Array<core::node<caclr::CaclrStreet>>>': 0,
-    'core::NodeInfo<core::geo>': 0,
+    'core::Tuple<core::geo,core::any?>': 0,
     'core::Map<core::String,core::Map<core::String,core::bool>>': 0,
-    'core::node<mengplaz::AddressRecordProvider>': 0,
-    'core::Map<core::node<mengplaz::DataSource>,core::Array<core::float>>': 0,
     'core::nodeIndexBucket<core::String,core::node<core::String>>': 0,
     'core::NodeInfo': 0,
-    'core::node<golden::GoldenAddress>': 0,
     'core::VectorIndex': 0,
     'core::SearchResult<core::String,core::node<caclr::CaclrAddress>>': 0,
     'core::Array<text_index_types::SearchMode>': 0,
@@ -6969,7 +6956,7 @@ declare namespace gc {
     'core::Array<core::SearchResult<core::String,core::int>>': 0,
     'core::Array<fusion::FusionAccum>': 0,
     'core::Array<bdaLoader::BdaAddressLine>': 0,
-    'core::Array<core::Tuple<core::String,core::String?>>': 0,
+    'core::Array<core::Tuple<core::int,core::int>>': 0,
     'core::nodeGeo': 0,
     'core::node<core::VectorIndex<core::node<text_index_types::IndexEntry>>>': 0,
     'core::nodeIndex<core::String,core::Array<core::node<osm::OsmStreet>>>': 0,
@@ -6983,75 +6970,75 @@ declare namespace gc {
     'core::node<bda::BdaMunicipality>': 0,
     'core::nodeIndex<core::String,core::int>': 0,
     'core::Map<core::int,text_index_types::TextResult>': 0,
-    'core::Array<core::nodeIndex>': 0,
+    'core::Array<core::NodeInfo<core::time>>': 0,
     'core::node<golden::GoldenMunicipality>': 0,
     'core::Array<runtime::ResponseObject>': 0,
     'core::Array<text_parser::ParsedSection>': 0,
     'core::node<golden::GoldenStreet>': 0,
     'core::nodeIndex<core::String,core::node<core::String>>': 0,
+    'core::Array<api::GeoJSONFeature>': 0,
     'core::nodeIndexBucket<core::String,core::node<caclr::CaclrAddress>>': 0,
+    'core::Array<mengplaz::Match<core::node<golden::GoldenStreet>>>': 0,
     'core::Tuple<core::int,core::node<text_index_types::IndexChunk>>': 0,
-    'core::Array<core::type>': 0,
     'core::Array<core::node<caclr::CaclrStreet>>': 0,
     'core::bool': 0,
-    'core::Array<api::AddressFeatures>': 0,
+    'core::Array<api::LinkedRecordDetails<caclr::CaclrAddressFullRecord>>': 0,
     'core::SearchResult<core::String,core::node<mengplaz::AddressRecordProvider>>': 0,
     'core::nodeIndex<core::String,core::node<caclr::CaclrAddress>>': 0,
     'core::nodeIndexBucket<core::String,core::node<bda::BdaAddress>>': 0,
-    'core::Array<runtime::WorkerUsage>': 0,
-    'core::Array<runtime::Task?>': 0,
-    'core::Array<api::RankedGoldenRecord>': 0,
+    'core::Array<runtime::Job>': 0,
+    'core::Array<runtime::Task>': 0,
+    'core::Array<mengplaz::Match<core::node<golden::GoldenCity>>>': 0,
     'core::SearchResult<core::String,core::node<percolate_engine::PercolatedQuery>>': 0,
     'core::Array<text_chunker::ChunkInfo>': 0,
     'core::Tuple<core::int,core::node<osm::OsmPartialAddress>>': 0,
     'core::Tuple<core::time,mengplaz::SourceCountSnapshot>': 0,
+    'core::node<mengplaz::DataSource>': 0,
     'core::Array<core::SearchResult<core::String,core::node<caclr::CaclrCanton>>>': 0,
-    'core::Array<mengplaz::AddressRecordRef>': 0,
     'core::node<caclr::CaclrStreet>': 0,
     'core::Array<mengplaz::CandidateMatch<core::node<mengplaz::AddressRecordProvider>>>': 0,
     'core::Map<core::String,core::Array<core::int>>': 0,
     'core::SearchResult<core::String,core::node<golden::GoldenMunicipality>>': 0,
     'core::Array<backupExporter::BkGoldenLinkedRecordDTO>': 0,
-    'core::Array<core::SearchResult>': 0,
+    'core::Array<core::nodeIndex>': 0,
     'core::node<bda::BdaCity>': 0,
     'core::SearchResult<core::String,core::Array<core::node<caclr::CaclrCity>>>': 0,
     'core::nodeIndexBucket<core::String,core::node<golden::GoldenCanton>>': 0,
     'core::Array<core::Array<facet_types::NumericBucketCount>>': 0,
     'core::nodeIndexBucket<core::node<core::Tensor>,core::node<text_index_types::IndexChunk>>': 0,
     'core::nodeIndex<core::String,core::node<golden::GoldenMunicipality>>': 0,
-    'core::Array<mengplaz::AddressRecord>': 0,
     'core::Array<ranking_rules::RankingCandidate>': 0,
     'core::Array<runtime::PathItemObject>': 0,
-    'core::Array<core::NodeInfo<core::int>>': 0,
+    'core::Array<core::nodeList>': 0,
     'core::nodeIndexBucket<core::String,core::node<bda::BdaStreet>>': 0,
     'core::Map<core::String,core::node<mengplaz::ReconciliationReport>>': 0,
     'core::Array<caclrLoader::CaclrAlias>': 0,
-    'core::Map<core::String,runtime::PathItemObject>': 0,
+    'core::Array<runtime::DayOfWeek>': 0,
     'core::Array<core::SearchResult<core::String,core::node<bda::BdaAddress>>>': 0,
     'core::Array<caclrLoader::CaclrResponseMunicipalityItem>': 0,
-    'core::Map<core::String,core::Map<core::String,core::any>>': 0,
+    'core::Map<core::String,runtime::HeaderObject>': 0,
     'core::VectorIndex<core::node<text_index_types::IndexEntry>>': 0,
     'core::Tuple': 0,
     'core::Array<postal::PostalComponent>': 0,
+    'core::Map<core::node<golden::GoldenStreet>,mengplaz::Match<core::node<golden::GoldenStreet>>>': 0,
     'core::nodeList<document::Sentence>': 0,
-    'core::Array<runtime::Role>': 0,
+    'core::Array<core::SearchResult<core::geo,core::any?>>': 0,
     'core::node<mengplaz::ReconciliationReport>': 0,
-    'core::Array<core::node<mengplaz::AddressRecordProvider>>': 0,
     'core::nodeIndexBucket': 0,
-    'core::Map<core::String,core::any>': 0,
+    'core::Array<runtime::SchemaObject>': 0,
     'core::Array<core::SearchResult<core::String,core::node<osm::OsmAddress>>>': 0,
-    'core::Array<core::float>': 0,
-    'core::Array<core::nodeTime>': 0,
+    'core::SearchResult<core::Tensor,core::any?>': 0,
+    'core::Array<core::field>': 0,
     'core::Array<regex_utils::RegexMatch>': 0,
-    'core::Array<runtime::DateTuple>': 0,
+    'core::Array<runtime::PeriodicTask>': 0,
     'core::nodeIndex<core::String,core::node<bda::BdaStreet>>': 0,
     'core::nodeIndex<core::String,core::node<text_index_types::IndexEntry>>': 0,
-    'core::Array<privateApi::GoldenRecordScore>': 0,
+    'core::node<mengplaz::AddressRecordProvider>': 0,
     'core::nodeIndex<core::String,core::Array<core::node<bda::BdaStreet>>>': 0,
     'core::SearchResult<core::String,core::node<caclr::CaclrStreet>>': 0,
     'core::Array<mengplaz::SearchRequest>': 0,
-    'core::Array<privateApi::SourceStatsRow>': 0,
-    'core::Array<runtime::McpPromptArgument>': 0,
+    'core::Array<api::RankedGoldenRecord>': 0,
+    'core::Map<core::String,core::Map<core::String,core::any>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<text_index_types::PhoneticPostings>>>': 0,
     'core::Array<core::Map<core::String,core::bool>?>': 0,
     'core::SearchResult<core::node<mengplaz::AddressRecordProvider>,core::Array<mengplaz::ReconciliationCandidate>>': 0,
@@ -7062,6 +7049,7 @@ declare namespace gc {
     'core::Map<core::int,fusion::FusionAccum>': 0,
     'core::Tuple<core::int,core::node<text_index_types::NormalizedTerm>>': 0,
     'core::Tuple<core::int,document::Section>': 0,
+    'core::Array<privateApi::SourceCountSeries>': 0,
     'core::nodeIndex<core::node<mengplaz::AddressRecordProvider>,mengplaz::ReconciliationCandidate>': 0,
     'core::Array<core::node<osm::OsmStreet>>': 0,
     'core::nodeIndexBucket<core::String,core::Array<core::node<caclr::CaclrStreet>>>': 0,
@@ -7073,40 +7061,41 @@ declare namespace gc {
     'core::Array<core::SearchResult<core::String,core::node<golden::GoldenMunicipality>>>': 0,
     'core::SearchResult<core::String,core::node<golden::GoldenAddress>>': 0,
     'core::Array<facet_types::FacetType>': 0,
-    'core::Array<api::GoldenIndex>': 0,
+    'core::Array<api::DeprecatedCountRow>': 0,
     'core::Array<caclrLoader::CaclrResponseCityItem>': 0,
     'core::Array<core::Array<core::int>>': 0,
     'core::Array<core::SearchResult<core::String,core::node<osm::OsmStreet>>>': 0,
-    'core::Array<runtime::Task>': 0,
+    'core::Tuple<core::String,core::String?>': 0,
     'core::Table': 0,
+    'core::Array<util::HistogramBin>': 0,
     'core::Tuple<core::geo,core::node<osm::OsmAddress>>': 0,
     'core::Array<dfr_engine::DFRAccum>': 0,
     'core::node<osm::OsmAddress>': 0,
     'core::Array<core::SearchResult<core::String,core::Array<core::node<osm::OsmStreet>>>>': 0,
-    'core::Array<io::S3Object>': 0,
-    'core::SearchResult<core::geo,core::any?>': 0,
+    'core::Array<io::File>': 0,
+    'core::NodeInfo<core::geo>': 0,
     'core::Array<core::Map<core::node<text_index_types::NormalizedTerm>,core::bool>?>': 0,
-    'core::Map<core::String,runtime::MediaTypeObject>': 0,
+    'core::Map<core::String,runtime::PathItemObject>': 0,
     'core::Array<core::SearchResult<core::String,core::Array<core::node<bda::BdaStreet>>>>': 0,
-    'core::Array<mengplaz::Match<core::node<golden::GoldenStreet>>>': 0,
     'core::nodeGeo$info$args': 0,
     'core::node<text_index_types::PhoneticPostings>': 0,
     'core::Array<core::Map<core::String,core::int>>': 0,
     'core::Tuple<core::time,core::float>': 0,
+    'core::Array<api::LinkedRecordDetails<osm::OsmAddressFullRecord>>': 0,
     'core::time': 0,
     'core::SearchResult<core::node<core::Tensor>,core::node<text_index_types::IndexChunk>>': 0,
     'core::node<text_index_types::TrieNode>': 0,
     'core::Array<function_score::FieldValueFactor>': 0,
+    'core::Array<mengplaz::AddressRecordRef>': 0,
     'core::Array<mengplaz::QualityEvent>': 0,
     'core::Array<goldenTextBench::GoldenBenchCase>': 0,
     'core::Array<text_index_types::Snippet>': 0,
-    'core::Array<util::HistogramBin>': 0,
+    'core::Table<util::GaussianProfileSlot?>': 0,
     'core::VectorIndex<core::node<text_index_types::IndexChunk>>': 0,
     'core::SearchResult<core::String,core::Array<core::node<osm::OsmStreet>>>': 0,
     'core::Array<core::Array<core::float>>': 0,
     'core::nodeIndexBucket<core::String,core::node<text_index_types::PhoneticPostings>>': 0,
-    'core::Array<runtime::SchemaObject>': 0,
-    'core::Map<core::any,core::int>': 0,
+    'core::Map<core::String,runtime::MediaTypeObject>': 0,
     'core::SearchResult<core::String,core::node<golden::GoldenStreet>>': 0,
     'runtime::Runtime$root$args': 0,
     'runtime::Identity$logout$args': 0,
@@ -7304,14 +7293,13 @@ declare namespace gc {
     'io::S3Bucket': 0,
     'io::TextReader': 0,
     'io::JsonReader<backupExporter::BkOsmCityDTO>': 0,
-    'io::Reader<core::String>': 0,
     'io::S3': 0,
     'io::JsonWriter<backupExporter::BkBdaCityDTO>': 0,
     'io::Reader<backupExporter::BkBdaStreetDTO>': 0,
     'io::Reader<backupExporter::BkGoldenMunicipalityDTO>': 0,
     'io::CsvReader<backupExporter::BkSourceCountHistoryDTO>': 0,
-    'io::JsonWriter<backupExporter::BkOsmCityDTO>': 0,
     'io::JsonWriter<backupExporter::BkGoldenConstituencyDTO>': 0,
+    'io::JsonWriter<backupExporter::BkOsmCityDTO>': 0,
     'io::JsonWriter': 0,
     'io::JsonWriter<backupExporter::BkGoldenCantonDTO>': 0,
     'io::Reader<backupExporter::BkSourceDTO>': 0,
@@ -7384,6 +7372,7 @@ declare namespace gc {
     'io::Writer<backupExporter::BkCaclrStreetDTO>': 0,
     'io::CsvWriter<backupExporter::BkGoldenQualityHistoryDTO>': 0,
     'io::JsonWriter<backupExporter::BkBdaStreetDTO>': 0,
+    'io::Reader<core::String>': 0,
     'util::Uuid': 0,
     'util::LogQuantizer': 0,
     'util::Queue': 0,
@@ -7392,10 +7381,9 @@ declare namespace gc {
     'util::TimeWindow': 0,
     'util::Random': 0,
     'util::ProgressTracker': 0,
-    'util::Quantizer<core::Array>': 0,
     'util::GaussianProfileSlot': 0,
     'util::SlidingWindow': 0,
-    'util::QuantizerSlotBound<core::Array>': 0,
+    'util::Quantizer<core::Array>': 0,
     'util::Stack': 0,
     'util::Histogram': 0,
     'util::Gaussian': 0,
@@ -7405,91 +7393,92 @@ declare namespace gc {
     'util::GaussianProfile': 0,
     'util::MultiQuantizer': 0,
     'util::Crypto': 0,
+    'util::QuantizerSlotBound<core::Array>': 0,
     'util::QuantizerSlotBound': 0,
     'util::Quantizer': 0,
     'project::Root': 0,
-    'privateApi::ComparisonViewData': 0,
-    'privateApi::SourceCountPoint': 0,
-    'privateApi::SourceStats': 0,
-    'privateApi::restoreGraph$args': 0,
-    'privateApi::goldenTextIndexStats$args': 0,
-    'privateApi::updateBDA$args': 0,
-    'privateApi::linkRecords$args': 0,
-    'privateApi::getLinkedComparisonViewData$args': 0,
-    'privateApi::recomputeGoldenGeoScore$args': 0,
-    'privateApi::GoldenRecordScore': 0,
-    'privateApi::goldenStreetIndexStats$args': 0,
-    'privateApi::ReconciliationReportMatchView': 0,
-    'privateApi::unlinkRecord$args': 0,
-    'privateApi::unlockSource$args': 0,
-    'privateApi::buildGoldenTextIndex$args': 0,
-    'privateApi::RecordTabResult': 0,
-    'privateApi::getRecordTab$args': 0,
-    'privateApi::getComparisonViewData$args': 0,
-    'privateApi::buildGoldenStreetIndex$args': 0,
-    'privateApi::SourceStatsRow': 0,
-    'privateApi::linkAllFullMatched$args': 0,
-    'privateApi::GoldenRecordPage': 0,
-    'privateApi::SourceCountSeries': 0,
-    'privateApi::sourceTextIndexStats$args': 0,
-    'privateApi::getReconciliationReport$args': 0,
-    'privateApi::SourceRef': 0,
-    'privateApi::GlobalQualityHistory': 0,
-    'privateApi::mergePositionsToGolden$args': 0,
-    'privateApi::updateOSM$args': 0,
-    'privateApi::buildSourceTextIndexes$args': 0,
-    'privateApi::backupGraph$args': 0,
-    'privateApi::MatchedCandidateDetail': 0,
-    'privateApi::getSources$args': 0,
-    'privateApi::GlobalQualityEntry': 0,
-    'privateApi::batchLinkByScore$args': 0,
-    'privateApi::lockSource$args': 0,
-    'privateApi::LinkParameters': 0,
-    'privateApi::ReconciliationReportView': 0,
-    'privateApi::promoteRecord$args': 0,
-    'privateApi::buildSourceTextIndex$args': 0,
-    'privateApi::updateCACLR$args': 0,
-    'privateApi::computeGlobalQuality$args': 0,
-    'privateApi::reconcileAddresses$args': 0,
-    'privateApi::reconcile$args': 0,
-    'api::LinkedRecordDetails<caclr::CaclrAddressFullRecord>': 0,
-    'api::DeprecatedCounts': 0,
-    'api::getGoldenNumbersByStreetId$args': 0,
-    'api::getGoldenRecordDetails$args': 0,
-    'api::getGoldenWithLinkedRecords$args': 0,
-    'api::getPois$args': 0,
+    'api::getGoldenStreetsByLocalityId$args': 0,
+    'api::DeprecatedCountRow': 0,
     'api::GeoJSONFeature': 0,
-    'api::getGlobalQualityHistory$args': 0,
-    'api::getGoldenRecords$args': 0,
-    'api::GoldenRecordDetails': 0,
-    'api::attribution$args': 0,
-    'api::getDeprecatedCounts$args': 0,
+    'api::LinkedRecordDetails': 0,
+    'api::DataAttribution': 0,
+    'api::RankedGoldenRecord': 0,
+    'api::appInfo$args': 0,
+    'api::getGoldenRecordRefByUid$args': 0,
+    'api::searchAddress$args': 0,
+    'api::searchStreet$args': 0,
     'api::AddressFeatures': 0,
     'api::GeoJSONGeometry': 0,
-    'api::getPoisInStreet$args': 0,
-    'api::getGoldenStreetsByLocalityId$args': 0,
-    'api::GoldenRecordsPage': 0,
-    'api::RankedGoldenRecord': 0,
-    'api::GoldenWithLinkedRecords': 0,
-    'api::LinkedRecordDetails<bda::BdaAddressFullRecord>': 0,
-    'api::searchAddress$args': 0,
-    'api::DeprecatedCountRow': 0,
-    'api::openapi$args': 0,
-    'api::appInfo$args': 0,
-    'api::LinkedRecordDetails': 0,
-    'api::getGoldenLocalities$args': 0,
-    'api::GeoJSON': 0,
-    'api::getGoldenRecordScores$args': 0,
-    'api::DataAttribution': 0,
-    'api::getRecordByGeoportailID$args': 0,
-    'api::searchStreet$args': 0,
-    'api::getGoldenRecordsGeoJson$args': 0,
+    'api::getGoldenRecords$args': 0,
+    'api::getGoldenRecordDetails$args': 0,
+    'api::attribution$args': 0,
     'api::GoldenIndex': 0,
-    'api::getSourceStats$args': 0,
-    'api::getGoldenRecordRefByUid$args': 0,
     'api::LinkedRecordDetails<osm::OsmAddressFullRecord>': 0,
-    'api::getGoldenCommunes$args': 0,
+    'api::LinkedRecordDetails<bda::BdaAddressFullRecord>': 0,
+    'api::getRecordByGeoportailID$args': 0,
+    'api::getSourceStats$args': 0,
+    'api::GoldenRecordsPage': 0,
+    'api::GeoJSON': 0,
+    'api::getGlobalQualityHistory$args': 0,
+    'api::getPois$args': 0,
+    'api::LinkedRecordDetails<caclr::CaclrAddressFullRecord>': 0,
+    'api::getPoisInStreet$args': 0,
+    'api::getDeprecatedCounts$args': 0,
+    'api::getGoldenRecordScores$args': 0,
+    'api::GoldenWithLinkedRecords': 0,
+    'api::GoldenRecordDetails': 0,
+    'api::getGoldenNumbersByStreetId$args': 0,
+    'api::getGoldenRecordsGeoJson$args': 0,
+    'api::getGoldenWithLinkedRecords$args': 0,
+    'api::DeprecatedCounts': 0,
     'api::getPoisByGeo$args': 0,
+    'api::openapi$args': 0,
+    'api::getGoldenCommunes$args': 0,
+    'api::getGoldenLocalities$args': 0,
+    'privateApi::updateBDA$args': 0,
+    'privateApi::getSources$args': 0,
+    'privateApi::recomputeGoldenGeoScore$args': 0,
+    'privateApi::lockSource$args': 0,
+    'privateApi::promoteRecord$args': 0,
+    'privateApi::updateOSM$args': 0,
+    'privateApi::ReconciliationReportMatchView': 0,
+    'privateApi::goldenStreetIndexStats$args': 0,
+    'privateApi::SourceCountPoint': 0,
+    'privateApi::reconcile$args': 0,
+    'privateApi::batchLinkByScore$args': 0,
+    'privateApi::SourceRef': 0,
+    'privateApi::GlobalQualityEntry': 0,
+    'privateApi::buildGoldenTextIndex$args': 0,
+    'privateApi::computeGlobalQuality$args': 0,
+    'privateApi::GoldenRecordPage': 0,
+    'privateApi::buildSourceTextIndexes$args': 0,
+    'privateApi::buildGoldenStreetIndex$args': 0,
+    'privateApi::SourceStatsRow': 0,
+    'privateApi::RecordTabResult': 0,
+    'privateApi::linkAllFullMatched$args': 0,
+    'privateApi::getReconciliationReport$args': 0,
+    'privateApi::ComparisonViewData': 0,
+    'privateApi::goldenTextIndexStats$args': 0,
+    'privateApi::restoreGraph$args': 0,
+    'privateApi::updateCACLR$args': 0,
+    'privateApi::mergePositionsToGolden$args': 0,
+    'privateApi::linkRecords$args': 0,
+    'privateApi::GlobalQualityHistory': 0,
+    'privateApi::LinkParameters': 0,
+    'privateApi::SourceCountSeries': 0,
+    'privateApi::SourceStats': 0,
+    'privateApi::sourceTextIndexStats$args': 0,
+    'privateApi::unlinkRecord$args': 0,
+    'privateApi::buildSourceTextIndex$args': 0,
+    'privateApi::MatchedCandidateDetail': 0,
+    'privateApi::ReconciliationReportView': 0,
+    'privateApi::getLinkedComparisonViewData$args': 0,
+    'privateApi::reconcileAddresses$args': 0,
+    'privateApi::GoldenRecordScore': 0,
+    'privateApi::backupGraph$args': 0,
+    'privateApi::getComparisonViewData$args': 0,
+    'privateApi::unlockSource$args': 0,
+    'privateApi::getRecordTab$args': 0,
     'backupExporter::BkCaclrCityDTO': 0,
     'backupExporter::BkBdaAddressDTO': 0,
     'backupExporter::BkBdaStreetDTO': 0,
@@ -7537,12 +7526,11 @@ declare namespace gc {
     'caclrLoader::CaclrResponseBuildings': 0,
     'caclrLoader::CaclrResponseCityItem': 0,
     'bda::BdaCity': 0,
+    'bda::BdaAddressFullRecord': 0,
     'bda::BdaSource': 0,
     'bda::BdaMunicipality': 0,
-    'bda::BdaAddressFullRecord': 0,
     'bda::BdaAddress': 0,
     'bda::BdaStreet': 0,
-    'caclr::CaclrAddressFullRecord': 0,
     'caclr::CaclrEurostatsIds': 0,
     'caclr::CaclrSource': 0,
     'caclr::CaclrToken': 0,
@@ -7551,6 +7539,7 @@ declare namespace gc {
     'caclr::CaclrDataStatus': 0,
     'caclr::CaclrTokenResponse': 0,
     'caclr::CaclrAddress': 0,
+    'caclr::CaclrAddressFullRecord': 0,
     'caclr::CaclrCanton': 0,
     'caclr::CaclrAdminStatus': 0,
     'caclr::CaclrConstituency': 0,
@@ -7564,38 +7553,38 @@ declare namespace gc {
     'golden::GoldenConstituency': 0,
     'golden::GoldenStreet': 0,
     'golden::GoldenAddress': 0,
-    'mengplaz::DataSource': 0,
     'mengplaz::StreetRecord': 0,
-    'mengplaz::AddressFullRecordRef': 0,
-    'mengplaz::ReconciliationCandidateScore': 0,
     'mengplaz::LinkedRecordEntry': 0,
     'mengplaz::SearchItem': 0,
-    'mengplaz::ExternalAddressRecord': 0,
-    'mengplaz::Match<core::node<golden::GoldenCity>>': 0,
-    'mengplaz::StreetRecordProvider': 0,
     'mengplaz::Match<core::node<golden::GoldenStreet>>': 0,
-    'mengplaz::AddressRecordProvider': 0,
+    'mengplaz::ExternalAddressRecord': 0,
+    'mengplaz::StreetRecordProvider': 0,
+    'mengplaz::ReconciliationReport': 0,
+    'mengplaz::AddressRecordRef': 0,
     'mengplaz::CandidateMatch<core::node<mengplaz::AddressRecordProvider>>': 0,
-    'mengplaz::StreetRecordRef': 0,
-    'mengplaz::GeoParameters': 0,
     'mengplaz::SearchParameters': 0,
+    'mengplaz::GeoParameters': 0,
+    'mengplaz::AddressRecordProvider': 0,
     'mengplaz::Alias': 0,
     'mengplaz::CandidateMatch': 0,
     'mengplaz::QualityEventType': 0,
+    'mengplaz::StreetRecordRef': 0,
+    'mengplaz::ReconciliationCandidateScore': 0,
     'mengplaz::AddressRecord': 0,
-    'mengplaz::ReconciliationReport': 0,
     'mengplaz::SourceCountSnapshot': 0,
+    'mengplaz::AddressFullRecordRef': 0,
     'mengplaz::ScoringWeights': 0,
     'mengplaz::SearchResult': 0,
-    'mengplaz::AddressRecordRef': 0,
     'mengplaz::SearchRequest': 0,
     'mengplaz::Match': 0,
+    'mengplaz::DataSource': 0,
     'mengplaz::QualityEvent': 0,
     'mengplaz::ReconciliationCandidate': 0,
+    'mengplaz::Match<core::node<golden::GoldenCity>>': 0,
     'osm::OsmSource': 0,
+    'osm::OsmAddressFullRecord': 0,
     'osm::OsmStreet': 0,
     'osm::OsmAddress': 0,
-    'osm::OsmAddressFullRecord': 0,
     'osm::OsmPartialAddress': 0,
     'osm::OsmCity': 0,
     'osm::OsmParsedAddress': 0,
@@ -7603,26 +7592,27 @@ declare namespace gc {
     'goldenStreetSearch::GoldenStreetIndexStats': 0,
     'goldenTextBench::GoldenBenchCase': 0,
     'statsService::StatsService': 0,
-    'goldenTextSearch::GoldenTextSearch': 0,
     'goldenTextSearch::GoldenTextIndexStats': 0,
+    'goldenTextSearch::GoldenTextSearch': 0,
     'sourceTextSearch::SourceTextIndexStats': 0,
     'sourceTextSearch::SourceTextSearch': 0,
-    'goldenServices::GoldenServices': 0,
     'updateService::UpdateService': 0,
+    'goldenServices::GoldenServices': 0,
     'utils::SplitAlphaNumericalString': 0,
-    'http::HttpReader': 0,
+    'http::Http': 0,
     'http::HttpResponse<core::Array<bdaLoader::BdaAddressLine>>': 0,
-    'http::FileSink': 0,
     'http::HttpResponse<caclrLoader::CaclrResponseMunicipalities>': 0,
-    'http::HttpReader<caclrLoader::CaclrResponseCities>': 0,
-    'http::FileBody': 0,
     'http::HttpRequest': 0,
+    'http::HttpReader<caclrLoader::CaclrResponseCities>': 0,
+    'http::HttpMethod': 0,
+    'http::FileBody': 0,
     'http::HttpResponse<caclrLoader::CaclrResponseStreets>': 0,
     'http::Http<caclrLoader::CaclrResponseStreets>': 0,
     'http::Http<caclrLoader::CaclrResponseBuildings>': 0,
     'http::Http<caclrLoader::CaclrResponseCities>': 0,
     'http::HttpReader<caclrLoader::CaclrResponseBuildings>': 0,
     'http::HttpReader<osmLoader::OsmOverpassResponse>': 0,
+    'http::HttpResponse': 0,
     'http::HttpResponse<caclrLoader::CaclrResponseCantons>': 0,
     'http::HttpReader<caclrLoader::CaclrResponseCantons>': 0,
     'http::HttpReader<caclr::CaclrTokenResponse>': 0,
@@ -7631,185 +7621,184 @@ declare namespace gc {
     'http::HttpReader<core::Array<bdaLoader::BdaAddressLine>>': 0,
     'http::Http<caclrLoader::CaclrResponseCantons>': 0,
     'http::HttpResponse<caclr::CaclrTokenResponse>': 0,
-    'http::HttpMethod': 0,
-    'http::HttpResponse': 0,
     'http::HttpResponse<caclrLoader::CaclrResponseCities>': 0,
-    'http::Http': 0,
+    'http::HttpReader': 0,
     'http::HttpResponse<osmLoader::OsmOverpassResponse>': 0,
     'http::HttpReader<caclrLoader::CaclrResponseMunicipalities>': 0,
+    'http::FileSink': 0,
     'http::HttpReader<caclrLoader::CaclrResponseStreets>': 0,
     'http::Http<core::Array<bdaLoader::BdaAddressLine>>': 0,
     'http::Http<osmLoader::OsmOverpassResponse>': 0,
     'http::HttpResponse<caclrLoader::CaclrResponseBuildings>': 0,
-    'bm25_engine::BM25Result': 0,
     'bm25_engine::BM25Engine': 0,
-    'boolean_engine::BooleanAccel': 0,
+    'bm25_engine::BM25Result': 0,
     'boolean_engine::BooleanEngine': 0,
+    'boolean_engine::BooleanAccel': 0,
     'curation_engine::CurationHelper': 0,
     'fuzzy_engine::FuzzyEngine': 0,
-    'fuzzy_engine::TrigramCandidate': 0,
     'fuzzy_engine::FuzzyScoreResult': 0,
-    'percolate_engine::PercolateIndex': 0,
+    'fuzzy_engine::TrigramCandidate': 0,
+    'percolate_engine::PercolateBooleanPlan': 0,
     'percolate_engine::PercolateEngine': 0,
     'percolate_engine::PercolatedQuery': 0,
-    'percolate_engine::PercolateBooleanPlan': 0,
-    'phonetic_engine::PhoneticEngine': 0,
+    'percolate_engine::PercolateIndex': 0,
     'phonetic_engine::PhoneticCodec': 0,
-    'phrase_engine::PhraseCandidate': 0,
+    'phonetic_engine::PhoneticEngine': 0,
     'phrase_engine::PhraseEngine': 0,
+    'phrase_engine::PhraseCandidate': 0,
     'phrase_engine::PhraseAccel': 0,
     'prefix_engine::PrefixEngine': 0,
     'proximity_engine::ProximityEngine': 0,
     'quorum_engine::QuorumEngine': 0,
     'quorum_engine::QuorumAccum': 0,
-    'span_engine::SpanEngine': 0,
     'span_engine::SpanAccel': 0,
-    'suggest_engine::SuggestEngine': 0,
-    'suggest_engine::DidYouMeanResult': 0,
+    'span_engine::SpanEngine': 0,
     'suggest_engine::Suggestion': 0,
     'suggest_engine::DidYouMeanBest': 0,
+    'suggest_engine::SuggestEngine': 0,
+    'suggest_engine::DidYouMeanResult': 0,
     'wildcard_engine::WildcardEngine': 0,
-    'document::DocumentStats': 0,
-    'document::Sentence': 0,
-    'document::Document': 0,
-    'document::SectionType': 0,
     'document::Section': 0,
-    'facet_types::MetricType': 0,
-    'facet_types::HistogramBucket': 0,
-    'facet_types::AggregationRequest': 0,
-    'facet_types::AdvancedFacetedResult': 0,
-    'facet_types::NumericRangeBucket': 0,
+    'document::SectionType': 0,
+    'document::Document': 0,
+    'document::Sentence': 0,
+    'document::DocumentStats': 0,
     'facet_types::HistogramResult': 0,
+    'facet_types::TermCount': 0,
+    'facet_types::AggregationRequest': 0,
     'facet_types::FacetType': 0,
+    'facet_types::MetricResult': 0,
+    'facet_types::MetricType': 0,
     'facet_types::MetricAggregation': 0,
     'facet_types::AggregatedSearchResult': 0,
+    'facet_types::NumericRangeBucket': 0,
+    'facet_types::AdvancedFacetedResult': 0,
     'facet_types::HistogramAggregation': 0,
-    'facet_types::MetricResult': 0,
     'facet_types::FacetRequest': 0,
+    'facet_types::HistogramBucket': 0,
     'facet_types::AggregationEngine': 0,
     'facet_types::NumericBucketCount': 0,
-    'facet_types::TermCount': 0,
     'text_index::TextIndex<core::String>': 0,
     'text_index::TextIndex<address_index::AddressDoc>': 0,
     'text_index::TextIndex': 0,
     'text_index_internal::TextIndexInternal': 0,
-    'text_index_types::IndexEntry': 0,
-    'text_index_types::RRFOptions': 0,
-    'text_index_types::Term': 0,
-    'text_index_types::MoreLikeThisOptions': 0,
-    'text_index_types::PhraseOptions': 0,
-    'text_index_types::FieldModifier': 0,
-    'text_index_types::SnippetOptions': 0,
-    'text_index_types::TextSearchLanguage': 0,
-    'text_index_types::TrigramPostings': 0,
-    'text_index_types::HighlightOptions': 0,
-    'text_index_types::DiversifyOptions': 0,
-    'text_index_types::SearchCursor': 0,
-    'text_index_types::BM25Options': 0,
-    'text_index_types::ScoreExplanation': 0,
-    'text_index_types::SpanOperator': 0,
-    'text_index_types::SearchMode': 0,
-    'text_index_types::TermExplanation': 0,
-    'text_index_types::Snippet': 0,
-    'text_index_types::EdgeNgramOptions': 0,
-    'text_index_types::LMDirichletOptions': 0,
-    'text_index_types::TextIndexStats': 0,
-    'text_index_types::IndexChunk': 0,
-    'text_index_types::ShortCircuitOptions': 0,
-    'text_index_types::ChunkingOptions': 0,
-    'text_index_types::FieldRef': 0,
-    'text_index_types::FuzzyOptions': 0,
     'text_index_types::TermScorePair': 0,
-    'text_index_types::FieldConfig': 0,
-    'text_index_types::FusionOptions': 0,
-    'text_index_types::BM25Variant': 0,
-    'text_index_types::Normalization': 0,
-    'text_index_types::StopWordMode': 0,
-    'text_index_types::TextIndexConfig': 0,
-    'text_index_types::RangeFilter': 0,
-    'text_index_types::ProximityOptions': 0,
-    'text_index_types::ChunkStrategy': 0,
-    'text_index_types::TrieNode': 0,
-    'text_index_types::StopWordOptions': 0,
-    'text_index_types::NormalizedTerm': 0,
-    'text_index_types::ScoreMode': 0,
-    'text_index_types::TermBoost': 0,
-    'text_index_types::TextEntry': 0,
-    'text_index_types::TokenizationOptions': 0,
-    'text_index_types::FusionMethod': 0,
-    'text_index_types::FuzzyMode': 0,
+    'text_index_types::IndexEntry': 0,
     'text_index_types::PhoneticPostings': 0,
-    'text_index_types::TermFilter': 0,
+    'text_index_types::BM25Variant': 0,
+    'text_index_types::TermBoost': 0,
+    'text_index_types::FusionMethod': 0,
+    'text_index_types::PhraseOptions': 0,
+    'text_index_types::Snippet': 0,
+    'text_index_types::DFROptions': 0,
+    'text_index_types::TextSearchLanguage': 0,
+    'text_index_types::ChunkingOptions': 0,
+    'text_index_types::TermExplanation': 0,
+    'text_index_types::HighlightOptions': 0,
+    'text_index_types::LMDirichletOptions': 0,
+    'text_index_types::FieldModifier': 0,
+    'text_index_types::TokenizationOptions': 0,
+    'text_index_types::FieldConfig': 0,
+    'text_index_types::ShortCircuitOptions': 0,
+    'text_index_types::RangeFilter': 0,
+    'text_index_types::SearchMode': 0,
+    'text_index_types::TextIndexStats': 0,
+    'text_index_types::TextIndexConfig': 0,
+    'text_index_types::EdgeNgramOptions': 0,
+    'text_index_types::FieldRef': 0,
+    'text_index_types::StopWordMode': 0,
+    'text_index_types::DiversifyOptions': 0,
+    'text_index_types::TrieNode': 0,
+    'text_index_types::SpanOperator': 0,
+    'text_index_types::IndexChunk': 0,
+    'text_index_types::TypoOptions': 0,
+    'text_index_types::Term': 0,
     'text_index_types::NormOptions': 0,
+    'text_index_types::StopWordOptions': 0,
+    'text_index_types::TermFilter': 0,
+    'text_index_types::BM25Options': 0,
+    'text_index_types::SnippetOptions': 0,
+    'text_index_types::SortClause': 0,
+    'text_index_types::FuzzyOptions': 0,
+    'text_index_types::SearchCursor': 0,
+    'text_index_types::ProximityOptions': 0,
+    'text_index_types::FuzzyMode': 0,
+    'text_index_types::TextEntry': 0,
+    'text_index_types::ChunkStrategy': 0,
+    'text_index_types::MoreLikeThisOptions': 0,
+    'text_index_types::Normalization': 0,
+    'text_index_types::TrigramPostings': 0,
+    'text_index_types::ScoreMode': 0,
     'text_index_types::BoostMode': 0,
     'text_index_types::TextResult': 0,
-    'text_index_types::CurationRule': 0,
-    'text_index_types::DFROptions': 0,
-    'text_index_types::SortClause': 0,
-    'text_index_types::TypoOptions': 0,
+    'text_index_types::NormalizedTerm': 0,
+    'text_index_types::ScoreExplanation': 0,
     'text_index_types::PercolateMode': 0,
+    'text_index_types::CurationRule': 0,
+    'text_index_types::FusionOptions': 0,
+    'text_index_types::RRFOptions': 0,
     'text_index_types::SearchOptions': 0,
     'boolean_parser::BooleanOperator': 0,
+    'boolean_parser::BooleanParser': 0,
     'boolean_parser::ParseResult': 0,
     'boolean_parser::BooleanQuery': 0,
-    'boolean_parser::BooleanParser': 0,
     'span_parser::SpanQuery': 0,
     'span_parser::SpanParser': 0,
     'stemmer::PorterStemmer': 0,
     'string_utils::StringUtils': 0,
-    'text_chunker::TextChunker': 0,
     'text_chunker::ChunkInfo': 0,
+    'text_chunker::TextChunker': 0,
     'text_normalizer::TextNormalizer': 0,
     'text_parser::TextParser': 0,
     'text_parser::ParsedSection': 0,
     'text_tokenizer::TokenInfo': 0,
+    'text_tokenizer::TextTokenizer': 0,
     'text_tokenizer::TermFrequency': 0,
     'text_tokenizer::TokenizerAccel': 0,
-    'text_tokenizer::TextTokenizer': 0,
-    'dfr_engine::DFRScorer': 0,
     'dfr_engine::DFREngine': 0,
     'dfr_engine::DFRBasicModel': 0,
     'dfr_engine::DFRNormalization': 0,
-    'dfr_engine::DFRAfterEffect': 0,
     'dfr_engine::DFRAccum': 0,
-    'function_score::DecayFunction': 0,
-    'function_score::DecayType': 0,
-    'function_score::FunctionScoreAccel': 0,
-    'function_score::FieldValueFactor': 0,
+    'dfr_engine::DFRAfterEffect': 0,
+    'dfr_engine::DFRScorer': 0,
     'function_score::FunctionScoreEngine': 0,
     'function_score::FunctionScoreConfig': 0,
-    'fusion::FusionAccum': 0,
+    'function_score::DecayType': 0,
+    'function_score::DecayFunction': 0,
+    'function_score::FieldValueFactor': 0,
+    'function_score::FunctionScoreAccel': 0,
     'fusion::FederatedSearch': 0,
     'fusion::FusionInput': 0,
+    'fusion::FusionAccum': 0,
     'fusion::Fusion': 0,
-    'lm_dirichlet_engine::LMDAccum': 0,
     'lm_dirichlet_engine::LMDirichletEngine': 0,
+    'lm_dirichlet_engine::LMDAccum': 0,
     'lm_dirichlet_engine::LMDirichletAccel': 0,
     'mmr::MMR': 0,
-    'ranking_rules::RankingRule': 0,
     'ranking_rules::RankingRulesEngine': 0,
     'ranking_rules::RankingCandidate': 0,
+    'ranking_rules::RankingRule': 0,
     'search_accel::SearchAccel': 0,
     'char_map::CharMap': 0,
     'doc_reader::DocReader': 0,
     'regex_accel::RegexAccel': 0,
     'regex_utils::RegexUtils': 0,
     'regex_utils::RegexMatch': 0,
+    'snippet::SnippetFragment': 0,
     'snippet::SnippetExtractor': 0,
     'snippet::WindowResult': 0,
-    'snippet::SnippetFragment': 0,
     'stop_words::StopWords': 0,
-    'address_index::AddressDoc': 0,
-    'address_index::AddressMatchLevel': 0,
     'address_index::AddressSearchHit': 0,
     'address_index::AddressIndex': 0,
     'address_index::AddressIndex<core::String>': 0,
+    'address_index::AddressMatchLevel': 0,
+    'address_index::AddressDoc': 0,
     'address_index::AddressComponents': 0,
-    'postal::PostalExpandOptions': 0,
-    'postal::PostalComponent': 0,
-    'postal::PostalAddress': 0,
-    'postal::PostalOptions': 0,
     'postal::PostalParsedAddress': 0,
+    'postal::PostalComponent': 0,
+    'postal::PostalExpandOptions': 0,
+    'postal::PostalOptions': 0,
+    'postal::PostalAddress': 0,
   }
 
   interface $FieldsMap {
@@ -8414,35 +8403,90 @@ declare namespace gc {
     'util::QuantizerSlotBound::min': 0,
     'util::QuantizerSlotBound::max': 0,
     'util::QuantizerSlotBound::center': 0,
-    'privateApi::ComparisonViewData::sourceRecord': 0,
-    'privateApi::ComparisonViewData::candidates': 0,
+    'api::getGoldenStreetsByLocalityId$args::localityId': 0,
+    'api::DeprecatedCountRow::source': 0,
+    'api::DeprecatedCountRow::total': 0,
+    'api::DeprecatedCountRow::deprecated': 0,
+    'api::DeprecatedCountRow::asOf': 0,
+    'api::GeoJSONFeature::type': 0,
+    'api::GeoJSONFeature::geometry': 0,
+    'api::GeoJSONFeature::properties': 0,
+    'api::LinkedRecordDetails::score': 0,
+    'api::LinkedRecordDetails::record': 0,
+    'api::DataAttribution::notice': 0,
+    'api::DataAttribution::sources': 0,
+    'api::RankedGoldenRecord::record': 0,
+    'api::RankedGoldenRecord::value': 0,
+    'api::getGoldenRecordRefByUid$args::uid': 0,
+    'api::searchAddress$args::addr': 0,
+    'api::searchAddress$args::max': 0,
+    'api::searchAddress$args::source': 0,
+    'api::searchStreet$args::e': 0,
+    'api::AddressFeatures::coords': 0,
+    'api::AddressFeatures::number': 0,
+    'api::GeoJSONGeometry::type': 0,
+    'api::GeoJSONGeometry::coordinates': 0,
+    'api::getGoldenRecords$args::offset': 0,
+    'api::getGoldenRecords$args::limit': 0,
+    'api::getGoldenRecordDetails$args::uid': 0,
+    'api::GoldenIndex::id': 0,
+    'api::GoldenIndex::name': 0,
+    'api::getRecordByGeoportailID$args::id': 0,
+    'api::getSourceStats$args::from': 0,
+    'api::getSourceStats$args::to': 0,
+    'api::GoldenRecordsPage::total': 0,
+    'api::GoldenRecordsPage::offset': 0,
+    'api::GoldenRecordsPage::limit': 0,
+    'api::GoldenRecordsPage::rows': 0,
+    'api::GeoJSON::type': 0,
+    'api::GeoJSON::features': 0,
+    'api::getGlobalQualityHistory$args::from': 0,
+    'api::getGlobalQualityHistory$args::to': 0,
+    'api::getPoisInStreet$args::streetId': 0,
+    'api::getDeprecatedCounts$args::source': 0,
+    'api::getGoldenRecordScores$args::offset': 0,
+    'api::getGoldenRecordScores$args::limit': 0,
+    'api::getGoldenRecordScores$args::sortKey': 0,
+    'api::getGoldenRecordScores$args::sortDir': 0,
+    'api::GoldenWithLinkedRecords::golden': 0,
+    'api::GoldenWithLinkedRecords::osm': 0,
+    'api::GoldenWithLinkedRecords::caclr': 0,
+    'api::GoldenWithLinkedRecords::bda': 0,
+    'api::GoldenRecordDetails::golden': 0,
+    'api::GoldenRecordDetails::associated': 0,
+    'api::getGoldenNumbersByStreetId$args::streetId': 0,
+    'api::getGoldenWithLinkedRecords$args::addr': 0,
+    'api::DeprecatedCounts::rows': 0,
+    'api::DeprecatedCounts::total': 0,
+    'api::DeprecatedCounts::deprecated': 0,
+    'api::getPoisByGeo$args::coords': 0,
+    'api::getGoldenLocalities$args::communeName': 0,
+    'privateApi::lockSource$args::source': 0,
+    'privateApi::promoteRecord$args::sourceRecord': 0,
+    'privateApi::promoteRecord$args::streetIdx': 0,
+    'privateApi::ReconciliationReportMatchView::score': 0,
+    'privateApi::ReconciliationReportMatchView::id': 0,
     'privateApi::SourceCountPoint::timestamp': 0,
     'privateApi::SourceCountPoint::total': 0,
     'privateApi::SourceCountPoint::active': 0,
-    'privateApi::SourceStats::rows': 0,
-    'privateApi::SourceStats::series': 0,
-    'privateApi::linkRecords$args::sourceRecord': 0,
-    'privateApi::linkRecords$args::candidateRecord': 0,
-    'privateApi::linkRecords$args::params': 0,
-    'privateApi::getLinkedComparisonViewData$args::source': 0,
-    'privateApi::getLinkedComparisonViewData$args::recordId': 0,
-    'privateApi::GoldenRecordScore::uid': 0,
-    'privateApi::GoldenRecordScore::number': 0,
-    'privateApi::GoldenRecordScore::street': 0,
-    'privateApi::GoldenRecordScore::city': 0,
-    'privateApi::GoldenRecordScore::postcode': 0,
-    'privateApi::GoldenRecordScore::linkedCount': 0,
-    'privateApi::GoldenRecordScore::quality': 0,
-    'privateApi::ReconciliationReportMatchView::score': 0,
-    'privateApi::ReconciliationReportMatchView::id': 0,
-    'privateApi::unlinkRecord$args::sourceRecord': 0,
-    'privateApi::unlockSource$args::source': 0,
-    'privateApi::RecordTabResult::tab': 0,
-    'privateApi::RecordTabResult::score': 0,
-    'privateApi::getRecordTab$args::source': 0,
-    'privateApi::getRecordTab$args::recordId': 0,
-    'privateApi::getComparisonViewData$args::source': 0,
-    'privateApi::getComparisonViewData$args::recordId': 0,
+    'privateApi::reconcile$args::source': 0,
+    'privateApi::reconcile$args::params': 0,
+    'privateApi::batchLinkByScore$args::source': 0,
+    'privateApi::batchLinkByScore$args::globalScore': 0,
+    'privateApi::batchLinkByScore$args::geoScore': 0,
+    'privateApi::batchLinkByScore$args::cityScore': 0,
+    'privateApi::batchLinkByScore$args::streetScore': 0,
+    'privateApi::batchLinkByScore$args::numberScore': 0,
+    'privateApi::batchLinkByScore$args::postcodeScore': 0,
+    'privateApi::SourceRef::ref': 0,
+    'privateApi::SourceRef::name': 0,
+    'privateApi::SourceRef::locked': 0,
+    'privateApi::GlobalQualityEntry::timestamp': 0,
+    'privateApi::GlobalQualityEntry::averageQuality': 0,
+    'privateApi::GoldenRecordPage::total': 0,
+    'privateApi::GoldenRecordPage::offset': 0,
+    'privateApi::GoldenRecordPage::limit': 0,
+    'privateApi::GoldenRecordPage::rows': 0,
     'privateApi::SourceStatsRow::source': 0,
     'privateApi::SourceStatsRow::total': 0,
     'privateApi::SourceStatsRow::active': 0,
@@ -8450,24 +8494,29 @@ declare namespace gc {
     'privateApi::SourceStatsRow::share': 0,
     'privateApi::SourceStatsRow::lastUpdate': 0,
     'privateApi::SourceStatsRow::asOf': 0,
+    'privateApi::RecordTabResult::tab': 0,
+    'privateApi::RecordTabResult::score': 0,
     'privateApi::linkAllFullMatched$args::source': 0,
     'privateApi::linkAllFullMatched$args::recordIds': 0,
-    'privateApi::GoldenRecordPage::total': 0,
-    'privateApi::GoldenRecordPage::offset': 0,
-    'privateApi::GoldenRecordPage::limit': 0,
-    'privateApi::GoldenRecordPage::rows': 0,
-    'privateApi::SourceCountSeries::source': 0,
-    'privateApi::SourceCountSeries::points': 0,
     'privateApi::getReconciliationReport$args::source': 0,
     'privateApi::getReconciliationReport$args::city': 0,
     'privateApi::getReconciliationReport$args::municipality': 0,
-    'privateApi::SourceRef::ref': 0,
-    'privateApi::SourceRef::name': 0,
-    'privateApi::SourceRef::locked': 0,
+    'privateApi::ComparisonViewData::sourceRecord': 0,
+    'privateApi::ComparisonViewData::candidates': 0,
+    'privateApi::linkRecords$args::sourceRecord': 0,
+    'privateApi::linkRecords$args::candidateRecord': 0,
+    'privateApi::linkRecords$args::params': 0,
     'privateApi::GlobalQualityHistory::current': 0,
     'privateApi::GlobalQualityHistory::history': 0,
-    'privateApi::mergePositionsToGolden$args::source': 0,
-    'privateApi::mergePositionsToGolden$args::recordIds': 0,
+    'privateApi::LinkParameters::addCityAlias': 0,
+    'privateApi::LinkParameters::addStreetAlias': 0,
+    'privateApi::LinkParameters::updateSimilarStreetMismatch': 0,
+    'privateApi::SourceCountSeries::source': 0,
+    'privateApi::SourceCountSeries::points': 0,
+    'privateApi::SourceStats::rows': 0,
+    'privateApi::SourceStats::series': 0,
+    'privateApi::unlinkRecord$args::sourceRecord': 0,
+    'privateApi::buildSourceTextIndex$args::source': 0,
     'privateApi::MatchedCandidateDetail::ref': 0,
     'privateApi::MatchedCandidateDetail::numberScore': 0,
     'privateApi::MatchedCandidateDetail::streetScore': 0,
@@ -8476,19 +8525,6 @@ declare namespace gc {
     'privateApi::MatchedCandidateDetail::geoScore': 0,
     'privateApi::MatchedCandidateDetail::overallScore': 0,
     'privateApi::MatchedCandidateDetail::record': 0,
-    'privateApi::GlobalQualityEntry::timestamp': 0,
-    'privateApi::GlobalQualityEntry::averageQuality': 0,
-    'privateApi::batchLinkByScore$args::source': 0,
-    'privateApi::batchLinkByScore$args::globalScore': 0,
-    'privateApi::batchLinkByScore$args::geoScore': 0,
-    'privateApi::batchLinkByScore$args::cityScore': 0,
-    'privateApi::batchLinkByScore$args::streetScore': 0,
-    'privateApi::batchLinkByScore$args::numberScore': 0,
-    'privateApi::batchLinkByScore$args::postcodeScore': 0,
-    'privateApi::lockSource$args::source': 0,
-    'privateApi::LinkParameters::addCityAlias': 0,
-    'privateApi::LinkParameters::addStreetAlias': 0,
-    'privateApi::LinkParameters::updateSimilarStreetMismatch': 0,
     'privateApi::ReconciliationReportView::date': 0,
     'privateApi::ReconciliationReportView::linked': 0,
     'privateApi::ReconciliationReportView::fullMatch': 0,
@@ -8496,72 +8532,23 @@ declare namespace gc {
     'privateApi::ReconciliationReportView::partialMatch': 0,
     'privateApi::ReconciliationReportView::noMatch': 0,
     'privateApi::ReconciliationReportView::source': 0,
-    'privateApi::promoteRecord$args::sourceRecord': 0,
-    'privateApi::promoteRecord$args::streetIdx': 0,
-    'privateApi::buildSourceTextIndex$args::source': 0,
+    'privateApi::getLinkedComparisonViewData$args::source': 0,
+    'privateApi::getLinkedComparisonViewData$args::recordId': 0,
     'privateApi::reconcileAddresses$args::source': 0,
     'privateApi::reconcileAddresses$args::poiIds': 0,
     'privateApi::reconcileAddresses$args::params': 0,
-    'privateApi::reconcile$args::source': 0,
-    'privateApi::reconcile$args::params': 0,
-    'api::DeprecatedCounts::rows': 0,
-    'api::DeprecatedCounts::total': 0,
-    'api::DeprecatedCounts::deprecated': 0,
-    'api::getGoldenNumbersByStreetId$args::streetId': 0,
-    'api::getGoldenRecordDetails$args::uid': 0,
-    'api::getGoldenWithLinkedRecords$args::addr': 0,
-    'api::GeoJSONFeature::type': 0,
-    'api::GeoJSONFeature::geometry': 0,
-    'api::GeoJSONFeature::properties': 0,
-    'api::getGlobalQualityHistory$args::from': 0,
-    'api::getGlobalQualityHistory$args::to': 0,
-    'api::getGoldenRecords$args::offset': 0,
-    'api::getGoldenRecords$args::limit': 0,
-    'api::GoldenRecordDetails::golden': 0,
-    'api::GoldenRecordDetails::associated': 0,
-    'api::getDeprecatedCounts$args::source': 0,
-    'api::AddressFeatures::coords': 0,
-    'api::AddressFeatures::number': 0,
-    'api::GeoJSONGeometry::type': 0,
-    'api::GeoJSONGeometry::coordinates': 0,
-    'api::getPoisInStreet$args::streetId': 0,
-    'api::getGoldenStreetsByLocalityId$args::localityId': 0,
-    'api::GoldenRecordsPage::total': 0,
-    'api::GoldenRecordsPage::offset': 0,
-    'api::GoldenRecordsPage::limit': 0,
-    'api::GoldenRecordsPage::rows': 0,
-    'api::RankedGoldenRecord::record': 0,
-    'api::RankedGoldenRecord::value': 0,
-    'api::GoldenWithLinkedRecords::golden': 0,
-    'api::GoldenWithLinkedRecords::osm': 0,
-    'api::GoldenWithLinkedRecords::caclr': 0,
-    'api::GoldenWithLinkedRecords::bda': 0,
-    'api::searchAddress$args::addr': 0,
-    'api::searchAddress$args::max': 0,
-    'api::searchAddress$args::source': 0,
-    'api::DeprecatedCountRow::source': 0,
-    'api::DeprecatedCountRow::total': 0,
-    'api::DeprecatedCountRow::deprecated': 0,
-    'api::DeprecatedCountRow::asOf': 0,
-    'api::LinkedRecordDetails::score': 0,
-    'api::LinkedRecordDetails::record': 0,
-    'api::getGoldenLocalities$args::communeName': 0,
-    'api::GeoJSON::type': 0,
-    'api::GeoJSON::features': 0,
-    'api::getGoldenRecordScores$args::offset': 0,
-    'api::getGoldenRecordScores$args::limit': 0,
-    'api::getGoldenRecordScores$args::sortKey': 0,
-    'api::getGoldenRecordScores$args::sortDir': 0,
-    'api::DataAttribution::notice': 0,
-    'api::DataAttribution::sources': 0,
-    'api::getRecordByGeoportailID$args::id': 0,
-    'api::searchStreet$args::e': 0,
-    'api::GoldenIndex::id': 0,
-    'api::GoldenIndex::name': 0,
-    'api::getSourceStats$args::from': 0,
-    'api::getSourceStats$args::to': 0,
-    'api::getGoldenRecordRefByUid$args::uid': 0,
-    'api::getPoisByGeo$args::coords': 0,
+    'privateApi::GoldenRecordScore::uid': 0,
+    'privateApi::GoldenRecordScore::number': 0,
+    'privateApi::GoldenRecordScore::street': 0,
+    'privateApi::GoldenRecordScore::city': 0,
+    'privateApi::GoldenRecordScore::postcode': 0,
+    'privateApi::GoldenRecordScore::linkedCount': 0,
+    'privateApi::GoldenRecordScore::quality': 0,
+    'privateApi::getComparisonViewData$args::source': 0,
+    'privateApi::getComparisonViewData$args::recordId': 0,
+    'privateApi::unlockSource$args::source': 0,
+    'privateApi::getRecordTab$args::source': 0,
+    'privateApi::getRecordTab$args::recordId': 0,
     'backupExporter::BkCaclrCityDTO::id': 0,
     'backupExporter::BkCaclrCityDTO::code': 0,
     'backupExporter::BkCaclrCityDTO::compoundCode': 0,
@@ -8809,12 +8796,6 @@ declare namespace gc {
     'bda::BdaCity::name': 0,
     'bda::BdaCity::municipality': 0,
     'bda::BdaCity::streets_by_name': 0,
-    'bda::BdaSource::reconciliationReport': 0,
-    'bda::BdaSource::isReconciling': 0,
-    'bda::BdaSource::lastUpdate': 0,
-    'bda::BdaSource::countHistory': 0,
-    'bda::BdaMunicipality::name': 0,
-    'bda::BdaMunicipality::cities_by_name': 0,
     'bda::BdaAddressFullRecord::id_geoportail': 0,
     'bda::BdaAddressFullRecord::id_caclr': 0,
     'bda::BdaAddressFullRecord::number': 0,
@@ -8827,6 +8808,12 @@ declare namespace gc {
     'bda::BdaAddressFullRecord::goldenRef': 0,
     'bda::BdaAddressFullRecord::deprecated': 0,
     'bda::BdaAddressFullRecord::lastSeenAt': 0,
+    'bda::BdaSource::reconciliationReport': 0,
+    'bda::BdaSource::isReconciling': 0,
+    'bda::BdaSource::lastUpdate': 0,
+    'bda::BdaSource::countHistory': 0,
+    'bda::BdaMunicipality::name': 0,
+    'bda::BdaMunicipality::cities_by_name': 0,
     'bda::BdaAddress::goldenRef': 0,
     'bda::BdaAddress::createdAt': 0,
     'bda::BdaAddress::lastSeenAt': 0,
@@ -8844,26 +8831,6 @@ declare namespace gc {
     'bda::BdaStreet::city': 0,
     'bda::BdaStreet::addresses_by_id': 0,
     'bda::BdaStreet::addresses_by_number': 0,
-    'caclr::CaclrAddressFullRecord::id': 0,
-    'caclr::CaclrAddressFullRecord::number': 0,
-    'caclr::CaclrAddressFullRecord::multipleCode': 0,
-    'caclr::CaclrAddressFullRecord::postcode': 0,
-    'caclr::CaclrAddressFullRecord::street': 0,
-    'caclr::CaclrAddressFullRecord::streetAliases': 0,
-    'caclr::CaclrAddressFullRecord::locality': 0,
-    'caclr::CaclrAddressFullRecord::localityAliases': 0,
-    'caclr::CaclrAddressFullRecord::commune': 0,
-    'caclr::CaclrAddressFullRecord::canton': 0,
-    'caclr::CaclrAddressFullRecord::constituency': 0,
-    'caclr::CaclrAddressFullRecord::primaryLocation': 0,
-    'caclr::CaclrAddressFullRecord::administrativeStatus': 0,
-    'caclr::CaclrAddressFullRecord::validityStartDate': 0,
-    'caclr::CaclrAddressFullRecord::validityEndDate': 0,
-    'caclr::CaclrAddressFullRecord::lastUpdate': 0,
-    'caclr::CaclrAddressFullRecord::sourceName': 0,
-    'caclr::CaclrAddressFullRecord::goldenRef': 0,
-    'caclr::CaclrAddressFullRecord::deprecated': 0,
-    'caclr::CaclrAddressFullRecord::lastSeenAt': 0,
     'caclr::CaclrEurostatsIds::nuts3': 0,
     'caclr::CaclrEurostatsIds::lau1': 0,
     'caclr::CaclrEurostatsIds::lau2': 0,
@@ -8927,6 +8894,26 @@ declare namespace gc {
     'caclr::CaclrAddress::validityEndDate': 0,
     'caclr::CaclrAddress::lastUpdate': 0,
     'caclr::CaclrAddress::street': 0,
+    'caclr::CaclrAddressFullRecord::id': 0,
+    'caclr::CaclrAddressFullRecord::number': 0,
+    'caclr::CaclrAddressFullRecord::multipleCode': 0,
+    'caclr::CaclrAddressFullRecord::postcode': 0,
+    'caclr::CaclrAddressFullRecord::street': 0,
+    'caclr::CaclrAddressFullRecord::streetAliases': 0,
+    'caclr::CaclrAddressFullRecord::locality': 0,
+    'caclr::CaclrAddressFullRecord::localityAliases': 0,
+    'caclr::CaclrAddressFullRecord::commune': 0,
+    'caclr::CaclrAddressFullRecord::canton': 0,
+    'caclr::CaclrAddressFullRecord::constituency': 0,
+    'caclr::CaclrAddressFullRecord::primaryLocation': 0,
+    'caclr::CaclrAddressFullRecord::administrativeStatus': 0,
+    'caclr::CaclrAddressFullRecord::validityStartDate': 0,
+    'caclr::CaclrAddressFullRecord::validityEndDate': 0,
+    'caclr::CaclrAddressFullRecord::lastUpdate': 0,
+    'caclr::CaclrAddressFullRecord::sourceName': 0,
+    'caclr::CaclrAddressFullRecord::goldenRef': 0,
+    'caclr::CaclrAddressFullRecord::deprecated': 0,
+    'caclr::CaclrAddressFullRecord::lastSeenAt': 0,
     'caclr::CaclrCanton::id': 0,
     'caclr::CaclrCanton::code': 0,
     'caclr::CaclrCanton::name': 0,
@@ -9010,16 +8997,6 @@ declare namespace gc {
     'mengplaz::StreetRecord::city': 0,
     'mengplaz::StreetRecord::cityAliases': 0,
     'mengplaz::StreetRecord::sourceName': 0,
-    'mengplaz::AddressFullRecordRef::ref': 0,
-    'mengplaz::AddressFullRecordRef::id': 0,
-    'mengplaz::AddressFullRecordRef::record': 0,
-    'mengplaz::AddressFullRecordRef::matchScore': 0,
-    'mengplaz::ReconciliationCandidateScore::cityScore': 0,
-    'mengplaz::ReconciliationCandidateScore::streetScore': 0,
-    'mengplaz::ReconciliationCandidateScore::numberScore': 0,
-    'mengplaz::ReconciliationCandidateScore::postcodeScore': 0,
-    'mengplaz::ReconciliationCandidateScore::geoScore': 0,
-    'mengplaz::ReconciliationCandidateScore::overallScore': 0,
     'mengplaz::LinkedRecordEntry::record': 0,
     'mengplaz::LinkedRecordEntry::score': 0,
     'mengplaz::LinkedRecordEntry::detailedScore': 0,
@@ -9031,12 +9008,11 @@ declare namespace gc {
     'mengplaz::SearchItem::city': 0,
     'mengplaz::SearchItem::cityAliases': 0,
     'mengplaz::SearchItem::coordinates': 0,
-    'mengplaz::StreetRecordRef::ref': 0,
-    'mengplaz::StreetRecordRef::id': 0,
-    'mengplaz::StreetRecordRef::record': 0,
-    'mengplaz::StreetRecordRef::score': 0,
-    'mengplaz::GeoParameters::minDistance': 0,
-    'mengplaz::GeoParameters::maxDistance': 0,
+    'mengplaz::ReconciliationReport::date': 0,
+    'mengplaz::ReconciliationReport::linked': 0,
+    'mengplaz::ReconciliationReport::unlinked': 0,
+    'mengplaz::AddressRecordRef::ref': 0,
+    'mengplaz::AddressRecordRef::record': 0,
     'mengplaz::SearchParameters::citySimilarityThreshold': 0,
     'mengplaz::SearchParameters::streetSimilarityThreshold': 0,
     'mengplaz::SearchParameters::postcodeSimilarityThreshold': 0,
@@ -9046,6 +9022,8 @@ declare namespace gc {
     'mengplaz::SearchParameters::weights': 0,
     'mengplaz::SearchParameters::geoParams': 0,
     'mengplaz::SearchParameters::deepSearch': 0,
+    'mengplaz::GeoParameters::minDistance': 0,
+    'mengplaz::GeoParameters::maxDistance': 0,
     'mengplaz::Alias::value': 0,
     'mengplaz::Alias::id': 0,
     'mengplaz::CandidateMatch::cityScore': 0,
@@ -9057,6 +9035,16 @@ declare namespace gc {
     'mengplaz::CandidateMatch::searchOverallScore': 0,
     'mengplaz::CandidateMatch::realOverallScore': 0,
     'mengplaz::CandidateMatch::elem': 0,
+    'mengplaz::StreetRecordRef::ref': 0,
+    'mengplaz::StreetRecordRef::id': 0,
+    'mengplaz::StreetRecordRef::record': 0,
+    'mengplaz::StreetRecordRef::score': 0,
+    'mengplaz::ReconciliationCandidateScore::cityScore': 0,
+    'mengplaz::ReconciliationCandidateScore::streetScore': 0,
+    'mengplaz::ReconciliationCandidateScore::numberScore': 0,
+    'mengplaz::ReconciliationCandidateScore::postcodeScore': 0,
+    'mengplaz::ReconciliationCandidateScore::geoScore': 0,
+    'mengplaz::ReconciliationCandidateScore::overallScore': 0,
     'mengplaz::AddressRecord::uid': 0,
     'mengplaz::AddressRecord::number': 0,
     'mengplaz::AddressRecord::postcode': 0,
@@ -9070,12 +9058,13 @@ declare namespace gc {
     'mengplaz::AddressRecord::sourceName': 0,
     'mengplaz::AddressRecord::goldenRef': 0,
     'mengplaz::AddressRecord::quality': 0,
-    'mengplaz::ReconciliationReport::date': 0,
-    'mengplaz::ReconciliationReport::linked': 0,
-    'mengplaz::ReconciliationReport::unlinked': 0,
     'mengplaz::SourceCountSnapshot::total': 0,
     'mengplaz::SourceCountSnapshot::active': 0,
     'mengplaz::SourceCountSnapshot::linked': 0,
+    'mengplaz::AddressFullRecordRef::ref': 0,
+    'mengplaz::AddressFullRecordRef::id': 0,
+    'mengplaz::AddressFullRecordRef::record': 0,
+    'mengplaz::AddressFullRecordRef::matchScore': 0,
     'mengplaz::ScoringWeights::cityWeight': 0,
     'mengplaz::ScoringWeights::streetWeight': 0,
     'mengplaz::ScoringWeights::postcodeWeight': 0,
@@ -9083,8 +9072,6 @@ declare namespace gc {
     'mengplaz::ScoringWeights::geoWeight': 0,
     'mengplaz::SearchResult::sourceRecord': 0,
     'mengplaz::SearchResult::candidates': 0,
-    'mengplaz::AddressRecordRef::ref': 0,
-    'mengplaz::AddressRecordRef::record': 0,
     'mengplaz::SearchRequest::items': 0,
     'mengplaz::SearchRequest::params': 0,
     'mengplaz::Match::score': 0,
@@ -9100,6 +9087,18 @@ declare namespace gc {
     'osm::OsmSource::isReconciling': 0,
     'osm::OsmSource::lastUpdate': 0,
     'osm::OsmSource::countHistory': 0,
+    'osm::OsmAddressFullRecord::id': 0,
+    'osm::OsmAddressFullRecord::number': 0,
+    'osm::OsmAddressFullRecord::postcode': 0,
+    'osm::OsmAddressFullRecord::street': 0,
+    'osm::OsmAddressFullRecord::locality': 0,
+    'osm::OsmAddressFullRecord::primaryLocation': 0,
+    'osm::OsmAddressFullRecord::sourceName': 0,
+    'osm::OsmAddressFullRecord::goldenRef': 0,
+    'osm::OsmAddressFullRecord::id_caclr': 0,
+    'osm::OsmAddressFullRecord::kind': 0,
+    'osm::OsmAddressFullRecord::deprecated': 0,
+    'osm::OsmAddressFullRecord::lastSeenAt': 0,
     'osm::OsmStreet::name': 0,
     'osm::OsmStreet::city': 0,
     'osm::OsmStreet::addresses_by_id': 0,
@@ -9118,18 +9117,6 @@ declare namespace gc {
     'osm::OsmAddress::building': 0,
     'osm::OsmAddress::kind': 0,
     'osm::OsmAddress::streetRef': 0,
-    'osm::OsmAddressFullRecord::id': 0,
-    'osm::OsmAddressFullRecord::number': 0,
-    'osm::OsmAddressFullRecord::postcode': 0,
-    'osm::OsmAddressFullRecord::street': 0,
-    'osm::OsmAddressFullRecord::locality': 0,
-    'osm::OsmAddressFullRecord::primaryLocation': 0,
-    'osm::OsmAddressFullRecord::sourceName': 0,
-    'osm::OsmAddressFullRecord::goldenRef': 0,
-    'osm::OsmAddressFullRecord::id_caclr': 0,
-    'osm::OsmAddressFullRecord::kind': 0,
-    'osm::OsmAddressFullRecord::deprecated': 0,
-    'osm::OsmAddressFullRecord::lastSeenAt': 0,
     'osm::OsmPartialAddress::id': 0,
     'osm::OsmPartialAddress::position': 0,
     'osm::OsmPartialAddress::city': 0,
@@ -9170,11 +9157,6 @@ declare namespace gc {
     'sourceTextSearch::SourceTextIndexStats::dirty': 0,
     'utils::SplitAlphaNumericalString::alpha': 0,
     'utils::SplitAlphaNumericalString::numerical': 0,
-    'http::FileSink::path': 0,
-    'http::FileSink::append': 0,
-    'http::FileBody::path': 0,
-    'http::FileBody::offset': 0,
-    'http::FileBody::size': 0,
     'http::HttpRequest::method': 0,
     'http::HttpRequest::url': 0,
     'http::HttpRequest::headers': 0,
@@ -9184,19 +9166,25 @@ declare namespace gc {
     'http::HttpRequest::timeout': 0,
     'http::HttpRequest::max_response_size': 0,
     'http::HttpRequest::unix_socket': 0,
+    'http::FileBody::path': 0,
+    'http::FileBody::offset': 0,
+    'http::FileBody::size': 0,
     'http::HttpResponse::status_code': 0,
     'http::HttpResponse::headers': 0,
     'http::HttpResponse::content': 0,
     'http::HttpResponse::error_msg': 0,
+    'http::FileSink::path': 0,
+    'http::FileSink::append': 0,
     'bm25_engine::BM25Result::docId': 0,
     'bm25_engine::BM25Result::score': 0,
     'bm25_engine::BM25Result::matchedTerms': 0,
-    'fuzzy_engine::TrigramCandidate::overlap': 0,
-    'fuzzy_engine::TrigramCandidate::ord': 0,
     'fuzzy_engine::FuzzyScoreResult::score': 0,
     'fuzzy_engine::FuzzyScoreResult::matched': 0,
-    'percolate_engine::PercolateIndex::config': 0,
-    'percolate_engine::PercolateIndex::queries': 0,
+    'fuzzy_engine::TrigramCandidate::overlap': 0,
+    'fuzzy_engine::TrigramCandidate::ord': 0,
+    'percolate_engine::PercolateBooleanPlan::terms': 0,
+    'percolate_engine::PercolateBooleanPlan::excludeTerms': 0,
+    'percolate_engine::PercolateBooleanPlan::requiresAll': 0,
     'percolate_engine::PercolatedQuery::id': 0,
     'percolate_engine::PercolatedQuery::queryText': 0,
     'percolate_engine::PercolatedQuery::mode': 0,
@@ -9204,16 +9192,12 @@ declare namespace gc {
     'percolate_engine::PercolatedQuery::cachedBooleanTerms': 0,
     'percolate_engine::PercolatedQuery::cachedExcludeTerms': 0,
     'percolate_engine::PercolatedQuery::cachedBooleanRequiresAll': 0,
-    'percolate_engine::PercolateBooleanPlan::terms': 0,
-    'percolate_engine::PercolateBooleanPlan::excludeTerms': 0,
-    'percolate_engine::PercolateBooleanPlan::requiresAll': 0,
+    'percolate_engine::PercolateIndex::config': 0,
+    'percolate_engine::PercolateIndex::queries': 0,
     'phrase_engine::PhraseCandidate::docId': 0,
     'phrase_engine::PhraseCandidate::prelimScore': 0,
     'quorum_engine::QuorumAccum::count': 0,
     'quorum_engine::QuorumAccum::terms': 0,
-    'suggest_engine::DidYouMeanResult::originalQuery': 0,
-    'suggest_engine::DidYouMeanResult::correctedQuery': 0,
-    'suggest_engine::DidYouMeanResult::corrections': 0,
     'suggest_engine::Suggestion::term': 0,
     'suggest_engine::Suggestion::score': 0,
     'suggest_engine::Suggestion::df': 0,
@@ -9225,6 +9209,23 @@ declare namespace gc {
     'suggest_engine::DidYouMeanBest::term': 0,
     'suggest_engine::DidYouMeanBest::original': 0,
     'suggest_engine::DidYouMeanBest::found': 0,
+    'suggest_engine::DidYouMeanResult::originalQuery': 0,
+    'suggest_engine::DidYouMeanResult::correctedQuery': 0,
+    'suggest_engine::DidYouMeanResult::corrections': 0,
+    'document::Section::title': 0,
+    'document::Section::position': 0,
+    'document::Section::sentences': 0,
+    'document::Section::sectionType': 0,
+    'document::Document::name': 0,
+    'document::Document::path': 0,
+    'document::Document::format': 0,
+    'document::Document::documentType': 0,
+    'document::Document::wordCount': 0,
+    'document::Document::charCount': 0,
+    'document::Document::fileSize': 0,
+    'document::Document::sections': 0,
+    'document::Sentence::text': 0,
+    'document::Sentence::position': 0,
     'document::DocumentStats::file': 0,
     'document::DocumentStats::format': 0,
     'document::DocumentStats::file_size_bytes': 0,
@@ -9235,58 +9236,44 @@ declare namespace gc {
     'document::DocumentStats::sentence_count': 0,
     'document::DocumentStats::heading_count': 0,
     'document::DocumentStats::document_type': 0,
-    'document::Sentence::text': 0,
-    'document::Sentence::position': 0,
-    'document::Document::name': 0,
-    'document::Document::path': 0,
-    'document::Document::format': 0,
-    'document::Document::documentType': 0,
-    'document::Document::wordCount': 0,
-    'document::Document::charCount': 0,
-    'document::Document::fileSize': 0,
-    'document::Document::sections': 0,
-    'document::Section::title': 0,
-    'document::Section::position': 0,
-    'document::Section::sentences': 0,
-    'document::Section::sectionType': 0,
-    'facet_types::HistogramBucket::from': 0,
-    'facet_types::HistogramBucket::to': 0,
-    'facet_types::HistogramBucket::count': 0,
-    'facet_types::AggregationRequest::metrics': 0,
-    'facet_types::AggregationRequest::histograms': 0,
-    'facet_types::AdvancedFacetedResult::results': 0,
-    'facet_types::AdvancedFacetedResult::termFacets': 0,
-    'facet_types::AdvancedFacetedResult::numericFacets': 0,
-    'facet_types::NumericRangeBucket::label': 0,
-    'facet_types::NumericRangeBucket::from': 0,
-    'facet_types::NumericRangeBucket::to': 0,
     'facet_types::HistogramResult::f': 0,
     'facet_types::HistogramResult::fieldName': 0,
     'facet_types::HistogramResult::buckets': 0,
+    'facet_types::TermCount::value': 0,
+    'facet_types::TermCount::count': 0,
+    'facet_types::AggregationRequest::metrics': 0,
+    'facet_types::AggregationRequest::histograms': 0,
+    'facet_types::MetricResult::f': 0,
+    'facet_types::MetricResult::fieldName': 0,
+    'facet_types::MetricResult::metric': 0,
+    'facet_types::MetricResult::value': 0,
     'facet_types::MetricAggregation::f': 0,
     'facet_types::MetricAggregation::fieldName': 0,
     'facet_types::MetricAggregation::metric': 0,
     'facet_types::AggregatedSearchResult::results': 0,
     'facet_types::AggregatedSearchResult::metricResults': 0,
     'facet_types::AggregatedSearchResult::histogramResults': 0,
+    'facet_types::NumericRangeBucket::label': 0,
+    'facet_types::NumericRangeBucket::from': 0,
+    'facet_types::NumericRangeBucket::to': 0,
+    'facet_types::AdvancedFacetedResult::results': 0,
+    'facet_types::AdvancedFacetedResult::termFacets': 0,
+    'facet_types::AdvancedFacetedResult::numericFacets': 0,
     'facet_types::HistogramAggregation::f': 0,
     'facet_types::HistogramAggregation::fieldName': 0,
     'facet_types::HistogramAggregation::interval': 0,
     'facet_types::HistogramAggregation::minValue': 0,
     'facet_types::HistogramAggregation::maxValue': 0,
-    'facet_types::MetricResult::f': 0,
-    'facet_types::MetricResult::fieldName': 0,
-    'facet_types::MetricResult::metric': 0,
-    'facet_types::MetricResult::value': 0,
     'facet_types::FacetRequest::f': 0,
     'facet_types::FacetRequest::fieldName': 0,
     'facet_types::FacetRequest::facetType': 0,
     'facet_types::FacetRequest::ranges': 0,
     'facet_types::FacetRequest::maxTerms': 0,
+    'facet_types::HistogramBucket::from': 0,
+    'facet_types::HistogramBucket::to': 0,
+    'facet_types::HistogramBucket::count': 0,
     'facet_types::NumericBucketCount::label': 0,
     'facet_types::NumericBucketCount::count': 0,
-    'facet_types::TermCount::value': 0,
-    'facet_types::TermCount::count': 0,
     'text_index::TextIndex::config': 0,
     'text_index::TextIndex::totalEntries': 0,
     'text_index::TextIndex::totalTokens': 0,
@@ -9315,6 +9302,8 @@ declare namespace gc {
     'text_index::TextIndex::cachedStopWordMap': 0,
     'text_index::TextIndex::cachedTFCache': 0,
     'text_index::TextIndex::cachedTFCacheAvgDocLen': 0,
+    'text_index_types::TermScorePair::ordinal': 0,
+    'text_index_types::TermScorePair::score': 0,
     'text_index_types::IndexEntry::id': 0,
     'text_index_types::IndexEntry::value': 0,
     'text_index_types::IndexEntry::text': 0,
@@ -9328,74 +9317,51 @@ declare namespace gc {
     'text_index_types::IndexEntry::positionData': 0,
     'text_index_types::IndexEntry::positionOffsets': 0,
     'text_index_types::IndexEntry::positionCounts': 0,
-    'text_index_types::RRFOptions::k': 0,
-    'text_index_types::RRFOptions::topRankBonus': 0,
-    'text_index_types::RRFOptions::topBonus': 0,
-    'text_index_types::RRFOptions::nearTopBonus': 0,
-    'text_index_types::RRFOptions::nearTopCutoff': 0,
-    'text_index_types::MoreLikeThisOptions::maxQueryTerms': 0,
+    'text_index_types::PhoneticPostings::terms': 0,
+    'text_index_types::TermBoost::term': 0,
+    'text_index_types::TermBoost::boost': 0,
     'text_index_types::PhraseOptions::slop': 0,
-    'text_index_types::SnippetOptions::maxLength': 0,
-    'text_index_types::SnippetOptions::numFragments': 0,
-    'text_index_types::SnippetOptions::fragmentSize': 0,
-    'text_index_types::TrigramPostings::terms': 0,
-    'text_index_types::HighlightOptions::preTag': 0,
-    'text_index_types::HighlightOptions::postTag': 0,
-    'text_index_types::DiversifyOptions::enabled': 0,
-    'text_index_types::DiversifyOptions::lambda': 0,
-    'text_index_types::SearchCursor::score': 0,
-    'text_index_types::SearchCursor::id': 0,
-    'text_index_types::BM25Options::k1': 0,
-    'text_index_types::BM25Options::b': 0,
-    'text_index_types::BM25Options::variant': 0,
-    'text_index_types::BM25Options::delta': 0,
-    'text_index_types::ScoreExplanation::totalScore': 0,
-    'text_index_types::ScoreExplanation::terms': 0,
-    'text_index_types::ScoreExplanation::variant': 0,
-    'text_index_types::ScoreExplanation::k1': 0,
-    'text_index_types::ScoreExplanation::b': 0,
-    'text_index_types::ScoreExplanation::docLen': 0,
-    'text_index_types::ScoreExplanation::avgDocLen': 0,
+    'text_index_types::Snippet::text': 0,
+    'text_index_types::Snippet::highlighted': 0,
+    'text_index_types::Snippet::fragments': 0,
+    'text_index_types::DFROptions::basicModel': 0,
+    'text_index_types::DFROptions::afterEffect': 0,
+    'text_index_types::DFROptions::normalization': 0,
+    'text_index_types::ChunkingOptions::strategy': 0,
+    'text_index_types::ChunkingOptions::size': 0,
+    'text_index_types::ChunkingOptions::overlap': 0,
     'text_index_types::TermExplanation::term': 0,
     'text_index_types::TermExplanation::tf': 0,
     'text_index_types::TermExplanation::idf': 0,
     'text_index_types::TermExplanation::tfNorm': 0,
     'text_index_types::TermExplanation::score': 0,
-    'text_index_types::Snippet::text': 0,
-    'text_index_types::Snippet::highlighted': 0,
-    'text_index_types::Snippet::fragments': 0,
-    'text_index_types::EdgeNgramOptions::enabled': 0,
-    'text_index_types::EdgeNgramOptions::indexAsTerms': 0,
-    'text_index_types::EdgeNgramOptions::min': 0,
-    'text_index_types::EdgeNgramOptions::max': 0,
+    'text_index_types::HighlightOptions::preTag': 0,
+    'text_index_types::HighlightOptions::postTag': 0,
     'text_index_types::LMDirichletOptions::mu': 0,
-    'text_index_types::TextIndexStats::totalEntries': 0,
-    'text_index_types::TextIndexStats::totalTerms': 0,
-    'text_index_types::TextIndexStats::avgTokenCount': 0,
-    'text_index_types::IndexChunk::content': 0,
-    'text_index_types::IndexChunk::parentId': 0,
-    'text_index_types::IndexChunk::vector': 0,
-    'text_index_types::IndexChunk::tokenCount': 0,
-    'text_index_types::IndexChunk::position': 0,
-    'text_index_types::ShortCircuitOptions::enabled': 0,
-    'text_index_types::ShortCircuitOptions::minScore': 0,
-    'text_index_types::ShortCircuitOptions::minGap': 0,
-    'text_index_types::ChunkingOptions::strategy': 0,
-    'text_index_types::ChunkingOptions::size': 0,
-    'text_index_types::ChunkingOptions::overlap': 0,
-    'text_index_types::FuzzyOptions::maxEdits': 0,
-    'text_index_types::FuzzyOptions::mode': 0,
-    'text_index_types::FuzzyOptions::maxTextLength': 0,
-    'text_index_types::TermScorePair::ordinal': 0,
-    'text_index_types::TermScorePair::score': 0,
+    'text_index_types::TokenizationOptions::separators': 0,
+    'text_index_types::TokenizationOptions::minTermLength': 0,
+    'text_index_types::TokenizationOptions::maxTermLength': 0,
+    'text_index_types::TokenizationOptions::filterNumericTerms': 0,
+    'text_index_types::TokenizationOptions::caseFold': 0,
+    'text_index_types::TokenizationOptions::stripPunctuation': 0,
+    'text_index_types::TokenizationOptions::stemming': 0,
+    'text_index_types::TokenizationOptions::charMap': 0,
+    'text_index_types::TokenizationOptions::useDefaultCharMap': 0,
+    'text_index_types::TokenizationOptions::normOptions': 0,
     'text_index_types::FieldConfig::f': 0,
     'text_index_types::FieldConfig::fieldName': 0,
     'text_index_types::FieldConfig::weight': 0,
     'text_index_types::FieldConfig::fieldB': 0,
-    'text_index_types::FusionOptions::method': 0,
-    'text_index_types::FusionOptions::normalization': 0,
-    'text_index_types::FusionOptions::weights': 0,
-    'text_index_types::FusionOptions::rrf': 0,
+    'text_index_types::ShortCircuitOptions::enabled': 0,
+    'text_index_types::ShortCircuitOptions::minScore': 0,
+    'text_index_types::ShortCircuitOptions::minGap': 0,
+    'text_index_types::RangeFilter::f': 0,
+    'text_index_types::RangeFilter::fieldName': 0,
+    'text_index_types::RangeFilter::from': 0,
+    'text_index_types::RangeFilter::to': 0,
+    'text_index_types::TextIndexStats::totalEntries': 0,
+    'text_index_types::TextIndexStats::totalTerms': 0,
+    'text_index_types::TextIndexStats::avgTokenCount': 0,
     'text_index_types::TextIndexConfig::embed': 0,
     'text_index_types::TextIndexConfig::synonyms': 0,
     'text_index_types::TextIndexConfig::fields': 0,
@@ -9423,50 +9389,24 @@ declare namespace gc {
     'text_index_types::TextIndexConfig::storePositions': 0,
     'text_index_types::TextIndexConfig::storeRawText': 0,
     'text_index_types::TextIndexConfig::keepOriginalForm': 0,
-    'text_index_types::RangeFilter::f': 0,
-    'text_index_types::RangeFilter::fieldName': 0,
-    'text_index_types::RangeFilter::from': 0,
-    'text_index_types::RangeFilter::to': 0,
-    'text_index_types::ProximityOptions::distance': 0,
+    'text_index_types::EdgeNgramOptions::enabled': 0,
+    'text_index_types::EdgeNgramOptions::indexAsTerms': 0,
+    'text_index_types::EdgeNgramOptions::min': 0,
+    'text_index_types::EdgeNgramOptions::max': 0,
+    'text_index_types::DiversifyOptions::enabled': 0,
+    'text_index_types::DiversifyOptions::lambda': 0,
     'text_index_types::TrieNode::children': 0,
     'text_index_types::TrieNode::terms': 0,
     'text_index_types::TrieNode::isTerminal': 0,
-    'text_index_types::StopWordOptions::mode': 0,
-    'text_index_types::StopWordOptions::language': 0,
-    'text_index_types::StopWordOptions::custom': 0,
-    'text_index_types::StopWordOptions::autoThreshold': 0,
-    'text_index_types::NormalizedTerm::text': 0,
-    'text_index_types::NormalizedTerm::totalCount': 0,
-    'text_index_types::NormalizedTerm::ordinal': 0,
-    'text_index_types::NormalizedTerm::originalForm': 0,
-    'text_index_types::NormalizedTerm::isPrefix': 0,
-    'text_index_types::NormalizedTerm::idf': 0,
-    'text_index_types::NormalizedTerm::maxTermScore': 0,
-    'text_index_types::NormalizedTerm::postingDocs': 0,
-    'text_index_types::NormalizedTerm::postingTFs': 0,
-    'text_index_types::NormalizedTerm::postingFieldnormIds': 0,
-    'text_index_types::NormalizedTerm::postingBlockMaxScores': 0,
-    'text_index_types::TermBoost::term': 0,
-    'text_index_types::TermBoost::boost': 0,
-    'text_index_types::TextEntry::key': 0,
-    'text_index_types::TextEntry::value': 0,
-    'text_index_types::TextEntry::externalId': 0,
-    'text_index_types::TextEntry::vector': 0,
-    'text_index_types::TokenizationOptions::separators': 0,
-    'text_index_types::TokenizationOptions::minTermLength': 0,
-    'text_index_types::TokenizationOptions::maxTermLength': 0,
-    'text_index_types::TokenizationOptions::filterNumericTerms': 0,
-    'text_index_types::TokenizationOptions::caseFold': 0,
-    'text_index_types::TokenizationOptions::stripPunctuation': 0,
-    'text_index_types::TokenizationOptions::stemming': 0,
-    'text_index_types::TokenizationOptions::charMap': 0,
-    'text_index_types::TokenizationOptions::useDefaultCharMap': 0,
-    'text_index_types::TokenizationOptions::normOptions': 0,
-    'text_index_types::PhoneticPostings::terms': 0,
-    'text_index_types::TermFilter::f': 0,
-    'text_index_types::TermFilter::fieldName': 0,
-    'text_index_types::TermFilter::values': 0,
-    'text_index_types::TermFilter::exclude': 0,
+    'text_index_types::IndexChunk::content': 0,
+    'text_index_types::IndexChunk::parentId': 0,
+    'text_index_types::IndexChunk::vector': 0,
+    'text_index_types::IndexChunk::tokenCount': 0,
+    'text_index_types::IndexChunk::position': 0,
+    'text_index_types::TypoOptions::enabled': 0,
+    'text_index_types::TypoOptions::minWordLength': 0,
+    'text_index_types::TypoOptions::maxEdits1': 0,
+    'text_index_types::TypoOptions::maxEdits2': 0,
     'text_index_types::NormOptions::stripAccents': 0,
     'text_index_types::NormOptions::stripControlChars': 0,
     'text_index_types::NormOptions::stripHtmlTags': 0,
@@ -9478,6 +9418,36 @@ declare namespace gc {
     'text_index_types::NormOptions::normalizeRepeatingChars': 0,
     'text_index_types::NormOptions::maxRepeat': 0,
     'text_index_types::NormOptions::rejoinHyphenatedWords': 0,
+    'text_index_types::StopWordOptions::mode': 0,
+    'text_index_types::StopWordOptions::language': 0,
+    'text_index_types::StopWordOptions::custom': 0,
+    'text_index_types::StopWordOptions::autoThreshold': 0,
+    'text_index_types::TermFilter::f': 0,
+    'text_index_types::TermFilter::fieldName': 0,
+    'text_index_types::TermFilter::values': 0,
+    'text_index_types::TermFilter::exclude': 0,
+    'text_index_types::BM25Options::k1': 0,
+    'text_index_types::BM25Options::b': 0,
+    'text_index_types::BM25Options::variant': 0,
+    'text_index_types::BM25Options::delta': 0,
+    'text_index_types::SnippetOptions::maxLength': 0,
+    'text_index_types::SnippetOptions::numFragments': 0,
+    'text_index_types::SnippetOptions::fragmentSize': 0,
+    'text_index_types::SortClause::f': 0,
+    'text_index_types::SortClause::fieldName': 0,
+    'text_index_types::SortClause::order': 0,
+    'text_index_types::FuzzyOptions::maxEdits': 0,
+    'text_index_types::FuzzyOptions::mode': 0,
+    'text_index_types::FuzzyOptions::maxTextLength': 0,
+    'text_index_types::SearchCursor::score': 0,
+    'text_index_types::SearchCursor::id': 0,
+    'text_index_types::ProximityOptions::distance': 0,
+    'text_index_types::TextEntry::key': 0,
+    'text_index_types::TextEntry::value': 0,
+    'text_index_types::TextEntry::externalId': 0,
+    'text_index_types::TextEntry::vector': 0,
+    'text_index_types::MoreLikeThisOptions::maxQueryTerms': 0,
+    'text_index_types::TrigramPostings::terms': 0,
     'text_index_types::TextResult::id': 0,
     'text_index_types::TextResult::externalId': 0,
     'text_index_types::TextResult::value': 0,
@@ -9485,20 +9455,37 @@ declare namespace gc {
     'text_index_types::TextResult::text': 0,
     'text_index_types::TextResult::matchedTerms': 0,
     'text_index_types::TextResult::chunkKey': 0,
+    'text_index_types::NormalizedTerm::text': 0,
+    'text_index_types::NormalizedTerm::totalCount': 0,
+    'text_index_types::NormalizedTerm::ordinal': 0,
+    'text_index_types::NormalizedTerm::originalForm': 0,
+    'text_index_types::NormalizedTerm::isPrefix': 0,
+    'text_index_types::NormalizedTerm::idf': 0,
+    'text_index_types::NormalizedTerm::maxTermScore': 0,
+    'text_index_types::NormalizedTerm::postingDocs': 0,
+    'text_index_types::NormalizedTerm::postingTFs': 0,
+    'text_index_types::NormalizedTerm::postingFieldnormIds': 0,
+    'text_index_types::NormalizedTerm::postingBlockMaxScores': 0,
+    'text_index_types::ScoreExplanation::totalScore': 0,
+    'text_index_types::ScoreExplanation::terms': 0,
+    'text_index_types::ScoreExplanation::variant': 0,
+    'text_index_types::ScoreExplanation::k1': 0,
+    'text_index_types::ScoreExplanation::b': 0,
+    'text_index_types::ScoreExplanation::docLen': 0,
+    'text_index_types::ScoreExplanation::avgDocLen': 0,
     'text_index_types::CurationRule::documentKey': 0,
     'text_index_types::CurationRule::position': 0,
     'text_index_types::CurationRule::boost': 0,
     'text_index_types::CurationRule::suppress': 0,
-    'text_index_types::DFROptions::basicModel': 0,
-    'text_index_types::DFROptions::afterEffect': 0,
-    'text_index_types::DFROptions::normalization': 0,
-    'text_index_types::SortClause::f': 0,
-    'text_index_types::SortClause::fieldName': 0,
-    'text_index_types::SortClause::order': 0,
-    'text_index_types::TypoOptions::enabled': 0,
-    'text_index_types::TypoOptions::minWordLength': 0,
-    'text_index_types::TypoOptions::maxEdits1': 0,
-    'text_index_types::TypoOptions::maxEdits2': 0,
+    'text_index_types::FusionOptions::method': 0,
+    'text_index_types::FusionOptions::normalization': 0,
+    'text_index_types::FusionOptions::weights': 0,
+    'text_index_types::FusionOptions::rrf': 0,
+    'text_index_types::RRFOptions::k': 0,
+    'text_index_types::RRFOptions::topRankBonus': 0,
+    'text_index_types::RRFOptions::topBonus': 0,
+    'text_index_types::RRFOptions::nearTopBonus': 0,
+    'text_index_types::RRFOptions::nearTopCutoff': 0,
     'text_index_types::SearchOptions::modes': 0,
     'text_index_types::SearchOptions::weights': 0,
     'text_index_types::SearchOptions::fusionMethod': 0,
@@ -9550,6 +9537,10 @@ declare namespace gc {
     'text_tokenizer::TermFrequency::positions': 0,
     'dfr_engine::DFRAccum::score': 0,
     'dfr_engine::DFRAccum::terms': 0,
+    'function_score::FunctionScoreConfig::decayFunctions': 0,
+    'function_score::FunctionScoreConfig::fieldValueFactors': 0,
+    'function_score::FunctionScoreConfig::scoreMode': 0,
+    'function_score::FunctionScoreConfig::boostMode': 0,
     'function_score::DecayFunction::f': 0,
     'function_score::DecayFunction::fieldName': 0,
     'function_score::DecayFunction::origin': 0,
@@ -9562,15 +9553,11 @@ declare namespace gc {
     'function_score::FieldValueFactor::factor': 0,
     'function_score::FieldValueFactor::modifier': 0,
     'function_score::FieldValueFactor::missing': 0,
-    'function_score::FunctionScoreConfig::decayFunctions': 0,
-    'function_score::FunctionScoreConfig::fieldValueFactors': 0,
-    'function_score::FunctionScoreConfig::scoreMode': 0,
-    'function_score::FunctionScoreConfig::boostMode': 0,
+    'fusion::FusionInput::results': 0,
+    'fusion::FusionInput::weight': 0,
     'fusion::FusionAccum::score': 0,
     'fusion::FusionAccum::terms': 0,
     'fusion::FusionAccum::termLookup': 0,
-    'fusion::FusionInput::results': 0,
-    'fusion::FusionInput::weight': 0,
     'lm_dirichlet_engine::LMDAccum::score': 0,
     'lm_dirichlet_engine::LMDAccum::terms': 0,
     'ranking_rules::RankingCandidate::key': 0,
@@ -9587,32 +9574,27 @@ declare namespace gc {
     'regex_utils::RegexMatch::startPos': 0,
     'regex_utils::RegexMatch::endPos': 0,
     'regex_utils::RegexMatch::text': 0,
-    'snippet::WindowResult::startWord': 0,
-    'snippet::WindowResult::endWord': 0,
     'snippet::SnippetFragment::text': 0,
     'snippet::SnippetFragment::score': 0,
     'snippet::SnippetFragment::startPos': 0,
     'snippet::SnippetFragment::endPos': 0,
+    'snippet::WindowResult::startWord': 0,
+    'snippet::WindowResult::endWord': 0,
+    'address_index::AddressSearchHit::result': 0,
+    'address_index::AddressSearchHit::houseNumberMatch': 0,
+    'address_index::AddressSearchHit::level': 0,
+    'address_index::AddressIndex::index': 0,
+    'address_index::AddressIndex::lang': 0,
     'address_index::AddressDoc::payload': 0,
     'address_index::AddressDoc::street': 0,
     'address_index::AddressDoc::cityText': 0,
     'address_index::AddressDoc::postalCodeText': 0,
     'address_index::AddressDoc::houseNumberText': 0,
     'address_index::AddressDoc::country': 0,
-    'address_index::AddressSearchHit::result': 0,
-    'address_index::AddressSearchHit::houseNumberMatch': 0,
-    'address_index::AddressSearchHit::level': 0,
-    'address_index::AddressIndex::index': 0,
-    'address_index::AddressIndex::lang': 0,
     'address_index::AddressComponents::roads': 0,
     'address_index::AddressComponents::houseNumbers': 0,
     'address_index::AddressComponents::city': 0,
     'address_index::AddressComponents::postcode': 0,
-    'postal::PostalExpandOptions::languages': 0,
-    'postal::PostalComponent::label': 0,
-    'postal::PostalComponent::value': 0,
-    'postal::PostalOptions::language': 0,
-    'postal::PostalOptions::country': 0,
     'postal::PostalParsedAddress::house': 0,
     'postal::PostalParsedAddress::house_number': 0,
     'postal::PostalParsedAddress::road': 0,
@@ -9632,6 +9614,11 @@ declare namespace gc {
     'postal::PostalParsedAddress::world_region': 0,
     'postal::PostalParsedAddress::island': 0,
     'postal::PostalParsedAddress::category': 0,
+    'postal::PostalComponent::label': 0,
+    'postal::PostalComponent::value': 0,
+    'postal::PostalExpandOptions::languages': 0,
+    'postal::PostalOptions::language': 0,
+    'postal::PostalOptions::country': 0,
   }
 
   interface $FunctionsMap {
@@ -9699,6 +9686,28 @@ declare namespace gc {
     'io::Csv::sample': 0,
     'io::Csv::analyze': 0,
     'io::Csv::generate': 0,
+    'api::getPoisInStreet': 0,
+    'api::searchStreet': 0,
+    'api::getPois': 0,
+    'api::getPoisByGeo': 0,
+    'api::getGoldenRecordDetails': 0,
+    'api::getGoldenRecordRefByUid': 0,
+    'api::getRecordByGeoportailID': 0,
+    'api::getGoldenLocalities': 0,
+    'api::getGoldenCommunes': 0,
+    'api::getGoldenStreetsByLocalityId': 0,
+    'api::getGoldenNumbersByStreetId': 0,
+    'api::getGoldenRecords': 0,
+    'api::getGoldenRecordsGeoJson': 0,
+    'api::attribution': 0,
+    'api::openapi': 0,
+    'api::getGlobalQualityHistory': 0,
+    'api::getGoldenRecordScores': 0,
+    'api::appInfo': 0,
+    'api::searchAddress': 0,
+    'api::getGoldenWithLinkedRecords': 0,
+    'api::getSourceStats': 0,
+    'api::getDeprecatedCounts': 0,
     'privateApi::promoteRecord': 0,
     'privateApi::linkRecords': 0,
     'privateApi::unlinkRecord': 0,
@@ -9728,28 +9737,6 @@ declare namespace gc {
     'privateApi::recomputeGoldenGeoScore': 0,
     'privateApi::backupGraph': 0,
     'privateApi::restoreGraph': 0,
-    'api::getPoisInStreet': 0,
-    'api::searchStreet': 0,
-    'api::getPois': 0,
-    'api::getPoisByGeo': 0,
-    'api::getGoldenRecordDetails': 0,
-    'api::getGoldenRecordRefByUid': 0,
-    'api::getRecordByGeoportailID': 0,
-    'api::getGoldenLocalities': 0,
-    'api::getGoldenCommunes': 0,
-    'api::getGoldenStreetsByLocalityId': 0,
-    'api::getGoldenNumbersByStreetId': 0,
-    'api::getGoldenRecords': 0,
-    'api::getGoldenRecordsGeoJson': 0,
-    'api::attribution': 0,
-    'api::openapi': 0,
-    'api::getGlobalQualityHistory': 0,
-    'api::getGoldenRecordScores': 0,
-    'api::appInfo': 0,
-    'api::searchAddress': 0,
-    'api::getGoldenWithLinkedRecords': 0,
-    'api::getSourceStats': 0,
-    'api::getDeprecatedCounts': 0,
   }
 
   export import Chars = gc.core.Chars;
@@ -9925,33 +9912,33 @@ declare namespace gc {
   export import Crypto = gc.util.Crypto;
   export import QuantizerSlotBound = gc.util.QuantizerSlotBound;
   export import Quantizer = gc.util.Quantizer;
-  export import ComparisonViewData = gc.privateApi.ComparisonViewData;
-  export import SourceCountPoint = gc.privateApi.SourceCountPoint;
-  export import SourceStats = gc.privateApi.SourceStats;
-  export import GoldenRecordScore = gc.privateApi.GoldenRecordScore;
-  export import ReconciliationReportMatchView = gc.privateApi.ReconciliationReportMatchView;
-  export import RecordTabResult = gc.privateApi.RecordTabResult;
-  export import SourceStatsRow = gc.privateApi.SourceStatsRow;
-  export import GoldenRecordPage = gc.privateApi.GoldenRecordPage;
-  export import SourceCountSeries = gc.privateApi.SourceCountSeries;
-  export import SourceRef = gc.privateApi.SourceRef;
-  export import GlobalQualityHistory = gc.privateApi.GlobalQualityHistory;
-  export import MatchedCandidateDetail = gc.privateApi.MatchedCandidateDetail;
-  export import GlobalQualityEntry = gc.privateApi.GlobalQualityEntry;
-  export import LinkParameters = gc.privateApi.LinkParameters;
-  export import ReconciliationReportView = gc.privateApi.ReconciliationReportView;
-  export import DeprecatedCounts = gc.api.DeprecatedCounts;
+  export import DeprecatedCountRow = gc.api.DeprecatedCountRow;
   export import GeoJSONFeature = gc.api.GeoJSONFeature;
-  export import GoldenRecordDetails = gc.api.GoldenRecordDetails;
+  export import LinkedRecordDetails = gc.api.LinkedRecordDetails;
+  export import DataAttribution = gc.api.DataAttribution;
   export import AddressFeatures = gc.api.AddressFeatures;
   export import GeoJSONGeometry = gc.api.GeoJSONGeometry;
-  export import GoldenRecordsPage = gc.api.GoldenRecordsPage;
-  export import GoldenWithLinkedRecords = gc.api.GoldenWithLinkedRecords;
-  export import DeprecatedCountRow = gc.api.DeprecatedCountRow;
-  export import LinkedRecordDetails = gc.api.LinkedRecordDetails;
-  export import GeoJSON = gc.api.GeoJSON;
-  export import DataAttribution = gc.api.DataAttribution;
   export import GoldenIndex = gc.api.GoldenIndex;
+  export import GoldenRecordsPage = gc.api.GoldenRecordsPage;
+  export import GeoJSON = gc.api.GeoJSON;
+  export import GoldenWithLinkedRecords = gc.api.GoldenWithLinkedRecords;
+  export import GoldenRecordDetails = gc.api.GoldenRecordDetails;
+  export import DeprecatedCounts = gc.api.DeprecatedCounts;
+  export import ReconciliationReportMatchView = gc.privateApi.ReconciliationReportMatchView;
+  export import SourceCountPoint = gc.privateApi.SourceCountPoint;
+  export import SourceRef = gc.privateApi.SourceRef;
+  export import GlobalQualityEntry = gc.privateApi.GlobalQualityEntry;
+  export import GoldenRecordPage = gc.privateApi.GoldenRecordPage;
+  export import SourceStatsRow = gc.privateApi.SourceStatsRow;
+  export import RecordTabResult = gc.privateApi.RecordTabResult;
+  export import ComparisonViewData = gc.privateApi.ComparisonViewData;
+  export import GlobalQualityHistory = gc.privateApi.GlobalQualityHistory;
+  export import LinkParameters = gc.privateApi.LinkParameters;
+  export import SourceCountSeries = gc.privateApi.SourceCountSeries;
+  export import SourceStats = gc.privateApi.SourceStats;
+  export import MatchedCandidateDetail = gc.privateApi.MatchedCandidateDetail;
+  export import ReconciliationReportView = gc.privateApi.ReconciliationReportView;
+  export import GoldenRecordScore = gc.privateApi.GoldenRecordScore;
   export import BkCaclrCityDTO = gc.backupExporter.BkCaclrCityDTO;
   export import BkBdaAddressDTO = gc.backupExporter.BkBdaAddressDTO;
   export import BkBdaStreetDTO = gc.backupExporter.BkBdaStreetDTO;
@@ -9999,12 +9986,11 @@ declare namespace gc {
   export import CaclrResponseBuildings = gc.caclrLoader.CaclrResponseBuildings;
   export import CaclrResponseCityItem = gc.caclrLoader.CaclrResponseCityItem;
   export import BdaCity = gc.bda.BdaCity;
+  export import BdaAddressFullRecord = gc.bda.BdaAddressFullRecord;
   export import BdaSource = gc.bda.BdaSource;
   export import BdaMunicipality = gc.bda.BdaMunicipality;
-  export import BdaAddressFullRecord = gc.bda.BdaAddressFullRecord;
   export import BdaAddress = gc.bda.BdaAddress;
   export import BdaStreet = gc.bda.BdaStreet;
-  export import CaclrAddressFullRecord = gc.caclr.CaclrAddressFullRecord;
   export import CaclrEurostatsIds = gc.caclr.CaclrEurostatsIds;
   export import CaclrSource = gc.caclr.CaclrSource;
   export import CaclrToken = gc.caclr.CaclrToken;
@@ -10013,6 +9999,7 @@ declare namespace gc {
   export import CaclrDataStatus = gc.caclr.CaclrDataStatus;
   export import CaclrTokenResponse = gc.caclr.CaclrTokenResponse;
   export import CaclrAddress = gc.caclr.CaclrAddress;
+  export import CaclrAddressFullRecord = gc.caclr.CaclrAddressFullRecord;
   export import CaclrCanton = gc.caclr.CaclrCanton;
   export import CaclrAdminStatus = gc.caclr.CaclrAdminStatus;
   export import CaclrConstituency = gc.caclr.CaclrConstituency;
@@ -10026,34 +10013,34 @@ declare namespace gc {
   export import GoldenConstituency = gc.golden.GoldenConstituency;
   export import GoldenStreet = gc.golden.GoldenStreet;
   export import GoldenAddress = gc.golden.GoldenAddress;
-  export import DataSource = gc.mengplaz.DataSource;
   export import StreetRecord = gc.mengplaz.StreetRecord;
-  export import AddressFullRecordRef = gc.mengplaz.AddressFullRecordRef;
-  export import ReconciliationCandidateScore = gc.mengplaz.ReconciliationCandidateScore;
   export import LinkedRecordEntry = gc.mengplaz.LinkedRecordEntry;
   export import SearchItem = gc.mengplaz.SearchItem;
   export import ExternalAddressRecord = gc.mengplaz.ExternalAddressRecord;
   export import StreetRecordProvider = gc.mengplaz.StreetRecordProvider;
-  export import AddressRecordProvider = gc.mengplaz.AddressRecordProvider;
-  export import StreetRecordRef = gc.mengplaz.StreetRecordRef;
-  export import GeoParameters = gc.mengplaz.GeoParameters;
+  export import ReconciliationReport = gc.mengplaz.ReconciliationReport;
+  export import AddressRecordRef = gc.mengplaz.AddressRecordRef;
   export import SearchParameters = gc.mengplaz.SearchParameters;
+  export import GeoParameters = gc.mengplaz.GeoParameters;
+  export import AddressRecordProvider = gc.mengplaz.AddressRecordProvider;
   export import Alias = gc.mengplaz.Alias;
   export import CandidateMatch = gc.mengplaz.CandidateMatch;
   export import QualityEventType = gc.mengplaz.QualityEventType;
+  export import StreetRecordRef = gc.mengplaz.StreetRecordRef;
+  export import ReconciliationCandidateScore = gc.mengplaz.ReconciliationCandidateScore;
   export import AddressRecord = gc.mengplaz.AddressRecord;
-  export import ReconciliationReport = gc.mengplaz.ReconciliationReport;
   export import SourceCountSnapshot = gc.mengplaz.SourceCountSnapshot;
+  export import AddressFullRecordRef = gc.mengplaz.AddressFullRecordRef;
   export import ScoringWeights = gc.mengplaz.ScoringWeights;
-  export import AddressRecordRef = gc.mengplaz.AddressRecordRef;
   export import SearchRequest = gc.mengplaz.SearchRequest;
   export import Match = gc.mengplaz.Match;
+  export import DataSource = gc.mengplaz.DataSource;
   export import QualityEvent = gc.mengplaz.QualityEvent;
   export import ReconciliationCandidate = gc.mengplaz.ReconciliationCandidate;
   export import OsmSource = gc.osm.OsmSource;
+  export import OsmAddressFullRecord = gc.osm.OsmAddressFullRecord;
   export import OsmStreet = gc.osm.OsmStreet;
   export import OsmAddress = gc.osm.OsmAddress;
-  export import OsmAddressFullRecord = gc.osm.OsmAddressFullRecord;
   export import OsmPartialAddress = gc.osm.OsmPartialAddress;
   export import OsmCity = gc.osm.OsmCity;
   export import OsmParsedAddress = gc.osm.OsmParsedAddress;
@@ -10061,182 +10048,182 @@ declare namespace gc {
   export import GoldenStreetIndexStats = gc.goldenStreetSearch.GoldenStreetIndexStats;
   export import GoldenBenchCase = gc.goldenTextBench.GoldenBenchCase;
   export import StatsService = gc.statsService.StatsService;
-  export import GoldenTextSearch = gc.goldenTextSearch.GoldenTextSearch;
   export import GoldenTextIndexStats = gc.goldenTextSearch.GoldenTextIndexStats;
+  export import GoldenTextSearch = gc.goldenTextSearch.GoldenTextSearch;
   export import SourceTextIndexStats = gc.sourceTextSearch.SourceTextIndexStats;
   export import SourceTextSearch = gc.sourceTextSearch.SourceTextSearch;
-  export import GoldenServices = gc.goldenServices.GoldenServices;
   export import UpdateService = gc.updateService.UpdateService;
+  export import GoldenServices = gc.goldenServices.GoldenServices;
   export import SplitAlphaNumericalString = gc.utils.SplitAlphaNumericalString;
-  export import HttpReader = gc.http.HttpReader;
+  export import Http = gc.http.Http;
   export import HttpRequest = gc.http.HttpRequest;
   export import HttpMethod = gc.http.HttpMethod;
   export import HttpResponse = gc.http.HttpResponse;
-  export import Http = gc.http.Http;
-  export import BM25Result = gc.bm25_engine.BM25Result;
+  export import HttpReader = gc.http.HttpReader;
   export import BM25Engine = gc.bm25_engine.BM25Engine;
-  export import BooleanAccel = gc.boolean_engine.BooleanAccel;
+  export import BM25Result = gc.bm25_engine.BM25Result;
   export import BooleanEngine = gc.boolean_engine.BooleanEngine;
+  export import BooleanAccel = gc.boolean_engine.BooleanAccel;
   export import CurationHelper = gc.curation_engine.CurationHelper;
   export import FuzzyEngine = gc.fuzzy_engine.FuzzyEngine;
-  export import TrigramCandidate = gc.fuzzy_engine.TrigramCandidate;
   export import FuzzyScoreResult = gc.fuzzy_engine.FuzzyScoreResult;
-  export import PercolateIndex = gc.percolate_engine.PercolateIndex;
+  export import TrigramCandidate = gc.fuzzy_engine.TrigramCandidate;
   export import PercolateEngine = gc.percolate_engine.PercolateEngine;
   export import PercolatedQuery = gc.percolate_engine.PercolatedQuery;
-  export import PhoneticEngine = gc.phonetic_engine.PhoneticEngine;
+  export import PercolateIndex = gc.percolate_engine.PercolateIndex;
   export import PhoneticCodec = gc.phonetic_engine.PhoneticCodec;
-  export import PhraseCandidate = gc.phrase_engine.PhraseCandidate;
+  export import PhoneticEngine = gc.phonetic_engine.PhoneticEngine;
   export import PhraseEngine = gc.phrase_engine.PhraseEngine;
+  export import PhraseCandidate = gc.phrase_engine.PhraseCandidate;
   export import PhraseAccel = gc.phrase_engine.PhraseAccel;
   export import PrefixEngine = gc.prefix_engine.PrefixEngine;
   export import ProximityEngine = gc.proximity_engine.ProximityEngine;
   export import QuorumEngine = gc.quorum_engine.QuorumEngine;
   export import QuorumAccum = gc.quorum_engine.QuorumAccum;
-  export import SpanEngine = gc.span_engine.SpanEngine;
   export import SpanAccel = gc.span_engine.SpanAccel;
-  export import SuggestEngine = gc.suggest_engine.SuggestEngine;
-  export import DidYouMeanResult = gc.suggest_engine.DidYouMeanResult;
+  export import SpanEngine = gc.span_engine.SpanEngine;
   export import Suggestion = gc.suggest_engine.Suggestion;
   export import DidYouMeanBest = gc.suggest_engine.DidYouMeanBest;
+  export import SuggestEngine = gc.suggest_engine.SuggestEngine;
+  export import DidYouMeanResult = gc.suggest_engine.DidYouMeanResult;
   export import WildcardEngine = gc.wildcard_engine.WildcardEngine;
-  export import DocumentStats = gc.document.DocumentStats;
-  export import Sentence = gc.document.Sentence;
-  export import Document = gc.document.Document;
-  export import SectionType = gc.document.SectionType;
   export import Section = gc.document.Section;
-  export import MetricType = gc.facet_types.MetricType;
-  export import HistogramBucket = gc.facet_types.HistogramBucket;
-  export import AggregationRequest = gc.facet_types.AggregationRequest;
-  export import AdvancedFacetedResult = gc.facet_types.AdvancedFacetedResult;
-  export import NumericRangeBucket = gc.facet_types.NumericRangeBucket;
+  export import SectionType = gc.document.SectionType;
+  export import Document = gc.document.Document;
+  export import Sentence = gc.document.Sentence;
+  export import DocumentStats = gc.document.DocumentStats;
   export import HistogramResult = gc.facet_types.HistogramResult;
+  export import TermCount = gc.facet_types.TermCount;
+  export import AggregationRequest = gc.facet_types.AggregationRequest;
   export import FacetType = gc.facet_types.FacetType;
+  export import MetricResult = gc.facet_types.MetricResult;
+  export import MetricType = gc.facet_types.MetricType;
   export import MetricAggregation = gc.facet_types.MetricAggregation;
   export import AggregatedSearchResult = gc.facet_types.AggregatedSearchResult;
+  export import NumericRangeBucket = gc.facet_types.NumericRangeBucket;
+  export import AdvancedFacetedResult = gc.facet_types.AdvancedFacetedResult;
   export import HistogramAggregation = gc.facet_types.HistogramAggregation;
-  export import MetricResult = gc.facet_types.MetricResult;
   export import FacetRequest = gc.facet_types.FacetRequest;
+  export import HistogramBucket = gc.facet_types.HistogramBucket;
   export import AggregationEngine = gc.facet_types.AggregationEngine;
   export import NumericBucketCount = gc.facet_types.NumericBucketCount;
-  export import TermCount = gc.facet_types.TermCount;
   export import TextIndex = gc.text_index.TextIndex;
-  export import IndexEntry = gc.text_index_types.IndexEntry;
-  export import RRFOptions = gc.text_index_types.RRFOptions;
-  export import Term = gc.text_index_types.Term;
-  export import MoreLikeThisOptions = gc.text_index_types.MoreLikeThisOptions;
-  export import PhraseOptions = gc.text_index_types.PhraseOptions;
-  export import FieldModifier = gc.text_index_types.FieldModifier;
-  export import SnippetOptions = gc.text_index_types.SnippetOptions;
-  export import TextSearchLanguage = gc.text_index_types.TextSearchLanguage;
-  export import TrigramPostings = gc.text_index_types.TrigramPostings;
-  export import HighlightOptions = gc.text_index_types.HighlightOptions;
-  export import DiversifyOptions = gc.text_index_types.DiversifyOptions;
-  export import SearchCursor = gc.text_index_types.SearchCursor;
-  export import BM25Options = gc.text_index_types.BM25Options;
-  export import ScoreExplanation = gc.text_index_types.ScoreExplanation;
-  export import SpanOperator = gc.text_index_types.SpanOperator;
-  export import SearchMode = gc.text_index_types.SearchMode;
-  export import TermExplanation = gc.text_index_types.TermExplanation;
-  export import Snippet = gc.text_index_types.Snippet;
-  export import EdgeNgramOptions = gc.text_index_types.EdgeNgramOptions;
-  export import LMDirichletOptions = gc.text_index_types.LMDirichletOptions;
-  export import TextIndexStats = gc.text_index_types.TextIndexStats;
-  export import IndexChunk = gc.text_index_types.IndexChunk;
-  export import ShortCircuitOptions = gc.text_index_types.ShortCircuitOptions;
-  export import ChunkingOptions = gc.text_index_types.ChunkingOptions;
-  export import FieldRef = gc.text_index_types.FieldRef;
-  export import FuzzyOptions = gc.text_index_types.FuzzyOptions;
   export import TermScorePair = gc.text_index_types.TermScorePair;
-  export import FieldConfig = gc.text_index_types.FieldConfig;
-  export import FusionOptions = gc.text_index_types.FusionOptions;
-  export import BM25Variant = gc.text_index_types.BM25Variant;
-  export import Normalization = gc.text_index_types.Normalization;
-  export import StopWordMode = gc.text_index_types.StopWordMode;
-  export import TextIndexConfig = gc.text_index_types.TextIndexConfig;
-  export import RangeFilter = gc.text_index_types.RangeFilter;
-  export import ProximityOptions = gc.text_index_types.ProximityOptions;
-  export import ChunkStrategy = gc.text_index_types.ChunkStrategy;
-  export import TrieNode = gc.text_index_types.TrieNode;
-  export import StopWordOptions = gc.text_index_types.StopWordOptions;
-  export import NormalizedTerm = gc.text_index_types.NormalizedTerm;
-  export import ScoreMode = gc.text_index_types.ScoreMode;
-  export import TermBoost = gc.text_index_types.TermBoost;
-  export import TextEntry = gc.text_index_types.TextEntry;
-  export import TokenizationOptions = gc.text_index_types.TokenizationOptions;
-  export import FusionMethod = gc.text_index_types.FusionMethod;
-  export import FuzzyMode = gc.text_index_types.FuzzyMode;
+  export import IndexEntry = gc.text_index_types.IndexEntry;
   export import PhoneticPostings = gc.text_index_types.PhoneticPostings;
-  export import TermFilter = gc.text_index_types.TermFilter;
+  export import BM25Variant = gc.text_index_types.BM25Variant;
+  export import TermBoost = gc.text_index_types.TermBoost;
+  export import FusionMethod = gc.text_index_types.FusionMethod;
+  export import PhraseOptions = gc.text_index_types.PhraseOptions;
+  export import Snippet = gc.text_index_types.Snippet;
+  export import DFROptions = gc.text_index_types.DFROptions;
+  export import TextSearchLanguage = gc.text_index_types.TextSearchLanguage;
+  export import ChunkingOptions = gc.text_index_types.ChunkingOptions;
+  export import TermExplanation = gc.text_index_types.TermExplanation;
+  export import HighlightOptions = gc.text_index_types.HighlightOptions;
+  export import LMDirichletOptions = gc.text_index_types.LMDirichletOptions;
+  export import FieldModifier = gc.text_index_types.FieldModifier;
+  export import TokenizationOptions = gc.text_index_types.TokenizationOptions;
+  export import FieldConfig = gc.text_index_types.FieldConfig;
+  export import ShortCircuitOptions = gc.text_index_types.ShortCircuitOptions;
+  export import RangeFilter = gc.text_index_types.RangeFilter;
+  export import SearchMode = gc.text_index_types.SearchMode;
+  export import TextIndexStats = gc.text_index_types.TextIndexStats;
+  export import TextIndexConfig = gc.text_index_types.TextIndexConfig;
+  export import EdgeNgramOptions = gc.text_index_types.EdgeNgramOptions;
+  export import FieldRef = gc.text_index_types.FieldRef;
+  export import StopWordMode = gc.text_index_types.StopWordMode;
+  export import DiversifyOptions = gc.text_index_types.DiversifyOptions;
+  export import TrieNode = gc.text_index_types.TrieNode;
+  export import SpanOperator = gc.text_index_types.SpanOperator;
+  export import IndexChunk = gc.text_index_types.IndexChunk;
+  export import TypoOptions = gc.text_index_types.TypoOptions;
+  export import Term = gc.text_index_types.Term;
   export import NormOptions = gc.text_index_types.NormOptions;
+  export import StopWordOptions = gc.text_index_types.StopWordOptions;
+  export import TermFilter = gc.text_index_types.TermFilter;
+  export import BM25Options = gc.text_index_types.BM25Options;
+  export import SnippetOptions = gc.text_index_types.SnippetOptions;
+  export import SortClause = gc.text_index_types.SortClause;
+  export import FuzzyOptions = gc.text_index_types.FuzzyOptions;
+  export import SearchCursor = gc.text_index_types.SearchCursor;
+  export import ProximityOptions = gc.text_index_types.ProximityOptions;
+  export import FuzzyMode = gc.text_index_types.FuzzyMode;
+  export import TextEntry = gc.text_index_types.TextEntry;
+  export import ChunkStrategy = gc.text_index_types.ChunkStrategy;
+  export import MoreLikeThisOptions = gc.text_index_types.MoreLikeThisOptions;
+  export import Normalization = gc.text_index_types.Normalization;
+  export import TrigramPostings = gc.text_index_types.TrigramPostings;
+  export import ScoreMode = gc.text_index_types.ScoreMode;
   export import BoostMode = gc.text_index_types.BoostMode;
   export import TextResult = gc.text_index_types.TextResult;
-  export import CurationRule = gc.text_index_types.CurationRule;
-  export import DFROptions = gc.text_index_types.DFROptions;
-  export import SortClause = gc.text_index_types.SortClause;
-  export import TypoOptions = gc.text_index_types.TypoOptions;
+  export import NormalizedTerm = gc.text_index_types.NormalizedTerm;
+  export import ScoreExplanation = gc.text_index_types.ScoreExplanation;
   export import PercolateMode = gc.text_index_types.PercolateMode;
+  export import CurationRule = gc.text_index_types.CurationRule;
+  export import FusionOptions = gc.text_index_types.FusionOptions;
+  export import RRFOptions = gc.text_index_types.RRFOptions;
   export import SearchOptions = gc.text_index_types.SearchOptions;
   export import BooleanOperator = gc.boolean_parser.BooleanOperator;
+  export import BooleanParser = gc.boolean_parser.BooleanParser;
   export import ParseResult = gc.boolean_parser.ParseResult;
   export import BooleanQuery = gc.boolean_parser.BooleanQuery;
-  export import BooleanParser = gc.boolean_parser.BooleanParser;
   export import SpanQuery = gc.span_parser.SpanQuery;
   export import SpanParser = gc.span_parser.SpanParser;
   export import PorterStemmer = gc.stemmer.PorterStemmer;
   export import StringUtils = gc.string_utils.StringUtils;
-  export import TextChunker = gc.text_chunker.TextChunker;
   export import ChunkInfo = gc.text_chunker.ChunkInfo;
+  export import TextChunker = gc.text_chunker.TextChunker;
   export import TextNormalizer = gc.text_normalizer.TextNormalizer;
   export import TextParser = gc.text_parser.TextParser;
   export import ParsedSection = gc.text_parser.ParsedSection;
   export import TokenInfo = gc.text_tokenizer.TokenInfo;
+  export import TextTokenizer = gc.text_tokenizer.TextTokenizer;
   export import TermFrequency = gc.text_tokenizer.TermFrequency;
   export import TokenizerAccel = gc.text_tokenizer.TokenizerAccel;
-  export import TextTokenizer = gc.text_tokenizer.TextTokenizer;
-  export import DFRScorer = gc.dfr_engine.DFRScorer;
   export import DFREngine = gc.dfr_engine.DFREngine;
   export import DFRBasicModel = gc.dfr_engine.DFRBasicModel;
   export import DFRNormalization = gc.dfr_engine.DFRNormalization;
-  export import DFRAfterEffect = gc.dfr_engine.DFRAfterEffect;
   export import DFRAccum = gc.dfr_engine.DFRAccum;
-  export import DecayFunction = gc.function_score.DecayFunction;
-  export import DecayType = gc.function_score.DecayType;
-  export import FunctionScoreAccel = gc.function_score.FunctionScoreAccel;
-  export import FieldValueFactor = gc.function_score.FieldValueFactor;
+  export import DFRAfterEffect = gc.dfr_engine.DFRAfterEffect;
+  export import DFRScorer = gc.dfr_engine.DFRScorer;
   export import FunctionScoreEngine = gc.function_score.FunctionScoreEngine;
   export import FunctionScoreConfig = gc.function_score.FunctionScoreConfig;
-  export import FusionAccum = gc.fusion.FusionAccum;
+  export import DecayType = gc.function_score.DecayType;
+  export import DecayFunction = gc.function_score.DecayFunction;
+  export import FieldValueFactor = gc.function_score.FieldValueFactor;
+  export import FunctionScoreAccel = gc.function_score.FunctionScoreAccel;
   export import FederatedSearch = gc.fusion.FederatedSearch;
   export import FusionInput = gc.fusion.FusionInput;
+  export import FusionAccum = gc.fusion.FusionAccum;
   export import Fusion = gc.fusion.Fusion;
-  export import LMDAccum = gc.lm_dirichlet_engine.LMDAccum;
   export import LMDirichletEngine = gc.lm_dirichlet_engine.LMDirichletEngine;
+  export import LMDAccum = gc.lm_dirichlet_engine.LMDAccum;
   export import LMDirichletAccel = gc.lm_dirichlet_engine.LMDirichletAccel;
   export import MMR = gc.mmr.MMR;
-  export import RankingRule = gc.ranking_rules.RankingRule;
   export import RankingRulesEngine = gc.ranking_rules.RankingRulesEngine;
   export import RankingCandidate = gc.ranking_rules.RankingCandidate;
+  export import RankingRule = gc.ranking_rules.RankingRule;
   export import SearchAccel = gc.search_accel.SearchAccel;
   export import CharMap = gc.char_map.CharMap;
   export import DocReader = gc.doc_reader.DocReader;
   export import RegexAccel = gc.regex_accel.RegexAccel;
   export import RegexUtils = gc.regex_utils.RegexUtils;
   export import RegexMatch = gc.regex_utils.RegexMatch;
+  export import SnippetFragment = gc.snippet.SnippetFragment;
   export import SnippetExtractor = gc.snippet.SnippetExtractor;
   export import WindowResult = gc.snippet.WindowResult;
-  export import SnippetFragment = gc.snippet.SnippetFragment;
   export import StopWords = gc.stop_words.StopWords;
-  export import AddressDoc = gc.address_index.AddressDoc;
-  export import AddressMatchLevel = gc.address_index.AddressMatchLevel;
   export import AddressSearchHit = gc.address_index.AddressSearchHit;
   export import AddressIndex = gc.address_index.AddressIndex;
+  export import AddressMatchLevel = gc.address_index.AddressMatchLevel;
+  export import AddressDoc = gc.address_index.AddressDoc;
   export import AddressComponents = gc.address_index.AddressComponents;
-  export import PostalExpandOptions = gc.postal.PostalExpandOptions;
-  export import PostalComponent = gc.postal.PostalComponent;
-  export import PostalAddress = gc.postal.PostalAddress;
-  export import PostalOptions = gc.postal.PostalOptions;
   export import PostalParsedAddress = gc.postal.PostalParsedAddress;
+  export import PostalComponent = gc.postal.PostalComponent;
+  export import PostalExpandOptions = gc.postal.PostalExpandOptions;
+  export import PostalOptions = gc.postal.PostalOptions;
+  export import PostalAddress = gc.postal.PostalAddress;
   export import mcp_initialize = gc.runtime.mcp_initialize;
   export import mcp_tools_list = gc.runtime.mcp_tools_list;
   export import mcp_tools_call = gc.runtime.mcp_tools_call;
@@ -10246,6 +10233,28 @@ declare namespace gc {
   export import mcp_tasks_result = gc.runtime.mcp_tasks_result;
   export import mcp_tasks_list = gc.runtime.mcp_tasks_list;
   export import mcp_tasks_cancel = gc.runtime.mcp_tasks_cancel;
+  export import getPoisInStreet = gc.api.getPoisInStreet;
+  export import searchStreet = gc.api.searchStreet;
+  export import getPois = gc.api.getPois;
+  export import getPoisByGeo = gc.api.getPoisByGeo;
+  export import getGoldenRecordDetails = gc.api.getGoldenRecordDetails;
+  export import getGoldenRecordRefByUid = gc.api.getGoldenRecordRefByUid;
+  export import getRecordByGeoportailID = gc.api.getRecordByGeoportailID;
+  export import getGoldenLocalities = gc.api.getGoldenLocalities;
+  export import getGoldenCommunes = gc.api.getGoldenCommunes;
+  export import getGoldenStreetsByLocalityId = gc.api.getGoldenStreetsByLocalityId;
+  export import getGoldenNumbersByStreetId = gc.api.getGoldenNumbersByStreetId;
+  export import getGoldenRecords = gc.api.getGoldenRecords;
+  export import getGoldenRecordsGeoJson = gc.api.getGoldenRecordsGeoJson;
+  export import attribution = gc.api.attribution;
+  export import openapi = gc.api.openapi;
+  export import getGlobalQualityHistory = gc.api.getGlobalQualityHistory;
+  export import getGoldenRecordScores = gc.api.getGoldenRecordScores;
+  export import appInfo = gc.api.appInfo;
+  export import searchAddress = gc.api.searchAddress;
+  export import getGoldenWithLinkedRecords = gc.api.getGoldenWithLinkedRecords;
+  export import getSourceStats = gc.api.getSourceStats;
+  export import getDeprecatedCounts = gc.api.getDeprecatedCounts;
   export import promoteRecord = gc.privateApi.promoteRecord;
   export import linkRecords = gc.privateApi.linkRecords;
   export import unlinkRecord = gc.privateApi.unlinkRecord;
@@ -10275,26 +10284,4 @@ declare namespace gc {
   export import recomputeGoldenGeoScore = gc.privateApi.recomputeGoldenGeoScore;
   export import backupGraph = gc.privateApi.backupGraph;
   export import restoreGraph = gc.privateApi.restoreGraph;
-  export import getPoisInStreet = gc.api.getPoisInStreet;
-  export import searchStreet = gc.api.searchStreet;
-  export import getPois = gc.api.getPois;
-  export import getPoisByGeo = gc.api.getPoisByGeo;
-  export import getGoldenRecordDetails = gc.api.getGoldenRecordDetails;
-  export import getGoldenRecordRefByUid = gc.api.getGoldenRecordRefByUid;
-  export import getRecordByGeoportailID = gc.api.getRecordByGeoportailID;
-  export import getGoldenLocalities = gc.api.getGoldenLocalities;
-  export import getGoldenCommunes = gc.api.getGoldenCommunes;
-  export import getGoldenStreetsByLocalityId = gc.api.getGoldenStreetsByLocalityId;
-  export import getGoldenNumbersByStreetId = gc.api.getGoldenNumbersByStreetId;
-  export import getGoldenRecords = gc.api.getGoldenRecords;
-  export import getGoldenRecordsGeoJson = gc.api.getGoldenRecordsGeoJson;
-  export import attribution = gc.api.attribution;
-  export import openapi = gc.api.openapi;
-  export import getGlobalQualityHistory = gc.api.getGlobalQualityHistory;
-  export import getGoldenRecordScores = gc.api.getGoldenRecordScores;
-  export import appInfo = gc.api.appInfo;
-  export import searchAddress = gc.api.searchAddress;
-  export import getGoldenWithLinkedRecords = gc.api.getGoldenWithLinkedRecords;
-  export import getSourceStats = gc.api.getSourceStats;
-  export import getDeprecatedCounts = gc.api.getDeprecatedCounts;
 }

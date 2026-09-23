@@ -54,6 +54,9 @@ export class MpComparisonDashboard extends LitElement {
       background: var(--gc-surface);
       overflow: hidden;
     }
+    .detail:first-child {
+      margin-top: 0;
+    }
     .detail-head {
       display: flex;
       align-items: center;
@@ -92,6 +95,8 @@ export class MpComparisonDashboard extends LitElement {
 
   @property({ attribute: false }) comparisonData: gc.privateApi.ComparisonViewData | null = null;
   @property({ type: Boolean, attribute: 'show-actions' }) showActions = true;
+  /** A linked record has a single golden, so the comparison is all there is to show. */
+  @property({ type: Boolean, attribute: 'detail-only' }) detailOnly = false;
 
   @state() private detail: gc.privateApi.MatchedCandidateDetail | null = null;
 
@@ -125,44 +130,55 @@ export class MpComparisonDashboard extends LitElement {
     }
     const count = data.candidates.length;
     return html`
-      <div class="panels">
-        <mp-master-record-panel .record=${data.sourceRecord} ?show-actions=${this.showActions}></mp-master-record-panel>
-        <div class="candidates">
-          <div class="candidates-head">${count} golden${count === 1 ? '' : 's'} found for comparison</div>
-          <mp-candidates-table
-            .candidates=${data.candidates}
-            .sourceRecord=${data.sourceRecord}
-            ?show-link-button=${this.showActions}
-          ></mp-candidates-table>
-        </div>
-      </div>
+      ${
+        this.detailOnly
+          ? ''
+          : html`<div class="panels">
+              <mp-master-record-panel
+                .record=${data.sourceRecord}
+                ?show-actions=${this.showActions}
+              ></mp-master-record-panel>
+              <div class="candidates">
+                <div class="candidates-head">${count} golden${count === 1 ? '' : 's'} found for comparison</div>
+                <mp-candidates-table
+                  .candidates=${data.candidates}
+                  .sourceRecord=${data.sourceRecord}
+                  ?show-link-button=${this.showActions}
+                ></mp-candidates-table>
+              </div>
+            </div>`
+      }
       ${
         this.detail
           ? html`<div class="detail">
               <div class="detail-head">
                 <span>Detailed Comparison</span>
-                <wa-button
-                  size="s"
-                  appearance="plain"
-                  @click=${() => {
-                    this.detail = null;
-                  }}
-                >
-                  <svg
-                    slot="start"
-                    class="ico"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                  >
-                    ${unsafeSVG(ICONS.close)}
-                  </svg>
-                  <span class="sr-only">Close detailed comparison</span>
-                </wa-button>
+                ${
+                  this.detailOnly
+                    ? ''
+                    : html`<wa-button
+                        size="s"
+                        appearance="plain"
+                        @click=${() => {
+                          this.detail = null;
+                        }}
+                      >
+                        <svg
+                          slot="start"
+                          class="ico"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          ${unsafeSVG(ICONS.close)}
+                        </svg>
+                        <span class="sr-only">Close detailed comparison</span>
+                      </wa-button>`
+                }
               </div>
               <div class="detail-body">
                 <mp-record-comparison-view
