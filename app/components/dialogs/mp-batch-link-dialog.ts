@@ -118,7 +118,10 @@ export class MpBatchLinkDialog extends LitElement {
       <wa-dialog
         label="Batch Link"
         ?open=${this.open}
-        @wa-hide=${() => {
+        @wa-hide=${(e: Event) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
           if (this.resolve) {
             this.finish(null);
           }

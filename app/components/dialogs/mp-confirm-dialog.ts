@@ -78,7 +78,10 @@ export class MpConfirmDialog extends LitElement {
       <wa-dialog
         label="Please confirm"
         ?open=${this.open}
-        @wa-hide=${() => {
+        @wa-hide=${(e: Event) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
           // Covers Escape and the close button as well as the footer buttons.
           if (this.resolve) {
             this.answer(false);

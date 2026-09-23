@@ -50,7 +50,10 @@ export class MpSearchDialog extends LitElement {
       <wa-dialog
         label="Search a Golden record"
         ?open=${this.open}
-        @wa-hide=${() => {
+        @wa-hide=${(e: Event) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
           this.open = false;
         }}
       >

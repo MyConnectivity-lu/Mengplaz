@@ -257,7 +257,10 @@ export class MpAddressCard extends LitElement {
             ? html`<wa-dialog
                 label="Scan to open this record"
                 ?open=${this.qrOpen}
-                @wa-hide=${() => {
+                @wa-hide=${(e: Event) => {
+                  if (e.target !== e.currentTarget) {
+                    return;
+                  }
                   this.qrOpen = false;
                 }}
               >

@@ -111,27 +111,30 @@ function findRecordTab(
   return null;
 }
 
+type PlainTab = 'linked' | 'fullMatch' | 'multipleMatch' | 'noMatch';
+
+const PLAIN_TABS: Array<[TabKey, PlainTab]> = [
+  ['Linked', 'linked'],
+  ['Matched', 'fullMatch'],
+  ['MultipleMatch', 'multipleMatch'],
+  ['NoMatch', 'noMatch'],
+];
+
 /**
  * Drop a record from whichever tab holds it. Mutating the report locally keeps
- * the queue moving after an action without re-fetching the whole report.
+ * the queue moving after an action without re-fetching the whole report. Lists
+ * are replaced, never spliced: a pane only reloads when its `recordIds` changes
+ * identity.
  */
 function removeRecordFromReport(report: gc.privateApi.ReconciliationReportView, sourceId: string): TabKey | null {
-  const plain: Array<[TabKey, string[]]> = [
-    ['Linked', report.linked],
-    ['Matched', report.fullMatch],
-    ['MultipleMatch', report.multipleMatch],
-    ['NoMatch', report.noMatch],
-  ];
-  for (const [key, list] of plain) {
-    const idx = list.indexOf(sourceId);
-    if (idx !== -1) {
-      list.splice(idx, 1);
+  for (const [key, field] of PLAIN_TABS) {
+    if (report[field].includes(sourceId)) {
+      report[field] = report[field].filter((id) => id !== sourceId);
       return key;
     }
   }
-  const idx = report.partialMatch.findIndex((m) => m.id === sourceId);
-  if (idx !== -1) {
-    report.partialMatch.splice(idx, 1);
+  if (report.partialMatch.some((m) => m.id === sourceId)) {
+    report.partialMatch = report.partialMatch.filter((m) => m.id !== sourceId);
     return 'Mismatched';
   }
   return null;
@@ -144,29 +147,17 @@ function addRecordToReport(
   tab: TabKey,
   score?: number | null,
 ) {
-  switch (tab) {
-    case 'Linked':
-      report.linked.push(sourceId);
-      break;
-    case 'Matched':
-      report.fullMatch.push(sourceId);
-      break;
-    case 'MultipleMatch':
-      report.multipleMatch.push(sourceId);
-      break;
-    case 'Mismatched': {
-      const entry = { id: sourceId, score: score ?? null } as gc.privateApi.ReconciliationReportMatchView;
-      const at = report.partialMatch.findIndex((m) => (m.score ?? 0) < (score ?? 0));
-      if (at === -1) {
-        report.partialMatch.push(entry);
-      } else {
-        report.partialMatch.splice(at, 0, entry);
-      }
-      break;
-    }
-    case 'NoMatch':
-      report.noMatch.push(sourceId);
-      break;
+  if (tab === 'Mismatched') {
+    const entry = { id: sourceId, score: score ?? null } as gc.privateApi.ReconciliationReportMatchView;
+    const list = [...report.partialMatch];
+    const at = list.findIndex((m) => (m.score ?? 0) < (score ?? 0));
+    list.splice(at === -1 ? list.length : at, 0, entry);
+    report.partialMatch = list;
+    return;
+  }
+  const field = PLAIN_TABS.find(([key]) => key === tab)?.[1];
+  if (field) {
+    report[field] = [...report[field], sourceId];
   }
 }
 

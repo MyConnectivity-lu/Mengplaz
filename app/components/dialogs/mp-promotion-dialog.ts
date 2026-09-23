@@ -11,6 +11,17 @@ interface Entry {
   name: string;
 }
 
+/** Source records spell names more loosely than the golden graph, so compare folded. */
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+
+function findByName(entries: Entry[], name: string | null | undefined): Entry | undefined {
+  if (!name) {
+    return undefined;
+  }
+  const wanted = fold(name);
+  return entries.find((e) => fold(e.name) === wanted);
+}
+
 /**
  * Promote a source record to a golden record of its own. The reviewer picks the
  * locality and street the new golden record belongs under; the preview shows the
@@ -62,16 +73,19 @@ export class MpPromotionDialog extends LitElement {
     if (this.cities.length === 0) {
       this.cities = await gc.getGoldenLocalities(null);
     }
-    const city = this.cities.find((c) => c.name === this.value?.record.city);
+    const city = findByName(this.cities, this.value?.record.locality);
     this.cityId = city?.id ?? '';
-    this.streets = city ? await gc.getGoldenStreetsByLocalityId(city.id) : [];
-    this.streetId = this.streets.find((s) => s.name === this.value?.record.street)?.id ?? '';
+    await this.loadStreets();
   }
 
   private async onCity(e: Event) {
     this.cityId = (e.target as HTMLSelectElement).value;
+    await this.loadStreets();
+  }
+
+  private async loadStreets() {
     this.streets = this.cityId ? await gc.getGoldenStreetsByLocalityId(this.cityId) : [];
-    this.streetId = this.streets.find((s) => s.name === this.value?.record.street)?.id ?? '';
+    this.streetId = findByName(this.streets, this.value?.record.street)?.id ?? '';
   }
 
   private finish(value: string | undefined) {
@@ -89,7 +103,7 @@ export class MpPromotionDialog extends LitElement {
     return gc.mengplaz.AddressRecord.createFrom({
       number: `${record.number ?? '--'}${record.multipleCode ?? ''}`,
       postcode: record.postcode ?? '--',
-      locality: this.cities.find((c) => c.id === this.cityId)?.name ?? record.city,
+      locality: this.cities.find((c) => c.id === this.cityId)?.name ?? record.locality,
       street: this.streets.find((s) => s.id === this.streetId)?.name ?? record.street,
       sourceName: 'Golden',
     });
@@ -100,7 +114,10 @@ export class MpPromotionDialog extends LitElement {
       <wa-dialog
         label="Promote Record"
         ?open=${this.open}
-        @wa-hide=${() => {
+        @wa-hide=${(e: Event) => {
+          if (e.target !== e.currentTarget) {
+            return;
+          }
           if (this.resolve) {
             this.finish(undefined);
           }
@@ -110,7 +127,7 @@ export class MpPromotionDialog extends LitElement {
           <wa-select
             label="Choose a Locality"
             with-label
-            value=${this.cityId}
+            .value=${this.cityId}
             @change=${(e: Event) => void this.onCity(e)}
           >
             ${this.cities.map((c) => html`<wa-option value=${c.id}>${c.name}</wa-option>`)}
@@ -118,7 +135,7 @@ export class MpPromotionDialog extends LitElement {
           <wa-select
             label="Choose a Street"
             with-label
-            value=${this.streetId}
+            .value=${this.streetId}
             @change=${(e: Event) => {
               this.streetId = (e.target as HTMLSelectElement).value;
             }}
