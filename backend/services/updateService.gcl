@@ -161,6 +161,18 @@ type UpdateService {
         info("BDA import finished");
     }
 
+    /// An OSM `ref:caclr` tag is hand-maintained and can be stale, so it only links when the
+    /// reconciliation also found that golden record with the same number, street and city.
+    static fn confirmsCaclrRef(candidates: Array<ReconciliationCandidate>, nGolden: node<GoldenAddress>): bool {
+        for (_, candidate in candidates) {
+            if (candidate.candidateRecord == (nGolden as node<AddressRecordProvider>)) {
+                var score = candidate.score;
+                return score == null || (score.numberScore == 1 && score.streetScore == 1 && score.cityScore == 1);
+            }
+        }
+        return false;
+    }
+
     static fn osm() {
         info("Started OSM Import");
         var success = OsmLoader::load();
@@ -191,26 +203,34 @@ type UpdateService {
             }
         }
 
-        var toLink = Array<node<OsmAddress>> {};
-        var ids = Array<String> {};
-        for (record: node<OsmAddress>, _ in report->unlinked) {
-            var caclrRecord = caclr_addresses_by_id.get("${record->ref_caclr}");
-            if (caclrRecord != null && caclrRecord->getLinkedGolden() != null) {
-                toLink.add(record);
-                ids.add(record->getId());
+        var toLink = Map<node<OsmAddress>, node<GoldenAddress>> {};
+        var rejected = 0;
+        for (record: node<OsmAddress>, candidates in report->unlinked) {
+            var nGolden = caclr_addresses_by_id.get("${record->ref_caclr}")?->getLinkedGolden();
+            if (nGolden == null) {
+                continue;
+            }
+            if (UpdateService::confirmsCaclrRef(candidates, nGolden)) {
+                toLink.set(record, nGolden);
+            } else {
+                rejected++;
             }
         }
 
-        for (_, value in toLink) {
-            var caclrRecord = caclr_addresses_by_id.get("${value->ref_caclr}");
-            if (caclrRecord != null) {
-                linkRecords(value, caclrRecord->getLinkedGolden()!!, null);
-            }
+        var ids = Array<String> {};
+        for (record, nGolden in toLink) {
+            linkRecords(record, nGolden, null);
+            ids.add(record->getId());
         }
 
         mergePositionsToGolden(s, ids);
 
-        info("Linked ${toLink.size()} Records");
+        info("Linked ${ids.size()} Records");
+        if (rejected > 0) {
+            warn(
+                "${rejected} OSM records kept unlinked: their CACLR ref is not confirmed by the reconciliation candidates"
+            );
+        }
 
         var c = 0;
         for (_, nRecord in osm_addresses_by_id) {

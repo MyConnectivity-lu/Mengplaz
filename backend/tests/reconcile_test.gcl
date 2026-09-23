@@ -394,3 +394,56 @@ fn reconcilingAnUnknownSourceIsRefused() {
     }
     Assert::isTrue(threw);
 }
+
+fn scoredCandidate(
+    nGolden: node<GoldenAddress>,
+    number: float,
+    street: float,
+    city: float,
+    postcode: float
+): ReconciliationCandidate {
+    return ReconciliationCandidate {
+        candidateRecord: nGolden,
+        mismatch: null,
+        score: ReconciliationCandidateScore {
+            cityScore: city,
+            streetScore: street,
+            numberScore: number,
+            postcodeScore: postcode,
+            geoScore: null,
+            overallScore: 0.9,
+        },
+    };
+}
+
+@test
+fn aCaclrRefIsConfirmedWhenItsGoldenMatchesOnNumberStreetAndCity() {
+    var nGolden = fixtures_test::seedGolden("");
+    Assert::isTrue(UpdateService::confirmsCaclrRef(Array<ReconciliationCandidate> {
+        scoredCandidate(nGolden, 1.0, 1.0, 1.0, 0.5)
+    }, nGolden));
+}
+
+@test
+fn aCaclrRefIsRejectedWhenItsGoldenDiffersOnNumberStreetOrCity() {
+    var nGolden = fixtures_test::seedGolden("");
+    Assert::isFalse(UpdateService::confirmsCaclrRef(Array<ReconciliationCandidate> {
+        scoredCandidate(nGolden, 0.8, 1.0, 1.0, 1.0)
+    }, nGolden));
+    Assert::isFalse(UpdateService::confirmsCaclrRef(Array<ReconciliationCandidate> {
+        scoredCandidate(nGolden, 1.0, 0.8, 1.0, 1.0)
+    }, nGolden));
+    Assert::isFalse(UpdateService::confirmsCaclrRef(Array<ReconciliationCandidate> {
+        scoredCandidate(nGolden, 1.0, 1.0, 0.8, 1.0)
+    }, nGolden));
+}
+
+@test
+fn aCaclrRefIsRejectedWhenReconcileDidNotProposeItsGolden() {
+    var nGolden = fixtures_test::seedGolden("A");
+    var nOther = fixtures_test::seedGolden("B");
+    Assert::isFalse(UpdateService::confirmsCaclrRef(Array<ReconciliationCandidate> {
+        scoredCandidate(nOther, 1.0, 1.0, 1.0, 1.0)
+    }, nGolden));
+    Assert::isFalse(UpdateService::confirmsCaclrRef(Array<ReconciliationCandidate> {}, nGolden));
+}
