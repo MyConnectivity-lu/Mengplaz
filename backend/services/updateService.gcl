@@ -86,7 +86,7 @@ type UpdateService {
         StatsService::finalizeUpdate(s, errored == false);
 
         info("Updating Golden street index");
-        GoldenStreetSearch::rebuild();
+        GoldenStreetSearch::refresh();
         info("Updating Golden address index");
         GoldenTextSearch::refresh();
         info("Updating CACLR address index");

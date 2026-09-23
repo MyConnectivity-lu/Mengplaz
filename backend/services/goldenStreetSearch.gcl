@@ -2,7 +2,9 @@
 ///
 /// A plain `TextIndex`, not the `AddressIndex` `GoldenTextSearch` uses: a street name is not
 /// an address line, so libpostal buys nothing here and would tie the search box to the
-/// ~1.4 Gb model directory. Rebuild-only - golden streets are only ever created in bulk.
+/// ~1.4 Gb model directory. Each document carries the street id as its `externalId`, so a
+/// scheduled `refresh()` appends only the streets not yet indexed; an edit to an indexed
+/// street (rename, new alias) is still rebuild-only.
 var golden_street_index: node<TextIndex<String>?>;
 
 type GoldenStreetSearch {
@@ -43,6 +45,10 @@ type GoldenStreetSearch {
         return idx;
     }
 
+    static fn entry(nStreet: node<GoldenStreet>): TextEntry {
+        return TextEntry { key: GoldenStreetSearch::docText(nStreet), value: nStreet->id, externalId: nStreet->id };
+    }
+
     static fn rebuild(): int {
         var t0 = time::now().to(DurationUnit::milliseconds);
         GoldenStreetSearch::reset();
@@ -50,7 +56,7 @@ type GoldenStreetSearch {
 
         var n = 0;
         for (_, nStreet in golden_streets_by_id) {
-            idx.add(GoldenStreetSearch::docText(nStreet), nStreet->id);
+            idx.add_batch(Array<TextEntry> { GoldenStreetSearch::entry(nStreet) });
             n++;
             if (n % 50000 == 0) {
                 info("goldenStreetSearch: added ${n} streets");
@@ -66,6 +72,34 @@ type GoldenStreetSearch {
             "goldenStreetSearch: ${n} streets added in ${t1 - t0} ms, built in ${t2 - t1} ms (docs=${s.totalEntries} terms=${s.totalTerms} avgLen=${s.avgTokenCount})"
         );
         return n;
+    }
+
+    /// What a scheduled run needs: append the streets the index has not seen, then
+    /// consolidate. An index built before documents carried an `externalId` cannot tell
+    /// which streets it holds, so it is rebuilt once.
+    static fn refresh(): int {
+        var idx = GoldenStreetSearch::ready();
+        if (idx == null || (idx.externalIdIndex == null && (idx.totalEntries ?? 0) > 0)) {
+            return GoldenStreetSearch::rebuild();
+        }
+        var t0 = time::now().to(DurationUnit::milliseconds);
+        var missing = Array<TextEntry> {};
+        for (_, nStreet in golden_streets_by_id) {
+            if (idx.get_by_external_id(nStreet->id) == null) {
+                missing.add(GoldenStreetSearch::entry(nStreet));
+            }
+        }
+        idx.add_batch(missing);
+        var dirty = idx.dirtyCount ?? 0;
+        if (dirty == 0) {
+            info("goldenStreetSearch: index up to date, nothing to append");
+            return 0;
+        }
+        var t1 = time::now().to(DurationUnit::milliseconds);
+        idx.build();
+        var t2 = time::now().to(DurationUnit::milliseconds);
+        info("goldenStreetSearch: appended ${missing.size()} streets in ${t1 - t0} ms, consolidated in ${t2 - t1} ms");
+        return missing.size();
     }
 
     static fn search(idx: TextIndex<String>, query: String, k: int): Array<TextResult> {

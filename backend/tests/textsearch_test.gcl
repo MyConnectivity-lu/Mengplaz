@@ -688,14 +688,59 @@ fn anUnbuiltStreetIndexIsNotReady() {
 }
 
 @test
-fn aRenamedStreetIsOnlyPickedUpByARebuild() {
-    // Streets are only ever created in bulk, so there is no append hook: rebuild-only.
+fn refreshBuildsTheStreetIndexFromScratchWhenThereIsNone() {
+    seedStreets();
+    Assert::isNull(GoldenStreetSearch::ready());
+
+    Assert::equals(GoldenStreetSearch::refresh(), 3);
+    Assert::equals(GoldenStreetSearch::stats().docs, 3);
+}
+
+@test
+fn refreshAppendsOnlyTheStreetsNotYetIndexed() {
     seedStreets();
     GoldenStreetSearch::rebuild();
 
-    var nStreet = fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Bonnevoie"), "Avenue Monterey");
+    fixtures_test::goldenStreet(fixtures_test::goldenCity("Luxembourg", "Bonnevoie"), "Avenue Monterey");
     var idx = GoldenStreetSearch::require();
     Assert::isFalse(hasStreetNamed(GoldenStreetSearch::search(idx, "avenue monterey", 5), "Avenue Monterey"));
+
+    Assert::equals(GoldenStreetSearch::refresh(), 1);
+
+    var stats = GoldenStreetSearch::stats();
+    Assert::equals(stats.docs, 4);
+    Assert::equals(stats.dirty, 0);
+    Assert::isTrue(
+        hasStreetNamed(
+            GoldenStreetSearch::search(GoldenStreetSearch::require(), "avenue monterey", 5),
+            "Avenue Monterey"
+        )
+    );
+}
+
+@test
+fn refreshOnAnUpToDateStreetIndexTouchesNothing() {
+    seedStreets();
+    GoldenStreetSearch::rebuild();
+
+    Assert::equals(GoldenStreetSearch::refresh(), 0);
+    Assert::equals(GoldenStreetSearch::stats().docs, 3);
+}
+
+@test
+fn aRenamedStreetIsOnlyPickedUpByARebuild() {
+    // `refresh()` keys on the street id, which a rename keeps: the stale document stays.
+    var nStreet = fixtures_test::goldenStreet(seedStreets(), "Rue du Fort");
+    GoldenStreetSearch::rebuild();
+
+    nStreet->name = "Avenue Monterey";
+    GoldenStreetSearch::refresh();
+    Assert::isFalse(
+        hasStreetNamed(
+            GoldenStreetSearch::search(GoldenStreetSearch::require(), "avenue monterey", 5),
+            "Avenue Monterey"
+        )
+    );
 
     Assert::equals(GoldenStreetSearch::rebuild(), 4);
     Assert::isTrue(
@@ -704,7 +749,6 @@ fn aRenamedStreetIsOnlyPickedUpByARebuild() {
             "Avenue Monterey"
         )
     );
-    Assert::isNotNull(nStreet);
 }
 
 @test
