@@ -202,6 +202,11 @@ type GoldenAddress extends AddressRecordProvider {
 
     createdAt: time?;
 
+    /// True once every CaclrAddress backing this record is itself deprecated: the golden
+    /// outlives its source data, but it is no longer an active address. Nullable only
+    /// because the graph predates the field - null reads as active.
+    deprecated: bool?;
+
     street: node<GoldenStreet>?;
 
     linkedRecords: Array<LinkedRecordEntry>;
@@ -217,7 +222,7 @@ type GoldenAddress extends AddressRecordProvider {
     }
 
     fn isDeprecated(): bool {
-        return false;
+        return this.deprecated ?? false;
     }
 
     fn isLinked(): bool {
@@ -243,7 +248,8 @@ type GoldenAddress extends AddressRecordProvider {
             primaryLocation: this.primaryLocation,
             secondaryLocations: this.secondaryLocations,
             sourceName: GoldenSource::NAME,
-            quality: this.quality.last()?.score
+            quality: this.quality.last()?.score,
+            deprecated: this.deprecated
         };
         if (this.street != null) {
             if (this.street->nameAliases.size() > 0) {

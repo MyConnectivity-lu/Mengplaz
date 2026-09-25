@@ -27,7 +27,7 @@ fn linkedIsReadFromEachSourcesOwnSide() {
 }
 
 @test
-fn aNewRecordIsNotDeprecatedAndGoldenNeverIs() {
+fn aNewRecordIsNotDeprecatedAndASourcesFlagAloneDoesNotDeprecateItsGolden() {
     fixtures_test::reset();
     fixtures_test::seedSources();
 
@@ -41,7 +41,7 @@ fn aNewRecordIsNotDeprecatedAndGoldenNeverIs() {
 
     nOsm->deprecated = true;
     Assert::isTrue(nOsm->isDeprecated());
-    // Golden has no `deprecated` attribute at all.
+    // Flipping a source's flag alone never touches its golden: only the CACLR pass does.
     Assert::isFalse(nGolden->isDeprecated());
 }
 

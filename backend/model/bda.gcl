@@ -149,6 +149,7 @@ type BdaAddress extends ExternalAddressRecord {
             primaryLocation: this.position,
             sourceName: BdaSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
         };
         return record;
     }

@@ -809,6 +809,7 @@ abstract type BackupImporter {
                     secondaryLocations: l.secondaryLocations,
                     lastUpdate: l.lastUpdate,
                     createdAt: l.createdAt,
+                    deprecated: l.deprecated,
                     street: nStreet,
                     linkedRecords: Array<LinkedRecordEntry> {},
                     quality: nodeTime<QualityEvent> {}

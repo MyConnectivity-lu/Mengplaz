@@ -69,7 +69,9 @@ Read the relevant one before touching scoring, linking, or quality code.
   extend `ExternalAddressRecord`, which owns the whole link/lifecycle side (`goldenRef`,
   `deprecated`, `lastSeenAt`, `markSeen()`); only per-source fields belong on the subtype.
   `GoldenAddress` extends `AddressRecordProvider` directly - it is never loaded, so it has no
-  `markSeen()` and is never deprecated.
+  `markSeen()`. It carries one deprecation rule of its own: `GoldenServices::deprecateOrphanedFromCaclr()`
+  (run by the nightly CACLR update) marks a golden deprecated when every `CaclrAddress` backing it is
+  itself deprecated, and heals it when one is seen again.
 - **Backend logging uses the logger, not `println`.** `info()` / `warn()` / `error()`, so output
   carries a level and lands in the server log. Reserve `println` for a deliberate CLI dump.
 - **Comment sparingly - only where the code cannot speak for itself.** Default to none. Earn a

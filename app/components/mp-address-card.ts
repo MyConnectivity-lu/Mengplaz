@@ -193,9 +193,13 @@ export class MpAddressCard extends LitElement {
           ${
             record?.deprecated === true
               ? html`<wa-tooltip
-                  content="This address doesn't exist anymore in this source, Last seen: ${this.lastSeen(
-                    record.lastSeenAt,
-                  )}"
+                  content=${
+                    sourceName === 'Golden'
+                      ? 'This address is no longer backed by its cadastral source (CACLR)'
+                      : `This address doesn't exist anymore in this source, Last seen: ${this.lastSeen(
+                          record.lastSeenAt,
+                        )}`
+                  }
                 >
                   <wa-tag variant="warning" size="s">Deprecated</wa-tag>
                 </wa-tooltip>`
