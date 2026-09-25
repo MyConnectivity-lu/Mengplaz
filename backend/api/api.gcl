@@ -8,7 +8,13 @@ fn getPoisInStreet(streetId: String): Array<AddressRecordRef> {
     if (nStreet == null) {
         throw "Street with id ${streetId} not found";
     }
-    return nStreet->getAddresses();
+    var addresses = Array<AddressRecordRef> {};
+    for (_, ref in nStreet->getAddresses()) {
+        if (ref.ref->isDeprecated() == false) {
+            addresses.add(ref);
+        }
+    }
+    return addresses;
 }
 
 @expose
@@ -55,6 +61,9 @@ fn getPois(): Array<AddressFeatures> {
     var feats = Array<AddressFeatures> {};
     feats.set_capacity(golden_addresses_by_geo.size());
     for (key, value in golden_addresses_by_geo) {
+        if (value->isDeprecated()) {
+            continue;
+        }
         feats.add(AddressFeatures { coords: key, number: "${value->number}${value->multipleCode}" });
     }
     return feats;
@@ -64,7 +73,7 @@ fn getPois(): Array<AddressFeatures> {
 @permission("public")
 fn getPoisByGeo(coords: geo): AddressRecordRef? {
     var poi = golden_addresses_by_geo.get(coords);
-    if (poi != null) {
+    if (poi != null && poi->isDeprecated() == false) {
         return AddressRecordRef {
             ref: poi,
             record: poi->toAddressRecord(),
@@ -210,6 +219,9 @@ fn getGoldenNumbersByStreetId(streetId: String): Array<GoldenIndex> {
     }
     var numbers = Array<GoldenIndex> {};
     for (id, nGoldenAddress in nStreet->addresses_by_id) {
+        if (nGoldenAddress->isDeprecated()) {
+            continue;
+        }
         numbers.add(GoldenIndex {
             id: id,
             name: "${nGoldenAddress->number} ${nGoldenAddress->multipleCode}",
@@ -258,16 +270,18 @@ fn getGoldenRecords(offset: int, limit: int): GoldenRecordsPage {
 
     var records = Array<AddressRecord> {};
     var seen = 0;
+    var total = 0;
     for (_, nGoldenAddress in golden_addresses_by_id) {
-        if (seen >= start) {
-            if (records.size() >= size) {
-                break;
-            }
+        if (nGoldenAddress->isDeprecated()) {
+            continue;
+        }
+        total++;
+        if (seen >= start && records.size() < size) {
             records.add(nGoldenAddress->toAddressRecord());
         }
         seen++;
     }
-    return GoldenRecordsPage { total: golden_addresses_by_id.size(), offset: start, limit: size, rows: records };
+    return GoldenRecordsPage { total: total, offset: start, limit: size, rows: records };
 }
 
 @volatile
@@ -296,6 +310,9 @@ type GeoJSONGeometry {
 fn getGoldenRecordsGeoJson(): GeoJSON {
     var features = Array<GeoJSONFeature> {};
     for (coords, nGoldenAddress in golden_addresses_by_geo) {
+        if (nGoldenAddress->isDeprecated()) {
+            continue;
+        }
         var externalIds = Map<String, any> {};
         for (_, linkedRecord in nGoldenAddress->linkedRecords) {
             externalIds.set(linkedRecord.record->getSourceName(), linkedRecord.record->getId());
@@ -504,6 +521,9 @@ fn searchAddress(addr: String, max: int?, source: String?): Array<AddressRecordR
         } else {
             var hits = GoldenTextSearch::search(idx, addr, max);
             for (_, nGolden in GoldenTextSearch::resolve(idx, hits)) {
+                if (nGolden->isDeprecated()) {
+                    continue;
+                }
                 var nPoi = nGolden as node<AddressRecordProvider>;
                 pois.add(nPoi);
                 results.add(AddressRecordRef { ref: nPoi, record: nGolden->toAddressRecord() });
