@@ -1,0 +1,76 @@
+# The definition of done from AGENTS.md, as a pipeline. `greycat install` pulls the
+# exact toolchain pinned by project.gcl (core + libraries + the lang tooling), so the
+# gates run against the same versions on every runner and every fresh clone.
+#
+# Not covered here: the Playwright suite needs a populated gcdata store, the e2e user
+# and libpostal on the host - it stays a local/nightly concern until a seeded store
+# exists. Same for the textsearch tests that skip themselves without libpostal: a green
+# run is not full backend coverage.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache the GreyCat downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.greycat
+          key: greycat-${{ hashFiles('project.gcl') }}
+          restore-keys: greycat-
+
+      - name: Install GreyCat
+        run: |
+          curl -fsSL https://get.greycat.io/install.sh | bash -s stable
+          echo "$HOME/.greycat/bin" >> "$GITHUB_PATH"
+
+      - name: Install the pinned project toolchain
+        run: greycat install
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Backend formatting
+        run: bin/greycat fmt --mode=check
+
+      - name: Backend lint
+        run: bin/greycat lint
+
+      - name: Backend tests
+        run: bin/greycat test
+
+      - name: Frontend format, lint and typecheck
+        run: pnpm check
+
+      - name: Frontend build
+        run: pnpm build
+
+      # A stale project.d.ts is the HTTP 422 trap AGENTS.md warns about. Only enforced
+      # on main: the committed file predates the pinned codegen, so PRs based on older
+      # main would fail it until the regenerated file lands.
+      - name: Codegen is fresh
+        if: github.ref == 'refs/heads/main'
+        run: |
+          pnpm run gen
+          git diff --exit-code project.d.ts

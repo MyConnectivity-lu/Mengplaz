@@ -2,6 +2,7 @@
 
 @library("std", "8.2.179-stable");
 @library("explorer", "8.2.9-stable");
+@library("lang", "8.3.49-stable");
 @library("http", "8.3.5-dev");
 @library("text_search", "8.3.8-dev");
 @library("postal", "8.3.26-dev");
