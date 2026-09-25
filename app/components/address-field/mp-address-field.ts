@@ -80,7 +80,7 @@ export class MpAddressField extends LitElement {
         <div class="key">
           ${displayLabel}
           <a
-            href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Golden-Record-Quality"
+            href="https://github.com/MyConnectivity-lu/Mengplaz/wiki/Golden-Record-Quality"
             target="_blank"
             rel="noopener"
             title="Quality documentation"
@@ -139,8 +139,8 @@ export class MpAddressField extends LitElement {
   private renderMapPositions(value: Map<string, gc.core.geo>) {
     return html`<div class="locations">
       ${[...value].map(
-        ([k, v]) => html`<div title=${v.toString()}>${rawIcon(ICONS.pin, colorForSource(k))}<span>${k}</span></div>`,
-      )}
+      ([k, v]) => html`<div title=${v.toString()}>${rawIcon(ICONS.pin, colorForSource(k))}<span>${k}</span></div>`,
+    )}
     </div>`;
   }
 }

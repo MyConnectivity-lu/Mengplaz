@@ -188,23 +188,22 @@ export class MpSearchParametersDialog extends LitElement {
         label="Search Parameters"
         ?open=${this.open}
         @wa-hide=${(e: Event) => {
-          if (e.target !== e.currentTarget) {
-            return;
-          }
-          if (this.resolve) {
-            this.finish(null);
-          }
-        }}
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+        if (this.resolve) {
+          this.finish(null);
+        }
+      }}
       >
         <div class="stack">
-          ${
-            value === undefined
-              ? ''
-              : html`
+          ${value === undefined
+        ? ''
+        : html`
                   <p class="lead">
                     Learn more about the reconcile logic
                     <a
-                      href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Reconcile-Logic"
+                      href="https://github.com/MyConnectivity-lu/Mengplaz/wiki/Reconcile-Logic"
                       target="_blank"
                       rel="noopener"
                       >here</a
@@ -226,7 +225,7 @@ export class MpSearchParametersDialog extends LitElement {
                     Deep search (global POI fallback, slow)
                   </wa-checkbox>
                 `
-          }
+      }
         </div>
         <wa-button slot="footer" appearance="outlined" @click=${() => this.reset()}>Reset to Default</wa-button>
         <wa-button slot="footer" variant="brand" @click=${() => this.finish(this.collect())}>Reconcile</wa-button>

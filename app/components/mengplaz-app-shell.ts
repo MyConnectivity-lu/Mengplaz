@@ -527,15 +527,14 @@ export class MengplazAppShell extends LitElement {
     const items = this.visibleItems;
     return html`
       <div class="links">
-        ${
-          tooltips
-            ? items.map(
-                (p) => html`<wa-tooltip for="${idp}-${p.label}" placement="right" hoist>${p.label}</wa-tooltip>`,
-              )
-            : nothing
-        }
+        ${tooltips
+        ? items.map(
+          (p) => html`<wa-tooltip for="${idp}-${p.label}" placement="right" hoist>${p.label}</wa-tooltip>`,
+        )
+        : nothing
+      }
         ${items.map(
-          (p) => html`<a
+        (p) => html`<a
             id="${idp}-${p.label}"
             class="item"
             href=${p.href}
@@ -544,7 +543,7 @@ export class MengplazAppShell extends LitElement {
           >
             ${this.renderIcon(ICONS[p.icon])}<span class="label">${p.label}</span>
           </a>`,
-        )}
+      )}
       </div>
     `;
   }
@@ -648,20 +647,19 @@ export class MengplazAppShell extends LitElement {
           <a href="https://myconnectivity.lu/" target="_blank" rel="noopener">MyConnectivity G.I.E.</a>
           <span class="sep">—</span>
           <span>Powered by <a href="https://greycat.io" target="_blank" rel="noopener">GreyCat</a></span>
-          ${
-            this.version
-              ? html`<span class="sep">—</span>
+          ${this.version
+        ? html`<span class="sep">—</span>
                   <span
                     >Version:
                     <a
-                      href="https://gitlab.com/myconnectivity/mengplaz/-/wikis/Change-Log"
+                      href="https://github.com/MyConnectivity-lu/Mengplaz/wiki/Changelog"
                       target="_blank"
                       rel="noopener"
                       >${this.version}</a
                     ></span
                   >`
-              : nothing
-          }
+        : nothing
+      }
           <span class="sep">—</span>
           <a href="./api::openapi" target="_blank" rel="noopener">openapi</a>
           <span class="sep">—</span>
