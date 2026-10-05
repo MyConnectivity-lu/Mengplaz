@@ -140,6 +140,12 @@ Read the relevant one before touching scoring, linking, or quality code.
 - **Attribution is a licence obligation.** Address data derives in part from OpenStreetMap (ODbL).
   The credit is surfaced in the map's attribution control, by the `attribution` endpoint, and per
   record via source links. Do not remove any of the three.
+- **Never modify, delete, move, regenerate or "clean up" the root `license` file.** It is the
+  GreyCat runtime licence (binary, no extension, tracked in git) and the runtime needs it to start.
+  It is not the project licence - that is `LICENSE.md`. This applies to every agent and tool,
+  including `git rm`, `git checkout --`, `git clean`, bulk formatting, and "tidying" of untracked or
+  binary files. If `git status` shows it changed or deleted, restore it with `git checkout -- license`
+  and tell the user; do not commit that change.
 - **Never run `greycat serve --user=<name>` / `GREYCAT_USER=<name>`.** It executes every request as
   that user. `.env` documents it for local convenience only; leave it commented.
 - **Regenerate `project.d.ts` after any backend ABI change:** `greycat codegen` (`pnpm run gen`).
