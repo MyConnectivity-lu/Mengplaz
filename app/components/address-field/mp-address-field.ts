@@ -139,8 +139,8 @@ export class MpAddressField extends LitElement {
   private renderMapPositions(value: Map<string, gc.core.geo>) {
     return html`<div class="locations">
       ${[...value].map(
-      ([k, v]) => html`<div title=${v.toString()}>${rawIcon(ICONS.pin, colorForSource(k))}<span>${k}</span></div>`,
-    )}
+        ([k, v]) => html`<div title=${v.toString()}>${rawIcon(ICONS.pin, colorForSource(k))}<span>${k}</span></div>`,
+      )}
     </div>`;
   }
 }

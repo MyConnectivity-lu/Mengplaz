@@ -34,7 +34,7 @@ export default defineConfig({
   lint: {
     // Only app source is type-aware linted; webroot is build output and the
     // config files use the Node environment (matches the tsconfig include).
-    ignorePatterns: ['webroot', 'gcdata', 'vite.config.ts', 'playwright.config.ts', 'scripts'],
+    ignorePatterns: ['webroot', 'gcdata', 'vite.config.ts', 'playwright.config.ts', 'scripts', 'e2e'],
     plugins: ['unicorn', 'typescript', 'oxc'],
     rules: {
       'no-console': 'warn',

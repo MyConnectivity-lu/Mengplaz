@@ -181,9 +181,10 @@ export class MengplazQualityPage extends GcPage {
           </p>
 
           ${this.loadError ? html`<p class="error">${this.loadError}</p>` : ''}
-          ${this.loading
-        ? html`<div class="center"><wa-spinner></wa-spinner></div>`
-        : html`
+          ${
+            this.loading
+              ? html`<div class="center"><wa-spinner></wa-spinner></div>`
+              : html`
                   <mp-panel heading="Global Quality" padded>
                     <span class="current">Current Quality: ${((this.data?.current ?? 0) * 100).toFixed(1)}%</span>
                   </mp-panel>
@@ -208,7 +209,7 @@ export class MengplazQualityPage extends GcPage {
                     ></mp-virtual-table>
                   </mp-panel>
                 `
-      }
+          }
         </div>
       </mengplaz-app-shell>
     `;
