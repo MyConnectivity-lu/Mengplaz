@@ -293,6 +293,7 @@ type CaclrAddress extends ExternalAddressRecord {
             primaryLocation: this.position,
             sourceName: CaclrSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
         };
 
         if (this.street != null) {

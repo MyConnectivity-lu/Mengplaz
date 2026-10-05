@@ -87,6 +87,7 @@ type BkGoldenPoiDTO {
     streetId: String?;
     lastUpdate: time;
     createdAt: time?;
+    deprecated: bool;
 
     linkedRecords: Array<BkGoldenLinkedRecordDTO>?;
 
@@ -578,6 +579,7 @@ abstract type BackupExporter {
                 streetId: nGolden->street?->id,
                 lastUpdate: nGolden->lastUpdate,
                 createdAt: nGolden->createdAt,
+                deprecated: nGolden->deprecated ?? false,
                 linkedRecords: linkedRecords,
                 quality: quality
             });

@@ -203,6 +203,7 @@ type OsmAddress extends ExternalAddressRecord {
             primaryLocation: this.position,
             sourceName: OsmSource::NAME,
             goldenRef: this.goldenRef,
+            deprecated: this.deprecated,
         };
         return record;
     }

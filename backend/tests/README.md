@@ -27,6 +27,7 @@ source but never with the program.
 | `reconcile_test.gcl`    | `DataSource::reconcile`, mismatch classification, the report and comparison views, the source lock.                           |
 | `promote_test.gcl`      | `promoteRecord` — creating a golden POI out of a source record.                                                               |
 | `link_test.gcl`         | `linkRecords` / `unlinkRecord` / `linkAllFullMatched` / `batchLinkByScore` / `mergePositionsToGolden`.                        |
+| `update_test.gcl`       | The CACLR-update deprecation pass: a golden whose CACLR backing vanished is deprecated, a backing seen again heals it.        |
 | `textsearch_test.gcl`   | `GoldenTextSearch`, `SourceTextSearch` and `searchAddress`: address lines, unbuilt states, the create-vs-edit staleness rule. |
 | `api_test.gcl`          | The public read endpoints and `getSources`.                                                                                   |
 

@@ -187,6 +187,29 @@ fn goldenPoi(
     return nPoi;
 }
 
+/// A CACLR source record, street-less on purpose: the deprecation pass reads the link and
+/// the flag, never the CACLR chain, so no administrative fixture chain is needed.
+fn caclrAddress(caclrId: String, houseNumber: int, postcode: String, position: geo?): node<CaclrAddress> {
+    var nAddr = node<CaclrAddress> {
+        CaclrAddress {
+            id: caclrId,
+            number: houseNumber,
+            isNumberUndefined: false,
+            postcode: postcode,
+            multipleCode: "",
+            position: position,
+            administrativeStatus: CaclrAdminStatus::OFFICIAL,
+            validityStartDate: time::now(),
+            validityEndDate: null,
+            lastUpdate: time::now(),
+            street: null,
+            deprecated: false,
+        }
+    };
+    nAddr->indexing(nAddr);
+    return nAddr;
+}
+
 /// An OSM source record, with its city and street created on demand — the same shape
 /// `OsmLoader` builds. OSM is the lightest `AddressRecordProvider` (flat strings, no
 /// municipality), which makes it the default source record for link/promote tests.

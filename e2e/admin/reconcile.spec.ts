@@ -7,6 +7,45 @@ import { expect, test } from '@playwright/test';
 
 const TABS = ['Linked', 'Matched', 'Multiple Match', 'Mismatched', 'No Match'];
 
+// `greycat serve` (8.2.179) dies of SIGPIPE when a client tears down while a response is
+// still streaming to it, so a test that ends with a request in flight kills the server
+// and every later spec faces ERR_CONNECTION_REFUSED. The reconcile report is the largest
+// response in the app, which is why it shows here first. Track requests to the app
+// origin and settle before the context is torn down.
+const ORIGIN = `http://localhost:${Number(process.env.E2E_PORT ?? 8080)}`;
+const pending = new Map<import('@playwright/test').Request, string>();
+
+test.beforeEach(async ({ page }) => {
+  pending.clear();
+  page.on('request', (r) => {
+    if (r.url().startsWith(ORIGIN)) pending.set(r, r.url());
+  });
+  const done = (r: import('@playwright/test').Request) => {
+    if (r.url().startsWith(ORIGIN)) pending.delete(r);
+  };
+  page.on('requestfinished', done);
+  page.on('requestfailed', done);
+});
+
+test.afterEach(async () => {
+  await settleRequests();
+});
+
+/**
+ * Wait until no request to the app origin is in flight. Reloading or tearing down while a
+ * response is still streaming is what kills the server (see the SIGPIPE note above), so
+ * every reload and every teardown goes through this.
+ */
+async function settleRequests(): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  while (pending.size > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  if (pending.size > 0) {
+    console.warn(`still in flight after 10s: ${[...pending.values()].join(' | ')}`);
+  }
+}
+
 /**
  * Pick a source through the UI and wait for its report. Returns the name chosen.
  * wa-select renders its options into a popup, so the option has to be waited for
@@ -56,6 +95,7 @@ test('choosing a source records it in the URL and renders every tab', async ({ p
 test('the chosen source survives a reload', async ({ page }) => {
   await page.goto('/reconcile/');
   const name = await selectFirstSource(page);
+  await settleRequests();
   await page.reload();
   await expect(page.locator('wa-select[label="Source"]')).toHaveJSProperty('value', name, { timeout: 30_000 });
   await expect(page.getByRole('tab', { name: /Linked/ })).toBeVisible({ timeout: 30_000 });
@@ -75,16 +115,18 @@ test('every tab carries a count badge', async ({ page }) => {
 test('a populated tab shows the record pager and the comparison dashboard', async ({ page }) => {
   await page.goto('/reconcile/');
   await selectFirstSource(page);
-  await expect(page.locator('mp-record-pager')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('mp-comparison-dashboard')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('mp-master-record-panel')).toBeVisible();
-  await expect(page.locator('mp-candidates-table')).toBeVisible();
+  // Every populated tab renders its own pager and dashboard, so scope to the active panel.
+  // The Linked pane is detail-only (mp-comparison-dashboard without its panels), so the
+  // master record panel and candidates table are not part of what it guarantees.
+  const panel = page.locator('wa-tab-panel[active]');
+  await expect(panel.locator('mp-record-pager')).toBeVisible({ timeout: 30_000 });
+  await expect(panel.locator('mp-comparison-dashboard')).toBeVisible({ timeout: 30_000 });
 });
 
 test('the pager advances to the next record in the queue', async ({ page }) => {
   await page.goto('/reconcile/');
   await selectFirstSource(page);
-  const pager = page.locator('mp-record-pager');
+  const pager = page.locator('wa-tab-panel[active] mp-record-pager');
   await expect(pager).toBeVisible({ timeout: 30_000 });
   await expect(pager.getByText(/^1 of /)).toBeVisible();
   await pager.getByRole('button', { name: 'Next record' }).click();

@@ -265,6 +265,20 @@ fn aNewlyPromotedRecordIsSearchableWithoutWaitingForTheNightlyBuild() {
 }
 
 @test
+fn searchAddressSkipsADeprecatedGolden() {
+    // Still indexed, still resolvable - the endpoint drops it after the resolve, so the
+    // flag takes effect immediately instead of waiting for the nightly index rebuild.
+    if (!withPostal("searchAddressSkipsADeprecatedGolden")) {
+        return;
+    }
+    var nGolden = fixtures_test::seedGolden("");
+    Assert::equals(GoldenTextSearch::rebuild(), 1);
+    nGolden->deprecated = true;
+
+    Assert::equals(api::searchAddress("12 Rue de la Gare, 1234 Gasperich", 5, null).size(), 0);
+}
+
+@test
 fn anIndexBuiltOverAnEmptyGraphNeverBecomesReady() {
     // The degenerate case the previous test has to avoid: with no documents `ready()` stays
     // null, and `searchAddress` returns nothing rather than throwing.

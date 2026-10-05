@@ -72,7 +72,6 @@ type UpdateService {
             warn("Promotion: ${skipped} skipped (no golden street), ${failed} failed");
         }
 
-        // TODO Handle Golden Records for whom the associated Caclr record doesn't exists anymore
         var c = 0;
         if (errored == false) {
             for (_, nRecord in caclr_addresses_by_id) {
@@ -82,6 +81,9 @@ type UpdateService {
                 }
             }
             info("${c} Addresses marked as deprecated");
+
+            var g = GoldenServices::deprecateOrphanedFromCaclr();
+            info("${g} Golden records deprecated or healed by the CACLR pass");
         }
         StatsService::finalizeUpdate(s, errored == false);
 

@@ -561,6 +561,33 @@ type GoldenServices {
         }
     }
 
+    /// A golden record exists because CACLR backed it, so when every linked CaclrAddress is
+    /// deprecated the record stops being an active address - and a building the next load
+    /// sees again heals it. `markSeen()`'s mirror on the golden side.
+    static fn deprecateOrphanedFromCaclr(): int {
+        var changed = 0;
+        for (_, nGolden in golden_addresses_by_id) {
+            var hasCaclr = false;
+            var caclrActive = false;
+            for (_, entry in nGolden->linkedRecords) {
+                if (entry.record->getSourceName() == CaclrSource::NAME) {
+                    hasCaclr = true;
+                    if (entry.record->isDeprecated() == false) {
+                        caclrActive = true;
+                    }
+                }
+            }
+            if (hasCaclr) {
+                var orphaned = caclrActive == false;
+                if ((nGolden->deprecated ?? false) != orphaned) {
+                    nGolden->deprecated = orphaned;
+                    changed++;
+                }
+            }
+        }
+        return changed;
+    }
+
     /// The denominator of the quality formula: what a record scoring 1.0 against every
     /// registered source would total. Constant for a whole run, so the batch walk hoists it.
     static fn totalSourceWeight(): float {

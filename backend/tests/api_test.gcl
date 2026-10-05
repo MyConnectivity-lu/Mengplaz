@@ -407,6 +407,40 @@ fn numberListingRefusesAnUnknownStreet() {
     Assert::isTrue(threw);
 }
 
+// ------------------------------------------------- deprecated golden records
+
+/// A golden whose CACLR backing vanished is no longer a public address: every listing
+/// endpoint skips it, while the uid lookups below keep it reachable for its record page.
+@test
+fn deprecatedGoldensAreHiddenFromEveryPublicListing() {
+    var nStreet = seedWorld();
+    var nGolden = nStreet->addresses_by_number?.get("12")!!;
+    nGolden->deprecated = true;
+
+    Assert::equals(api::getPoisInStreet(nStreet->id).size(), 1);
+    Assert::equals(api::getPois().size(), 1);
+    Assert::isNull(api::getPoisByGeo(fixtures_test::here()));
+    Assert::equals(api::getGoldenNumbersByStreetId(nStreet->id).size(), 1);
+    Assert::equals(api::getGoldenRecordsGeoJson().features.size(), 1);
+
+    var page = api::getGoldenRecords(0, 100);
+    Assert::equals(page.total, 1);
+    Assert::equals(page.rows.size(), 1);
+}
+
+@test
+fn aDeprecatedGoldenStaysReachableByItsUidAndCarriesTheFlag() {
+    var nStreet = seedWorld();
+    var nGolden = nStreet->addresses_by_number?.get("12")!!;
+    nGolden->deprecated = true;
+
+    var ref = api::getGoldenRecordRefByUid(nGolden->uid)!!;
+    Assert::isTrue(ref.record.deprecated ?? false);
+
+    var details = api::getGoldenRecordDetails(nGolden->uid);
+    Assert::isTrue(details.golden.record.deprecated ?? false);
+}
+
 // -------------------------------------------------------- quality history
 
 @test

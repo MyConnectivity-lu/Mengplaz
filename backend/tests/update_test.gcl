@@ -1,0 +1,77 @@
+/// The golden-deprecation pass the nightly CACLR update runs after marking vanished
+/// buildings: a golden whose CACLR backing is gone is itself deprecated, a backing the
+/// next load sees again heals it, and goldens without CACLR backing are left alone.
+@test
+fn goldenBackedByADeprecatedCaclrIsDeprecated() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nGolden = fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+    var nCaclr = fixtures_test::caclrAddress("caclr-1", 12, "1234", fixtures_test::here());
+    privateApi::linkRecords(nCaclr, nGolden, null);
+
+    nCaclr->deprecated = true;
+    var changed = GoldenServices::deprecateOrphanedFromCaclr();
+
+    // OSM still corroborates the record, but only CACLR decides its active status.
+    Assert::isTrue(nGolden->isDeprecated());
+    Assert::isTrue(nGolden->toAddressRecord().deprecated ?? false);
+    Assert::equals(changed, 1);
+}
+
+@test
+fn goldenBackedByAnActiveCaclrStaysActive() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nGolden = fixtures_test::seedGolden("");
+    var nCaclr = fixtures_test::caclrAddress("caclr-1", 12, "1234", fixtures_test::here());
+    privateApi::linkRecords(nCaclr, nGolden, null);
+
+    var changed = GoldenServices::deprecateOrphanedFromCaclr();
+
+    Assert::isFalse(nGolden->isDeprecated());
+    Assert::equals(changed, 0);
+}
+
+@test
+fn aCaclrSeenAgainHealsItsDeprecatedGolden() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nGolden = fixtures_test::seedGolden("");
+    var nCaclr = fixtures_test::caclrAddress("caclr-1", 12, "1234", fixtures_test::here());
+    privateApi::linkRecords(nCaclr, nGolden, null);
+
+    nCaclr->deprecated = true;
+    GoldenServices::deprecateOrphanedFromCaclr();
+    Assert::isTrue(nGolden->isDeprecated());
+
+    nCaclr->markSeen();
+    var changed = GoldenServices::deprecateOrphanedFromCaclr();
+
+    Assert::isFalse(nGolden->isDeprecated());
+    Assert::equals(changed, 1);
+}
+
+@test
+fn goldenWithoutCaclrBackingIsLeftAlone() {
+    fixtures_test::reset();
+    fixtures_test::seedSources();
+
+    var nGolden = fixtures_test::seedGolden("");
+    var nOsm = fixtures_test::osmAddress(1, "12", "Rue de la Gare", "Gasperich", "1234", fixtures_test::here());
+    privateApi::linkRecords(nOsm, nGolden, null);
+    var nGoneCaclr = fixtures_test::caclrAddress("caclr-1", 14, "1234", fixtures_test::here());
+    nGoneCaclr->deprecated = true;
+
+    var changed = GoldenServices::deprecateOrphanedFromCaclr();
+
+    // A deprecated CACLR record nobody links to must not deprecate anything, and an OSM
+    // that vanishes must not either: the rule is CACLR-backed goldens only.
+    nOsm->deprecated = true;
+    Assert::isFalse(nGolden->isDeprecated());
+    Assert::equals(changed, 0);
+}
