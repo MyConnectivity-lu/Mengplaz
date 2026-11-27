@@ -33,6 +33,15 @@ export default defineConfig({
       testMatch: /anon\/.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // A real phone profile, not a narrowed desktop window: touch events, a
+      // doubled device pixel ratio (maplibre sizes its backing store to it) and
+      // a mobile UA. Specs live in e2e/mobile/ so the anon project does not
+      // double-run them.
+      name: 'chromium-mobile',
+      testMatch: /mobile\/.*\.spec\.ts/,
+      use: { ...devices['Pixel 7'] },
+    },
   ],
   webServer: {
     command: 'bin/greycat serve',
