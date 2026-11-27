@@ -31,7 +31,7 @@ test('address search returns results and selecting one keeps the map mounted', a
 
   await page.goto('/');
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible({ timeout: 30_000 });
-  await page.locator('mp-address-search wa-input').getByRole('textbox').fill('1 Rue du Village');
+  await page.locator('mp-address-search wa-input').getByRole('combobox').fill('1 Rue du Village');
   const results = page.locator('mp-address-search [role="option"]');
   await expect(results.first()).toBeVisible({ timeout: 20_000 });
   await results.first().click();
@@ -41,10 +41,10 @@ test('address search returns results and selecting one keeps the map mounted', a
 test('the address search reaches a settled state for a query with no matches', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible({ timeout: 30_000 });
-  await page.locator('mp-address-search wa-input').getByRole('textbox').fill('zzz');
+  await page.locator('mp-address-search wa-input').getByRole('combobox').fill('zzz');
   // Below the 3-character minimum nothing is requested and no panel appears.
   await expect(page.locator('mp-address-search .results')).toHaveCount(0);
-  await page.locator('mp-address-search wa-input').getByRole('textbox').fill('zzzznotastreet');
+  await page.locator('mp-address-search wa-input').getByRole('combobox').fill('zzzznotastreet');
   await expect(page.locator('mp-address-search .results')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('mp-address-search wa-spinner')).toHaveCount(0);
 });
@@ -52,7 +52,7 @@ test('the address search reaches a settled state for a query with no matches', a
 test('a query with no matches explains the expected format', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible({ timeout: 30_000 });
-  await page.locator('mp-address-search wa-input').getByRole('textbox').fill('zzzzzznotastreet');
+  await page.locator('mp-address-search wa-input').getByRole('combobox').fill('zzzzzznotastreet');
   await expect(page.getByText('No results')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(/number street, postcode locality/)).toBeVisible();
 });
