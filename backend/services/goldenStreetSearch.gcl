@@ -5,7 +5,12 @@
 /// ~1.4 Gb model directory. Each document carries the street id as its `externalId`, so a
 /// scheduled `refresh()` appends only the streets not yet indexed; an edit to an indexed
 /// street (rename, new alias) is still rebuild-only.
+// gcl-lint-off volatile-in-node
+// `text_search` marks `NormOptions` — reached through `TextIndex.config` — `@volatile`, yet it is
+// pure config data and the index persists and reloads across restarts (verified); reported
+// upstream. Revisit when the library drops the annotation.
 var golden_street_index: node<TextIndex<String>?>;
+// gcl-lint-on volatile-in-node
 
 type GoldenStreetSearch {
     /// BM25 alone, not the default hybrid: `exact` scores every containing document 1.0 and
