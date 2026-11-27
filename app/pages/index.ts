@@ -10,6 +10,7 @@ import { initMode } from '~/lib/theme';
 import { colorForSource } from '~/lib/format';
 import { redirectLegacy } from '~/lib/routing';
 import { GcPage } from '~/lib/gc-page';
+import { ready } from '~/lib/gc';
 import { idbGet, idbSet, ONE_DAY_MS } from '~/lib/idb-cache';
 import {
   GEOPORTAIL_STYLE,
@@ -23,6 +24,7 @@ import '~/components/mengplaz-app-shell';
 import '~/components/mp-address-search';
 import type { AddressSelectEvent } from '~/components/mp-address-search';
 import '~/components/mp-address-card';
+import type { WaSelectElement } from '~/lib/wa';
 
 // The legacy `?page=` shim runs before anything renders, so an old link never
 // paints the wrong page.
@@ -184,14 +186,13 @@ export class MengplazIndexPage extends GcPage {
   private map?: maplibregl.Map;
 
   protected async onInit() {
-    // The map itself is built in firstUpdated (it needs the container in the
-    // DOM); onInit only has to guarantee the session is up before POIs load.
+    // The map page fetches nothing on its own: the map's `load` event drives `updatePOIs()`.
   }
 
-  protected override firstUpdated() {}
-
-  override async connectedCallback() {
-    await super.connectedCallback();
+  protected override async firstUpdated() {
+    // The gate first: the map's `load` event fires independently of `GcPage`'s own
+    // `ready()` await, and `updatePOIs()` may not race the session.
+    await ready();
 
     const container = this.renderRoot.querySelector('.map') as HTMLElement;
     this.map = new maplibregl.Map({
@@ -383,7 +384,7 @@ export class MengplazIndexPage extends GcPage {
             <wa-select
               size="m"
               value=${this.basemap}
-              @change=${(e: Event) => this.setBasemap((e.target as HTMLSelectElement).value as Basemap)}
+              @change=${(e: Event) => this.setBasemap((e.target as WaSelectElement).value as Basemap)}
             >
               <wa-option value="vector">Geoportail Carte</wa-option>
               <wa-option value="ortho">Geoportail Orthophoto 2025</wa-option>
