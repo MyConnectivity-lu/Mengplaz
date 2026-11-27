@@ -5,6 +5,7 @@ import '@awesome.me/webawesome/dist/components/button/button.js';
 import '@awesome.me/webawesome/dist/components/select/select.js';
 import '@awesome.me/webawesome/dist/components/option/option.js';
 import '~/components/address-field/mp-address-content';
+import type { WaSelectElement } from '~/lib/wa';
 
 interface Entry {
   id: string;
@@ -79,7 +80,7 @@ export class MpPromotionDialog extends LitElement {
   }
 
   private async onCity(e: Event) {
-    this.cityId = (e.target as HTMLSelectElement).value;
+    this.cityId = (e.target as WaSelectElement).value;
     await this.loadStreets();
   }
 
@@ -137,7 +138,7 @@ export class MpPromotionDialog extends LitElement {
             with-label
             .value=${this.streetId}
             @change=${(e: Event) => {
-              this.streetId = (e.target as HTMLSelectElement).value;
+              this.streetId = (e.target as WaSelectElement).value;
             }}
           >
             ${this.streets.map((s) => html`<wa-option value=${s.id}>${s.name}</wa-option>`)}

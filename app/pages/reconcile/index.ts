@@ -28,6 +28,7 @@ import { DEFAULT_SEARCH_PARAMS, type MpSearchParametersDialog } from '~/componen
 import '~/components/dialogs/mp-batch-link-dialog';
 import type { MpBatchLinkDialog } from '~/components/dialogs/mp-batch-link-dialog';
 import type { RequestLinkEvent, RequestPromoteEvent, RequestReconcileEvent } from '~/components/comparison/events';
+import type { WaSelectElement } from '~/lib/wa';
 
 initMode();
 
@@ -80,7 +81,7 @@ const TAB_CONFIG: TabConfig[] = [
   {
     key: 'Mismatched',
     label: 'Mismatched',
-    badgeVariant: 'success',
+    badgeVariant: 'danger',
     showActions: true,
     loadData: (s, id) => gc.getComparisonViewData(s, id),
     getRecordIds: (r) => r.partialMatch.map((m) => m.id),
@@ -89,7 +90,7 @@ const TAB_CONFIG: TabConfig[] = [
   {
     key: 'NoMatch',
     label: 'No Match',
-    badgeVariant: 'success',
+    badgeVariant: 'neutral',
     showActions: true,
     loadData: (s, id) => gc.getComparisonViewData(s, id),
     getRecordIds: (r) => r.noMatch,
@@ -674,7 +675,7 @@ export class MengplazReconcilePage extends GcPage {
           with-label
           placeholder="Select a source..."
           value=${this.sourceName}
-          @change=${(e: Event) => void this.onSourceChange((e.target as HTMLSelectElement).value)}
+          @change=${(e: Event) => void this.onSourceChange((e.target as WaSelectElement).value)}
         >
           ${this.sources.map((s) => html`<wa-option value=${s.name}>${s.name}</wa-option>`)}
         </wa-select>
@@ -686,7 +687,7 @@ export class MengplazReconcilePage extends GcPage {
           with-label
           placeholder="Filter by golden Municipalities"
           value=${this.municipalityName}
-          @change=${(e: Event) => void this.onMunicipalityChange((e.target as HTMLSelectElement).value)}
+          @change=${(e: Event) => void this.onMunicipalityChange((e.target as WaSelectElement).value)}
         >
           <wa-option value="">All municipalities</wa-option>
           ${this.municipalities.map((c) => html`<wa-option value=${c.name}>${c.name}</wa-option>`)}
@@ -696,7 +697,7 @@ export class MengplazReconcilePage extends GcPage {
           with-label
           placeholder="Filter by golden cities"
           value=${this.cityName}
-          @change=${(e: Event) => void this.onCityChange((e.target as HTMLSelectElement).value)}
+          @change=${(e: Event) => void this.onCityChange((e.target as WaSelectElement).value)}
         >
           <wa-option value="">All localities</wa-option>
           ${this.cities.map((c) => html`<wa-option value=${c.name}>${c.name}</wa-option>`)}
