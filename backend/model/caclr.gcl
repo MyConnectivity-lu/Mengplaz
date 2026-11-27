@@ -408,8 +408,7 @@ type CaclrToken {
             body: Url::encode(params),
         };
 
-        var httpClient = Http<CaclrTokenResponse> {};
-        var response = httpClient.send(request);
+        var response = Http<CaclrTokenResponse>::send(request);
 
         if (response.status_code != 200 || response.content == null) {
             error(response);

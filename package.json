@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@awesome.me/webawesome": "3.12.0",
-    "@greycat/web": "https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz",
+    "@greycat/web": "https://get.greycat.io/files/sdk/web/stable/8.4/8.4.110-stable.tgz",
     "@tanstack/virtual-core": "3.17.8",
     "echarts": "6.1.0",
     "lit": "3.3.3",

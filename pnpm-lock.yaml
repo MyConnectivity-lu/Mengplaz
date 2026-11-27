@@ -12,8 +12,8 @@ importers:
         specifier: 3.12.0
         version: 3.12.0(@floating-ui/utils@0.2.10)(@types/node@26.1.1)(@types/react@19.1.12)
       '@greycat/web':
-        specifier: https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz
-        version: https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz(@shoelace-style/shoelace@2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.1.12))(d3@7.9.0)(echarts@6.1.0)(maplibre-gl@6.4.1)
+        specifier: https://get.greycat.io/files/sdk/web/stable/8.4/8.4.110-stable.tgz
+        version: https://get.greycat.io/files/sdk/web/stable/8.4/8.4.110-stable.tgz(@shoelace-style/shoelace@2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.1.12))(d3@7.9.0)(echarts@6.1.0)(maplibre-gl@6.4.1)
       '@tanstack/virtual-core':
         specifier: 3.17.8
         version: 3.17.8
@@ -231,14 +231,14 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
-  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz':
-    resolution: {tarball: https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz}
-    version: 8.1.4-stable
+  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/8.4/8.4.110-stable.tgz':
+    resolution: {tarball: https://get.greycat.io/files/sdk/web/stable/8.4/8.4.110-stable.tgz}
+    version: 8.4.110-stable
     peerDependencies:
       '@shoelace-style/shoelace': '>=2.7.0 <3'
       d3: '>=7.0.0 <8'
       echarts: '>=6.0.0 <7'
-      maplibre-gl: '>=5.0.0 <6'
+      maplibre-gl: '>=5.0.0 <7'
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
@@ -1887,7 +1887,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/8.1/8.1.4-stable.tgz(@shoelace-style/shoelace@2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.1.12))(d3@7.9.0)(echarts@6.1.0)(maplibre-gl@6.4.1)':
+  '@greycat/web@https://get.greycat.io/files/sdk/web/stable/8.4/8.4.110-stable.tgz(@shoelace-style/shoelace@2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.1.12))(d3@7.9.0)(echarts@6.1.0)(maplibre-gl@6.4.1)':
     dependencies:
       '@shoelace-style/shoelace': 2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.1.12)
       '@types/d3': 7.4.3

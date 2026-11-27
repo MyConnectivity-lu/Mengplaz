@@ -35,7 +35,7 @@ type GoldenTextSearch {
 
     static fn ready(): AddressIndex<String>? {
         var idx = golden_address_index.resolve();
-        if (idx == null || (idx.index.built ?? false) == false) {
+        if (idx == null || !((idx.index.built ?? false) && (idx.index.totalEntries ?? 0) > 0)) {
             return null;
         }
         return idx;
@@ -142,7 +142,7 @@ type GoldenTextSearch {
         }
         var s = idx.index.stats();
         return GoldenTextIndexStats {
-            built: idx.index.built ?? false,
+            built: (idx.index.built ?? false) && s.totalEntries > 0,
             docs: s.totalEntries,
             terms: s.totalTerms,
             avgLen: s.avgTokenCount,

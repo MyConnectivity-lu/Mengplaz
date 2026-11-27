@@ -23,7 +23,6 @@ abstract type OsmLoader {
             "User-Agent": "MengPlaz/1.0"
         };
 
-        var httpClient = Http<OsmOverpassResponse> {};
         var req = HttpRequest {
             method: HttpMethod::POST,
             url: endpoint,
@@ -31,7 +30,7 @@ abstract type OsmLoader {
             body: request,
             timeout: 5_min
         };
-        var response = httpClient.send(req);
+        var response = Http<OsmOverpassResponse>::send(req);
         if (response.status_code == 200 && response.content != null) {
             var elements = response.content.elements;
             info("Collected ${elements.size()} addresses.");

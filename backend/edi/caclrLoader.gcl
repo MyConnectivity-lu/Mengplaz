@@ -219,8 +219,7 @@ abstract type CaclrLoader {
             "Authorization": "${token.token_type} ${token.access_token}",
         };
 
-        var httpClient = Http<CaclrResponseCantons> {};
-        var cantons = httpClient.get(endpoint, headers);
+        var cantons = Http<CaclrResponseCantons>::get(endpoint, headers);
         info("Received ${cantons.items.size()} cantons");
 
         for (_, elem in cantons.items) {
@@ -261,7 +260,6 @@ abstract type CaclrLoader {
 
     static fn loadMunicipalities() {
         var endpoint = "${CaclrLoader::base_url}/v1/municipalities";
-        var httpClient = Http<CaclrResponseMunicipalities> {};
 
         var requestStart = 1;
         var totalItems: int = 0;
@@ -278,7 +276,7 @@ abstract type CaclrLoader {
                 headers: headers
             };
 
-            var httpResponse = httpClient.send(request);
+            var httpResponse = Http<CaclrResponseMunicipalities>::send(request);
             var municipalities = httpResponse.content!!;
             totalItems = municipalities.totalCount;
             requestStart = requestStart + municipalities.items.size();
@@ -326,7 +324,6 @@ abstract type CaclrLoader {
 
     static fn loadCities() {
         var endpoint = "${CaclrLoader::base_url}/v1/cities";
-        var httpClient = Http<CaclrResponseCities> {};
 
         var requestStart = 1;
         var totalItems: int = 0;
@@ -343,7 +340,7 @@ abstract type CaclrLoader {
                 headers: headers
             };
 
-            var httpResponse = httpClient.send(request);
+            var httpResponse = Http<CaclrResponseCities>::send(request);
             var cities = httpResponse.content!!;
             totalItems = cities.totalCount;
             requestStart = requestStart + cities.items.size();
@@ -395,7 +392,6 @@ abstract type CaclrLoader {
 
     static fn loadStreets() {
         var endpoint = "${CaclrLoader::base_url}/v1/streets";
-        var httpClient = Http<CaclrResponseStreets> {};
 
         var requestStart = 1;
         var totalItems: int = 0;
@@ -412,7 +408,7 @@ abstract type CaclrLoader {
                 headers: headers
             };
 
-            var httpResponse = httpClient.send(request);
+            var httpResponse = Http<CaclrResponseStreets>::send(request);
             var streets = httpResponse.content!!;
             totalItems = streets.totalCount;
             requestStart = requestStart + streets.items.size();
@@ -491,7 +487,6 @@ abstract type CaclrLoader {
 
     static fn loadBuildingsOfCity(cityIds: Array<String>): CaclrBuildingsResult {
         var endpoint = "${CaclrLoader::base_url}/v1/buildings";
-        var httpClient = Http<CaclrResponseBuildings> {};
 
         var result = Array<node<CaclrAddress>> {};
         var abandoned = 0;
@@ -512,7 +507,7 @@ abstract type CaclrLoader {
                     headers: headers
                 };
 
-                var httpResponse = httpClient.send(request);
+                var httpResponse = Http<CaclrResponseBuildings>::send(request);
                 if (httpResponse.content == null) {
                     warn("Issue with the query on cityId:${cityId}");
                     warn(httpResponse);

@@ -76,7 +76,7 @@ abstract type DataSource {
         if (searchParams == null) {
             searchParams = SearchParameters::default();
         }
-        var workers = Runtime::info().bg_threads;
+        var workers = Runtime::info().medium.workers;
         var jobs = Array<Job> {};
         for (var i = 0; i < workers; i++) {
             jobs.add(Job<any?> {
@@ -93,7 +93,7 @@ abstract type DataSource {
             }
         }
 
-        await(jobs, MergeStrategy::last_wins);
+        await(jobs);
 
         var report = nSource->reconciliationReport.resolve();
         for (_, job in jobs) {

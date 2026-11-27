@@ -1,10 +1,10 @@
 @include("backend");
 
-@library("std", "8.2.179-stable");
-@library("explorer", "8.2.9-stable");
-@library("http", "8.3.5-dev");
-@library("text_search", "8.3.8-dev");
-@library("postal", "8.3.26-dev");
+@library("std", "8.4.685-stable");
+@library("explorer", "8.4.133-stable");
+@library("http", "8.4.48-stable");
+@library("text_search", "8.4.29-stable");
+@library("postal", "8.4.31-stable");
 
 @role("public", "api");
 
@@ -16,11 +16,6 @@ fn main() {
     Scheduler::add(computeGlobalQuality, DailyPeriodicity { hour: 6 }, PeriodicOptions { immediate: false });
 
     Scheduler::add(runtime::Runtime::backup_full, DailyPeriodicity { hour: 1 }, PeriodicOptions { immediate: false });
-
-    Scheduler::add(runtime::RuntimeUsage::collect, FixedPeriodicity { every: 30_s }, PeriodicOptions {
-        immediate: false,
-        start: time::now() + 10s
-    });
 
     Scheduler::add(UpdateService::caclr, DailyPeriodicity { hour: 23 }, PeriodicOptions { immediate: false });
     Scheduler::add(UpdateService::bda, DailyPeriodicity { hour: 23, minute: 15 }, PeriodicOptions { immediate: false });

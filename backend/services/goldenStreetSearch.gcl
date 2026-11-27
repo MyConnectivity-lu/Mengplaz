@@ -31,7 +31,7 @@ type GoldenStreetSearch {
 
     static fn ready(): TextIndex<String>? {
         var idx = golden_street_index.resolve();
-        if (idx == null || (idx.built ?? false) == false) {
+        if (idx == null || !((idx.built ?? false) && (idx.totalEntries ?? 0) > 0)) {
             return null;
         }
         return idx;
@@ -122,7 +122,7 @@ type GoldenStreetSearch {
         }
         var s = idx.stats();
         return GoldenStreetIndexStats {
-            built: idx.built ?? false,
+            built: (idx.built ?? false) && s.totalEntries > 0,
             docs: s.totalEntries,
             terms: s.totalTerms,
             avgLen: s.avgTokenCount,

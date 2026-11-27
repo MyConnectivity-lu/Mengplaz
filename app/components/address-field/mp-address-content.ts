@@ -7,7 +7,7 @@ import '~/components/address-field/mp-address-field';
 const EXCLUDED_KEYS = ['goldenRef', 'sourceName', 'deprecated', 'lastSeenAt'];
 
 /**
- * The field list of one address record. Reflects over the record's own keys, so
+ * The field list of one address record. Reflects over the record's ABI attributes, so
  * a backend field added to `AddressRecord` shows up without a frontend change; node
  * references are skipped because they are graph pointers, not values.
  */
@@ -32,12 +32,15 @@ export class MpAddressContent extends LitElement {
       return html``;
     }
     const record = value as unknown as Record<string, unknown>;
-    const keys = Object.keys(record).filter((key) => {
-      if (EXCLUDED_KEYS.includes(key)) {
-        return false;
-      }
-      return !(record[key] instanceof gc.node);
-    });
+    // The SDK exposes attributes as prototype accessors, so Object.keys() sees none.
+    const keys = value.$type.attrs
+      .map((attr) => attr.name)
+      .filter((key) => {
+        if (EXCLUDED_KEYS.includes(key)) {
+          return false;
+        }
+        return !(record[key] instanceof gc.node);
+      });
     return html`
       ${keys.map((key) => html`<mp-address-field .label=${key} .value=${record[key]}></mp-address-field>`)}
       ${

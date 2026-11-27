@@ -36,7 +36,7 @@ type SourceTextSearch {
 
     static fn ready(sourceName: String): AddressIndex<String>? {
         var idx = source_address_indexes.get(sourceName)?.resolve();
-        if (idx == null || (idx.index.built ?? false) == false) {
+        if (idx == null || !((idx.index.built ?? false) && (idx.index.totalEntries ?? 0) > 0)) {
             return null;
         }
         return idx;
@@ -191,7 +191,7 @@ type SourceTextSearch {
             var s = idx.index.stats();
             out.add(SourceTextIndexStats {
                 source: name,
-                built: idx.index.built ?? false,
+                built: (idx.index.built ?? false) && s.totalEntries > 0,
                 docs: s.totalEntries,
                 terms: s.totalTerms,
                 avgLen: s.avgTokenCount,
