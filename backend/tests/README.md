@@ -30,6 +30,10 @@ source but never with the program.
 | `update_test.gcl`       | The CACLR-update deprecation pass: a golden whose CACLR backing vanished is deprecated, a backing seen again heals it.        |
 | `textsearch_test.gcl`   | `GoldenTextSearch`, `SourceTextSearch` and `searchAddress`: address lines, unbuilt states, the create-vs-edit staleness rule. |
 | `api_test.gcl`          | The public read endpoints and `getSources`.                                                                                   |
+| `stats_test.gcl`        | Per-source record counting and the statistics endpoint — the snapshot *writes*, not what can be derived after the fact.       |
+| `deprecated_test.gcl`   | The deprecated-record tally, per source and across all of them, via the `countHistory` snapshots.                              |
+| `uid_test.gcl`          | `generateUID` — the id alphabet is the full 62-char set, and every UID draws from it.                                          |
+| `osm_partial_test.gcl`  | `OsmLoader::recordPartial` — one node per malformed element id, across the nightly retries.                                    |
 
 ## Isolation
 

@@ -1,5 +1,5 @@
 type GoldenServices {
-    static UID_CHARS: String = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRDTUVWXYZ";
+    static UID_CHARS: String = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static fn generateUID(): String {
         var res = "";
         var rand = Random {};
@@ -508,7 +508,7 @@ type GoldenServices {
                             var newCityUID: String;
                             do {
                                 newCityUID = GoldenServices::generateUID();
-                            } while (golden_municipalities_by_id.get(newCityUID) != null);
+                            } while (golden_cities_by_id.get(newCityUID) != null);
                             nGoldenCity = node<GoldenCity> {
                                 GoldenCity {
                                     id: newCityUID,
@@ -535,7 +535,7 @@ type GoldenServices {
                                 var newStreetUID: String;
                                 do {
                                     newStreetUID = GoldenServices::generateUID();
-                                } while (golden_municipalities_by_id.get(newStreetUID) != null);
+                                } while (golden_streets_by_id.get(newStreetUID) != null);
                                 nGoldenStreet = node<GoldenStreet> {
                                     GoldenStreet {
                                         id: newStreetUID,
