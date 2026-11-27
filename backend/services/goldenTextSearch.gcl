@@ -5,10 +5,7 @@
 /// Edits are therefore rebuild-only; a creation has no earlier document to layer over, so
 /// `promoteToGolden` appends it live and a scheduled run only calls `refresh()`. `rebuild()`
 /// runs one libpostal parse per POI, needs `GREYCAT_POSTAL_DATA_DIR`, and is admin-triggered.
-// gcl-lint-off volatile-in-node
-// Same library-side false positive as `goldenStreetSearch`'s index.
 var golden_address_index: node<AddressIndex<String>?>;
-// gcl-lint-on volatile-in-node
 
 type GoldenTextSearch {
     /// Pinning the country stops libpostal reading a trailing "Luxembourg" as the country

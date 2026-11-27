@@ -9,10 +9,7 @@
 /// Edits are rebuild-only and creations append, for the reason spelled out in
 /// `goldenTextSearch.gcl`. A source load can create a whole country in one run, so loaders
 /// hand their batch to `appendAll` rather than appending inside their record loop.
-// gcl-lint-off volatile-in-node
-// Same library-side false positive as `goldenStreetSearch`'s index.
 var source_address_indexes: nodeIndex<String, node<AddressIndex<String>?>>;
-// gcl-lint-on volatile-in-node
 
 type SourceTextSearch {
     /// A record with no street still gets a line — its postcode is the only thing that can
