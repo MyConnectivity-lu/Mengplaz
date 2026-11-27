@@ -101,12 +101,7 @@ abstract type OsmLoader {
                     nAddr->markSeen();
                 } catch (e) {
                     issues.set(e.message!!, (issues.get(e.message) ?? 0) + 1);
-                    var addr = OsmPartialAddress::parse(elem);
-                    var nAddr = node<OsmPartialAddress> { addr };
-                    osm_partial_addresses_by_id.set(addr.id, nAddr);
-                    if (addr.position != null) {
-                        osm_partial_addresses_by_geo.set(addr.position, nAddr);
-                    }
+                    OsmLoader::recordPartial(OsmPartialAddress::parse(elem));
                     warn("Could not parse: ${elem}\n${e}");
                 }
             }
@@ -127,6 +122,20 @@ abstract type OsmLoader {
         } else {
             error(response);
             return false;
+        }
+    }
+
+    /// The load runs nightly and re-fails the same malformed elements every time, so a
+    /// node already held for that id must be kept — a new one would orphan the old in the
+    /// graph for good.
+    static fn recordPartial(addr: OsmPartialAddress) {
+        if (osm_partial_addresses_by_id.get(addr.id) != null) {
+            return;
+        }
+        var nAddr = node<OsmPartialAddress> { addr };
+        osm_partial_addresses_by_id.set(addr.id, nAddr);
+        if (addr.position != null) {
+            osm_partial_addresses_by_geo.set(addr.position, nAddr);
         }
     }
 }

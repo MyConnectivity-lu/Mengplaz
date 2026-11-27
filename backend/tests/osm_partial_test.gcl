@@ -1,0 +1,44 @@
+/// `OsmLoader::recordPartial` — the catch-path store for elements `OsmAddress::parse` rejects.
+///
+/// The load runs nightly and re-fails the same malformed elements every time, so the node
+/// the first run recorded must be kept: creating a new one each run orphans the previous
+/// node in the graph for good.
+@test
+fn partialAddressIsRecordedOncePerId() {
+    fixtures_test::reset();
+
+    var elem = Map {};
+    elem.set("id", 123);
+    OsmLoader::recordPartial(OsmPartialAddress::parse(elem));
+    var first = osm_partial_addresses_by_id.get(123);
+    Assert::isNotNull(first);
+
+    OsmLoader::recordPartial(OsmPartialAddress::parse(elem));
+    Assert::equals(osm_partial_addresses_by_id.size(), 1);
+    Assert::equals(osm_partial_addresses_by_id.get(123), first);
+}
+
+@test
+fn partialAddressWithAPositionIsGeoIndexed() {
+    fixtures_test::reset();
+
+    var elem = Map {};
+    elem.set("id", 456);
+    var addr = OsmPartialAddress::parse(elem);
+    addr.position = geo { 49.6116, 6.1319 };
+    OsmLoader::recordPartial(addr);
+
+    Assert::isNotNull(osm_partial_addresses_by_geo.get(geo { 49.6116, 6.1319 }));
+}
+
+@test
+fn partialAddressWithoutAPositionSkipsTheGeoIndex() {
+    fixtures_test::reset();
+
+    var elem = Map {};
+    elem.set("id", 789);
+    OsmLoader::recordPartial(OsmPartialAddress::parse(elem));
+
+    Assert::equals(osm_partial_addresses_by_id.size(), 1);
+    Assert::equals(osm_partial_addresses_by_geo.size(), 0);
+}

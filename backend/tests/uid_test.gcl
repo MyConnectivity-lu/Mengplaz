@@ -1,0 +1,21 @@
+/// `GoldenServices::generateUID` — the id alphabet shared by every golden level.
+///
+/// A collision inside one level is retried out by the `do/while` loops in `fillFromCaclr()`,
+/// so the alphabet only has to be duplicate-free and complete: a duplicated char silently
+/// shrinks the space, a missing one removes a value no retry loop can ever produce.
+@test
+fn uidAlphabetIsTheFull62CharacterSet() {
+    Assert::equals(GoldenServices::UID_CHARS, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+}
+
+@test
+fn generatedUidsAreSixCharsFromTheAlphabet() {
+    var alphabet = GoldenServices::UID_CHARS;
+    for (var i = 0; i < 500; i++) {
+        var uid = GoldenServices::generateUID();
+        Assert::equals(uid.size(), 6);
+        for (var j = 0; j < 6; j++) {
+            Assert::isTrue(alphabet.indexOf(uid.get(j)) != -1);
+        }
+    }
+}
