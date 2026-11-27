@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import type WaInput from '@awesome.me/webawesome/dist/components/input/input.js';
 import '@awesome.me/webawesome/dist/components/input/input.js';
 import '@awesome.me/webawesome/dist/components/spinner/spinner.js';
 import { ICONS } from '~/lib/icons';
@@ -8,6 +9,8 @@ import { ICONS } from '~/lib/icons';
 const SEARCH_MIN_LENGTH = 3;
 const SEARCH_DEBOUNCE_MS = 250;
 const SEARCH_MAX_RESULTS = 10;
+
+let instances = 0;
 
 export interface AddressSelectEvent {
   record: gc.mengplaz.AddressRecordRef;
@@ -20,6 +23,10 @@ export interface AddressSelectEvent {
  * Every keystroke supersedes the previous query: the debounce timer is cleared
  * and the in-flight request aborted, so a slow response for an old prefix can
  * never overwrite the results for the current one.
+ *
+ * The input follows the ARIA combobox pattern: arrow keys move an active option
+ * inside the listbox (skipping the ones that cannot be selected), Enter picks
+ * it, Escape closes the popup and keeps the typed text.
  */
 @customElement('mp-address-search')
 export class MpAddressSearch extends LitElement {
@@ -65,6 +72,10 @@ export class MpAddressSearch extends LitElement {
        No translateX either - the row would overflow the scroll container and add a
        horizontal scrollbar. */
     .item:hover:not(.disabled) {
+      background: var(--gc-surface-2);
+      border-color: var(--gc-accent);
+    }
+    .item.active:not(.disabled) {
       background: var(--gc-surface-2);
       border-color: var(--gc-accent);
     }
@@ -125,11 +136,16 @@ export class MpAddressSearch extends LitElement {
   @state() private results: gc.mengplaz.AddressRecordRef[] = [];
   @state() private searched = false;
   @state() private loading = false;
+  /** Index of the keyboard-highlighted option; -1 when none is. */
+  @state() private activeIndex = -1;
 
-  @query('wa-input') private input?: HTMLInputElement & { value: string };
+  @query('wa-input') private input?: WaInput;
 
   private debounceTimer: number | null = null;
   private searchAbort: AbortController | null = null;
+
+  /** One listbox id per instance, so several searches can live on one page. */
+  private readonly listboxId = `mp-address-search-listbox-${++instances}`;
 
   override disconnectedCallback() {
     super.disconnectedCallback();
@@ -137,9 +153,35 @@ export class MpAddressSearch extends LitElement {
     this.loading = false;
   }
 
+  protected override async firstUpdated() {
+    // `wa-input` keeps the real <input> in its shadow root; the combobox role
+    // belongs there, not on the host — and the host renders after this page.
+    await this.input?.updateComplete;
+    this.syncInputAria();
+  }
+
   protected override updated(changed: Map<string, unknown>) {
     if (changed.has('source') && changed.get('source') !== undefined) {
       this.clear();
+    }
+    this.syncInputAria();
+    this.renderRoot.querySelector('.item.active')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  private syncInputAria() {
+    const input = this.input?.input;
+    if (input == null) {
+      return;
+    }
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-haspopup', 'listbox');
+    input.setAttribute('aria-controls', this.listboxId);
+    input.setAttribute('aria-expanded', this.searched ? 'true' : 'false');
+    if (this.activeIndex >= 0) {
+      input.setAttribute('aria-activedescendant', this.optionId(this.activeIndex));
+    } else {
+      input.removeAttribute('aria-activedescendant');
     }
   }
 
@@ -185,6 +227,7 @@ export class MpAddressSearch extends LitElement {
     }
     this.searchAbort = null;
     this.results = results;
+    this.activeIndex = -1;
     this.searched = true;
     this.loading = false;
   }
@@ -202,6 +245,62 @@ export class MpAddressSearch extends LitElement {
     this.cancelPending();
     this.results = [];
     this.searched = false;
+    this.activeIndex = -1;
+  }
+
+  private optionId(index: number) {
+    return `${this.listboxId}-option-${index}`;
+  }
+
+  /** An option without coordinates cannot be flown to, so the keyboard steps over it. */
+  private isSelectable(index: number) {
+    return !(this.disableNoCoords && this.results[index].record.primaryLocation == null);
+  }
+
+  private onKeydown(e: KeyboardEvent) {
+    if (this.results.length === 0) {
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        const step = e.key === 'ArrowDown' ? 1 : -1;
+        this.moveActive(step, e);
+        return;
+      }
+      case 'Home':
+        this.activeIndex = -1;
+        this.moveActive(1, e);
+        return;
+      case 'End':
+        this.activeIndex = this.results.length;
+        this.moveActive(-1, e);
+        return;
+      case 'Enter': {
+        if (this.activeIndex < 0 || !this.isSelectable(this.activeIndex)) {
+          return;
+        }
+        e.preventDefault();
+        this.select(this.results[this.activeIndex]);
+        return;
+      }
+      case 'Escape':
+        e.preventDefault();
+        this.clearResults();
+        return;
+    }
+  }
+
+  /** Walk the list from the current active option, wrapping once, skipping what cannot be picked. */
+  private moveActive(step: number, e: KeyboardEvent) {
+    e.preventDefault();
+    for (let hops = 0; hops < this.results.length; hops++) {
+      this.activeIndex = (this.activeIndex + step + this.results.length) % this.results.length;
+      if (this.isSelectable(this.activeIndex)) {
+        return;
+      }
+    }
+    this.activeIndex = -1;
   }
 
   private select(r: gc.mengplaz.AddressRecordRef) {
@@ -246,15 +345,17 @@ export class MpAddressSearch extends LitElement {
         </div>
       </div>`;
     }
-    return html`<div class="results" role="listbox">
-      ${this.results.map((r) => {
+    return html`<div class="results" role="listbox" id=${this.listboxId}>
+      ${this.results.map((r, i) => {
         const disabled = this.disableNoCoords && r.record.primaryLocation == null;
+        const active = this.activeIndex === i;
         return html`<button
           type="button"
           role="option"
-          aria-selected="false"
+          id=${this.optionId(i)}
+          aria-selected=${active ? 'true' : 'false'}
           aria-disabled=${disabled ? 'true' : 'false'}
-          class="item ${disabled ? 'disabled' : ''}"
+          class="item ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}"
           title=${disabled ? 'Cannot be selected on the map: this item has no coordinates associated.' : ''}
           @click=${() => (disabled ? undefined : this.select(r))}
         >
@@ -275,6 +376,7 @@ export class MpAddressSearch extends LitElement {
         size="m"
         with-clear
         @input=${() => this.onInput()}
+        @keydown=${(e: KeyboardEvent) => this.onKeydown(e)}
         @wa-clear=${() => this.clearResults()}
       >
         ${this.loading ? html`<wa-spinner slot="start"></wa-spinner>` : html`<wa-icon name="magnifying-glass" slot="start"></wa-icon>`}
